@@ -1,19 +1,18 @@
+import streamlit as st
+import pandas as pd
 from openai import OpenAI
 import os
 
 api_key = os.getenv("OPENAI_API_KEY")
 
 if not api_key:
-    st.error("API Key OpenAI belum dimasukkan di Streamlit Secrets")
+    st.error("API Key belum diisi di Secrets")
     st.stop()
 
 client = OpenAI(api_key=api_key)
-# Judul aplikasi
+
 st.title("Rekomendasi Klasifikasi Arsip AI")
 
-st.write("Masukkan uraian arsip untuk mendapatkan kode klasifikasi")
-
-# Load data
 data = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
 # Input user
