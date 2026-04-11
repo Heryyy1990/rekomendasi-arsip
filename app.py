@@ -61,4 +61,3 @@ if st.button("Cari Klasifikasi"):
 
     else:
         st.warning("Masukkan uraian arsip dulu")
-        perbaiki api key
