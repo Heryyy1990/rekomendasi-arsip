@@ -1,62 +1,45 @@
 import streamlit as st
 import pandas as pd
-from openai import OpenAI
-import os
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-api_key = os.getenv("OPENAI_API_KEY")
+st.set_page_config(page_title="Rekomendasi Klasifikasi Arsip", layout="centered")
 
-if not api_key:
-    st.error("API Key belum diisi di Secrets")
-    st.stop()
+st.title("Rekomendasi Klasifikasi Arsip AI (Gratis)")
+st.write("Masukkan uraian arsip untuk mendapatkan kode klasifikasi")
 
-client = OpenAI(api_key=api_key)
-
-st.title("Rekomendasi Klasifikasi Arsip AI")
-
+# Load CSV
 data = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
-# Input user
+# TF-IDF
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(data['uraian'])
+
+# Input
 uraian_user = st.text_input("Masukkan uraian arsip")
 
 if st.button("Cari Klasifikasi"):
 
-    if uraian_user != "":
+    if uraian_user.strip() != "":
 
-        daftar_klasifikasi = data.to_string()
+        user_vector = vectorizer.transform([uraian_user])
 
-        prompt = f"""
-        Kamu adalah arsiparis.
+        similarity = cosine_similarity(user_vector, tfidf_matrix)
 
-        Tugas kamu memilih kode klasifikasi arsip yang paling sesuai.
+        # Ambil Top 3
+        top_indices = similarity[0].argsort()[-3:][::-1]
 
-        Data klasifikasi arsip:
+        st.success("Top 3 Rekomendasi Klasifikasi")
 
-        {daftar_klasifikasi}
+        for i in top_indices:
+            kode = data.iloc[i]['kode']
+            uraian = data.iloc[i]['uraian']
+            skor = similarity[0][i]
 
-        Uraian arsip:
-
-        {uraian_user}
-
-        Pilih 1 kode yang paling sesuai.
-
-        Tampilkan:
-
-        Kode:
-        Uraian:
-        Alasan:
-        """
-
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        hasil = response.choices[0].message.content
-
-        st.success("Hasil Rekomendasi")
-        st.write(hasil)
+            st.write("-----")
+            st.write("Kode:", kode)
+            st.write("Uraian:", uraian)
+            st.write("Skor:", round(skor, 2))
 
     else:
         st.warning("Masukkan uraian arsip dulu")
