@@ -12,7 +12,7 @@ st.title("EKlasifikasi Arsip")
 st.write("Sistem klasifikasi arsip pintar (AI + Pencarian Cepat)")
 
 # API KEY
-genai.configure(api_key="API_KEY_KAMU")
+genai.configure(api_key="AIzaSyAv0AB13OIRhSJTHI8ghu6Pteow6FKb7b0")
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ========================
