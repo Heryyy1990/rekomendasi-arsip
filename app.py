@@ -5,84 +5,150 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ========================
-# CONFIG
+# CONFIG PAGE
 # ========================
-st.set_page_config(page_title="EKlasifikasi Arsip", layout="centered")
-st.title("EKlasifikasi Arsip")
-st.write("Sistem klasifikasi arsip pintar (AI + Pencarian Cepat)")
+st.set_page_config(
+    page_title="EKlasifikasi Arsip",
+    page_icon="📁",
+    layout="centered"
+)
 
-# API KEY
-genai.configure(api_key="AIzaSyAv0AB13OIRhSJTHI8ghu6Pteow6FKb7b0")
-model = genai.GenerativeModel("gemini-1.5-flash")
+# ========================
+# CUSTOM CSS (BIAR KEREN & MOBILE FRIENDLY)
+# ========================
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f7fa;
+    }
+    .title {
+        text-align: center;
+        font-size: 32px;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .subtitle {
+        text-align: center;
+        font-size: 16px;
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
+    .box {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
+        margin-bottom: 15px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ========================
+# HEADER
+# ========================
+st.markdown('<div class="title">📁 EKlasifikasi Arsip</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Sistem Klasifikasi Arsip Pintar (AI + Pencarian Cepat)</div>', unsafe_allow_html=True)
+
+# ========================
+# API GEMINI (SECRET)
+# ========================
+genai.configure(api_key=st.secrets["AIzaSyAv0AB13OIRhSJTHI8ghu6Pteow6FKb7b0"])
+model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
 # ========================
 # LOAD DATA
 # ========================
-data = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
+@st.cache_data
+def load_data():
+    return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
-# TF-IDF setup
+data = load_data()
+
+# ========================
+# TF-IDF SETUP
+# ========================
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(data['uraian'])
 
 # ========================
-# AUTO SARAN SAAT MENGETIK
+# INPUT USER
 # ========================
-uraian_user = st.text_input("Masukkan uraian arsip")
+st.markdown('<div class="box">', unsafe_allow_html=True)
 
+uraian_user = st.text_input("🔍 Masukkan uraian arsip", placeholder="Contoh: Surat permohonan cuti pegawai")
+
+# ========================
+# AUTO SARAN (REALTIME)
+# ========================
 if uraian_user:
     user_vec = vectorizer.transform([uraian_user])
     sim = cosine_similarity(user_vec, tfidf_matrix)
 
     top_auto = sim[0].argsort()[-3:][::-1]
 
-    st.info("💡 Saran cepat (berdasarkan kata kunci):")
+    st.info("💡 Saran cepat:")
+
     for i in top_auto:
-        st.write(f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']}")
+        st.write(f"**{data.iloc[i]['kode']}** - {data.iloc[i]['uraian']}")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ========================
-# TOMBOL PROSES AI
+# BUTTON AI
 # ========================
-if st.button("🔍 Cari Klasifikasi Pintar"):
+if st.button("🚀 Cari Klasifikasi Pintar", use_container_width=True):
 
     if uraian_user.strip() != "":
 
-        # ========================
-        # STEP 1: TF-IDF (AMBIL TOP 5)
-        # ========================
-        user_vector = vectorizer.transform([uraian_user])
-        similarity = cosine_similarity(user_vector, tfidf_matrix)
+        with st.spinner("🤖 AI sedang menganalisis..."):
 
-        top_indices = similarity[0].argsort()[-5:][::-1]
+            try:
+                # STEP 1: TF-IDF ambil kandidat
+                user_vector = vectorizer.transform([uraian_user])
+                similarity = cosine_similarity(user_vector, tfidf_matrix)
 
-        kandidat = ""
-        for i in top_indices:
-            kandidat += f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']}\n"
+                top_indices = similarity[0].argsort()[-5:][::-1]
 
-        # ========================
-        # STEP 2: GEMINI PILIH TERBAIK
-        # ========================
-        prompt = f"""
-        Kamu adalah ahli klasifikasi arsip pemerintahan.
+                kandidat = ""
+                for i in top_indices:
+                    kandidat += f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']}\n"
 
-        Berikut kandidat klasifikasi:
-        {kandidat}
+                # STEP 2: GEMINI
+                prompt = f"""
+                Kamu adalah ahli klasifikasi arsip pemerintahan.
 
-        Uraian arsip:
-        "{uraian_user}"
+                Kandidat klasifikasi:
+                {kandidat}
 
-        Tugas:
-        Pilih 3 klasifikasi paling tepat.
+                Uraian arsip:
+                "{uraian_user}"
 
-        Jawab format:
-        1. Kode - Uraian
-        2. Kode - Uraian
-        3. Kode - Uraian
-        """
+                Pilih 3 klasifikasi paling tepat.
 
-        response = model.generate_content(prompt)
+                Format:
+                1. Kode - Uraian
+                2. Kode - Uraian
+                3. Kode - Uraian
+                """
 
-        st.success("🎯 Hasil Klasifikasi Pintar (AI)")
-        st.write(response.text)
+                response = model.generate_content(prompt)
+
+                st.success("🎯 Hasil Klasifikasi AI")
+                st.markdown(f'<div class="box">{response.text}</div>', unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"Terjadi error: {e}")
 
     else:
-        st.warning("Masukkan uraian arsip dulu")
+        st.warning("⚠️ Masukkan uraian arsip terlebih dahulu")
+
+# ========================
+# FOOTER
+# ========================
+st.markdown("""
+---
+<center style="color: gray; font-size: 12px;">
+Aplikasi EKlasifikasi Arsip © 2026  
+Dibuat dengan AI (Gemini) + Streamlit
+</center>
+""", unsafe_allow_html=True)
