@@ -52,7 +52,7 @@ st.markdown('<div class="subtitle">Sistem Klasifikasi Arsip Pintar (AI + Pencari
 # ========================
 # API GEMINI (SECRET)
 # ========================
-genai.configure(api_key=st.secrets["AIzaSyAv0AB13OIRhSJTHI8ghu6Pteow6FKb7b0"])
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
 # ========================
