@@ -9,12 +9,12 @@ from docx import Document
 # ========================
 # CONFIG
 # ========================
-st.set_page_config(page_title="EKlasifikasi Arsip PRO", page_icon="📁")
-st.title("📁 EKlasifikasi Arsip PRO")
-st.caption("Versi Stabil + AI + Smart System")
+st.set_page_config(page_title="EKlasifikasi Arsip", page_icon="📁")
+st.title("📁 EKlasifikasi Arsip")
+st.caption("Versi Stabil (Tanpa Ubah CSV) + AI")
 
 # ========================
-# GEMINI (OPSIONAL)
+# GEMINI (TETAP ADA)
 # ========================
 model = None
 try:
@@ -27,105 +27,52 @@ except:
     model = None
 
 # ========================
-# LOAD & CLEAN DATA 🔥
+# LOAD DATA (JANGAN DIUBAH)
 # ========================
 @st.cache_data
 def load_data():
-    try:
-        df_raw = pd.read_csv("klasifikasi_arsip.csv", encoding="latin1")
-    except:
-        df_raw = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8", errors="ignore")
+    return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
-    df_raw = df_raw.astype(str)
+try:
+    data = load_data()
+except:
+    st.error("Gagal membaca CSV. Pastikan kolom: kode, uraian")
+    st.stop()
 
-    hasil = []
-
-    for col in df_raw.columns:
-        for val in df_raw[col]:
-            if "," in val:
-                parts = val.split(",", 1)
-                kode = parts[0].strip()
-                uraian = parts[1].strip()
-
-                if len(kode) > 0 and len(uraian) > 3:
-                    hasil.append([kode, uraian])
-
-    df = pd.DataFrame(hasil, columns=["kode", "uraian"])
-
-    # bersihkan
-    df = df.drop_duplicates()
-    df = df.dropna()
-
-    return df
-
-data = load_data()
+# validasi kolom
+if "kode" not in data.columns or "uraian" not in data.columns:
+    st.error("CSV harus punya kolom: kode dan uraian")
+    st.stop()
 
 # ========================
-# KAMUS ISTILAH 🔥
-# ========================
-keyword_map = {
-    "cuti": "cuti pegawai",
-    "izin": "cuti pegawai",
-    "libur": "cuti pegawai",
-    "pegawai": "pegawai negeri sipil",
-    "asn": "pegawai negeri sipil",
-    "pns": "pegawai negeri sipil",
-    "gaji": "penggajian pegawai",
-    "honor": "penggajian pegawai",
-    "tunjangan": "penggajian pegawai",
-    "rapat": "kegiatan rapat dinas",
-    "perjalanan": "perjalanan dinas",
-    "dinas luar": "perjalanan dinas",
-    "laporan": "pelaporan kegiatan",
-    "arsip": "pengelolaan arsip",
-    "surat": "pengelolaan surat"
-}
-
-# ========================
-# STOPWORDS
-# ========================
-stopwords_id = [
-    "dan","yang","di","ke","dari","untuk","pada","dengan",
-    "adalah","itu","ini","dalam","oleh","atau","sebagai"
-]
-
-# ========================
-# PREPROCESS
+# PREPROCESS (SIMPLE & AMAN)
 # ========================
 def preprocess(text):
     text = text.lower()
-
-    for k, v in keyword_map.items():
-        text = text.replace(k, v)
-
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
+    return text
 
-    words = text.split()
-    words = [w for w in words if w not in stopwords_id]
-
-    return " ".join(words)
-
-data["uraian_clean"] = data["uraian"].apply(preprocess)
+data["uraian_clean"] = data["uraian"].astype(str).apply(preprocess)
 
 # ========================
-# DOCX SMART READER 🔥
+# DOCX READER (LEBIH AKURAT)
 # ========================
-def read_docx_smart(file):
+def read_docx_best(file):
     try:
         doc = Document(file)
-        paragraphs = [p.text.strip() for p in doc.paragraphs if len(p.text.strip()) > 30]
+        text = " ".join([p.text for p in doc.paragraphs if len(p.text) > 20])
 
-        if not paragraphs:
-            return ""
+        sentences = text.split(".")
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 30]
 
-        full_text = " ".join(paragraphs)
+        # ambil 3 kalimat tengah (biasanya inti)
+        if len(sentences) > 5:
+            mid = len(sentences) // 2
+            selected = sentences[mid-1:mid+2]
+        else:
+            selected = sentences[:3]
 
-        sentences = full_text.split(".")
-        sentences = [s.strip() for s in sentences if len(s.strip()) > 40]
-
-        sentences = sorted(sentences, key=len, reverse=True)[:5]
-
-        return ". ".join(sentences)
+        return ". ".join(selected)
 
     except:
         return ""
@@ -136,46 +83,20 @@ def read_docx_smart(file):
 uploaded = st.file_uploader("📂 Upload Word (.docx)", type=["docx"])
 
 if uploaded:
-    uraian_user = read_docx_smart(uploaded)
-    if uraian_user:
-        st.success("Dokumen dipahami (inti diambil)")
-    else:
-        st.warning("Dokumen tidak terbaca")
+    uraian_user = read_docx_best(uploaded)
+    st.success("Dokumen dibaca")
 else:
-    uraian_user = st.text_input("🔍 Masukkan uraian atau kode:")
+    uraian_user = st.text_input("🔍 Masukkan uraian arsip:")
 
 # ========================
-# DETEKSI KODE LANGSUNG
+# TF-IDF GLOBAL (SIMPLE)
 # ========================
-if uraian_user:
-    match = data[data["kode"] == uraian_user.strip()]
-    if not match.empty:
-        row = match.iloc[0]
-        st.success("🎯 Kode ditemukan langsung")
-        st.write(f"{row['kode']} - {row['uraian']}")
-        st.stop()
-
-# ========================
-# TF-IDF + BOOST 🔥
-# ========================
-def tfidf_boost(df, text, top_n=5):
-    vec = TfidfVectorizer(
-        ngram_range=(1,2),
-        sublinear_tf=True,
-        max_features=5000
-    )
-
+def cari_kandidat(df, text, top_n=5):
+    vec = TfidfVectorizer(ngram_range=(1,2))
     tfidf = vec.fit_transform(df["uraian_clean"])
     user_vec = vec.transform([preprocess(text)])
 
     sim = cosine_similarity(user_vec, tfidf)[0]
-
-    # BOOST sederhana
-    for i, uraian in enumerate(df["uraian_clean"]):
-        for word in text.lower().split():
-            if word in uraian:
-                sim[i] += 0.1
-
     idx = sim.argsort()[-top_n:][::-1]
 
     hasil = df.iloc[idx].copy()
@@ -188,35 +109,22 @@ def tfidf_boost(df, text, top_n=5):
 # ========================
 if uraian_user:
 
-    # AI ringkasan
-    if model and len(uraian_user) > 300:
-        try:
-            res = model.generate_content(f"Ringkas inti dokumen:\n{uraian_user}")
-            if hasattr(res, "text"):
-                uraian_user = res.text
-                st.info("🧠 Ringkasan AI digunakan")
-        except:
-            pass
+    kandidat = cari_kandidat(data, uraian_user, 5)
 
-    kandidat = tfidf_boost(data, uraian_user, 5)
-
-    kandidat["panjang"] = kandidat["kode"].apply(len)
-    kandidat = kandidat.sort_values(by=["skor","panjang"], ascending=False)
-
-    # tampilkan kandidat
     st.info("💡 Kandidat terbaik:")
     kandidat_text = ""
+
     for _, row in kandidat.iterrows():
         st.write(f"{row['kode']} - {row['uraian']} ({row['skor']*100:.2f}%)")
         kandidat_text += f"{row['kode']} - {row['uraian']}\n"
 
+    # hasil sistem
     terbaik = kandidat.iloc[0]
-
     st.success("🎯 Rekomendasi Sistem")
     st.write(f"**{terbaik['kode']} - {terbaik['uraian']}**")
 
     # ========================
-    # AI FINAL
+    # AI FINAL (TETAP ADA 🔥)
     # ========================
     if model:
         if st.button("🚀 Validasi dengan AI"):
@@ -244,4 +152,4 @@ Alasan singkat
 # FOOTER
 # ========================
 st.markdown("---")
-st.caption("EKlasifikasi Arsip PRO © 2026 | Ultimate Stable Version")
+st.caption("EKlasifikasi Arsip © 2026 | Clean Version")
