@@ -11,7 +11,7 @@ from docx import Document
 # ========================
 st.set_page_config(page_title="EKlasifikasi Arsip PRO", page_icon="📁")
 st.title("📁 EKlasifikasi Arsip PRO")
-st.caption("Ultimate Version: Smart + AI + Kamus Istilah")
+st.caption("Versi Stabil + AI + Smart System")
 
 # ========================
 # GEMINI (OPSIONAL)
@@ -27,22 +27,34 @@ except:
     model = None
 
 # ========================
-# LOAD DATA (AUTO CLEAN)
+# LOAD & CLEAN DATA 🔥
 # ========================
 @st.cache_data
 def load_data():
-    df = pd.read_csv("klasifikasi_arsip.csv", encoding="latin1")
+    try:
+        df_raw = pd.read_csv("klasifikasi_arsip.csv", encoding="latin1")
+    except:
+        df_raw = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8", errors="ignore")
 
-    df = df.iloc[:, 0]
-    df = df.str.split(",", n=1, expand=True)
-    df.columns = ["kode", "uraian"]
+    df_raw = df_raw.astype(str)
 
-    df["kode"] = df["kode"].str.strip()
-    df["uraian"] = df["uraian"].str.strip()
+    hasil = []
 
-    df = df.dropna()
-    df = df[df["uraian"].str.len() > 3]
+    for col in df_raw.columns:
+        for val in df_raw[col]:
+            if "," in val:
+                parts = val.split(",", 1)
+                kode = parts[0].strip()
+                uraian = parts[1].strip()
+
+                if len(kode) > 0 and len(uraian) > 3:
+                    hasil.append([kode, uraian])
+
+    df = pd.DataFrame(hasil, columns=["kode", "uraian"])
+
+    # bersihkan
     df = df.drop_duplicates()
+    df = df.dropna()
 
     return df
 
@@ -55,12 +67,18 @@ keyword_map = {
     "cuti": "cuti pegawai",
     "izin": "cuti pegawai",
     "libur": "cuti pegawai",
+    "pegawai": "pegawai negeri sipil",
+    "asn": "pegawai negeri sipil",
+    "pns": "pegawai negeri sipil",
     "gaji": "penggajian pegawai",
     "honor": "penggajian pegawai",
     "tunjangan": "penggajian pegawai",
     "rapat": "kegiatan rapat dinas",
     "perjalanan": "perjalanan dinas",
-    "dinas luar": "perjalanan dinas"
+    "dinas luar": "perjalanan dinas",
+    "laporan": "pelaporan kegiatan",
+    "arsip": "pengelolaan arsip",
+    "surat": "pengelolaan surat"
 }
 
 # ========================
@@ -77,7 +95,7 @@ stopwords_id = [
 def preprocess(text):
     text = text.lower()
 
-    for k,v in keyword_map.items():
+    for k, v in keyword_map.items():
         text = text.replace(k, v)
 
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
@@ -87,10 +105,10 @@ def preprocess(text):
 
     return " ".join(words)
 
-data["uraian_clean"] = data["uraian"].astype(str).apply(preprocess)
+data["uraian_clean"] = data["uraian"].apply(preprocess)
 
 # ========================
-# DOCX SMART
+# DOCX SMART READER 🔥
 # ========================
 def read_docx_smart(file):
     try:
@@ -124,10 +142,10 @@ if uploaded:
     else:
         st.warning("Dokumen tidak terbaca")
 else:
-    uraian_user = st.text_input("🔍 Masukkan uraian / kode:")
+    uraian_user = st.text_input("🔍 Masukkan uraian atau kode:")
 
 # ========================
-# DETEKSI KODE LANGSUNG 🔥
+# DETEKSI KODE LANGSUNG
 # ========================
 if uraian_user:
     match = data[data["kode"] == uraian_user.strip()]
@@ -138,17 +156,21 @@ if uraian_user:
         st.stop()
 
 # ========================
-# TF-IDF + BOOST
+# TF-IDF + BOOST 🔥
 # ========================
 def tfidf_boost(df, text, top_n=5):
-    vec = TfidfVectorizer(ngram_range=(1,2), sublinear_tf=True, max_features=5000)
+    vec = TfidfVectorizer(
+        ngram_range=(1,2),
+        sublinear_tf=True,
+        max_features=5000
+    )
 
     tfidf = vec.fit_transform(df["uraian_clean"])
     user_vec = vec.transform([preprocess(text)])
 
     sim = cosine_similarity(user_vec, tfidf)[0]
 
-    # 🔥 BOOST jika kata muncul
+    # BOOST sederhana
     for i, uraian in enumerate(df["uraian_clean"]):
         for word in text.lower().split():
             if word in uraian:
@@ -166,13 +188,13 @@ def tfidf_boost(df, text, top_n=5):
 # ========================
 if uraian_user:
 
-    # AI RINGKAS
+    # AI ringkasan
     if model and len(uraian_user) > 300:
         try:
             res = model.generate_content(f"Ringkas inti dokumen:\n{uraian_user}")
             if hasattr(res, "text"):
                 uraian_user = res.text
-                st.info("🧠 Ringkasan AI aktif")
+                st.info("🧠 Ringkasan AI digunakan")
         except:
             pass
 
@@ -181,11 +203,8 @@ if uraian_user:
     kandidat["panjang"] = kandidat["kode"].apply(len)
     kandidat = kandidat.sort_values(by=["skor","panjang"], ascending=False)
 
-    # ========================
-    # TAMPILKAN
-    # ========================
-    st.info("💡 Kandidat terbaik")
-
+    # tampilkan kandidat
+    st.info("💡 Kandidat terbaik:")
     kandidat_text = ""
     for _, row in kandidat.iterrows():
         st.write(f"{row['kode']} - {row['uraian']} ({row['skor']*100:.2f}%)")
@@ -213,16 +232,16 @@ Uraian:
 
 Jawaban:
 Kode - Uraian
-Alasan
+Alasan singkat
 """
                 res = model.generate_content(prompt)
                 st.success("🎯 Hasil AI")
                 st.write(res.text)
             except:
-                st.warning("AI gagal → gunakan hasil sistem")
+                st.warning("AI gagal / quota habis")
 
 # ========================
 # FOOTER
 # ========================
 st.markdown("---")
-st.caption("EKlasifikasi Arsip PRO © 2026 | by Heryanto S.Pd")
+st.caption("EKlasifikasi Arsip PRO © 2026 | Ultimate Stable Version")
