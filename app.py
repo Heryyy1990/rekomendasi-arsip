@@ -4,14 +4,13 @@ import re
 import google.generativeai as genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from docx import Document
 
 # ========================
 # CONFIG
 # ========================
 st.set_page_config(page_title="EKlasifikasi Arsip", page_icon="📁")
 st.title("📁 EKlasifikasi Arsip")
-st.caption("Versi Stabil (Tanpa Ubah CSV) + AI")
+st.caption("Versi Stabil + Input Manual + AI")
 
 # ========================
 # GEMINI (TETAP ADA)
@@ -27,7 +26,7 @@ except:
     model = None
 
 # ========================
-# LOAD DATA (JANGAN DIUBAH)
+# LOAD DATA (TIDAK DIUBAH)
 # ========================
 @st.cache_data
 def load_data():
@@ -36,16 +35,16 @@ def load_data():
 try:
     data = load_data()
 except:
-    st.error("Gagal membaca CSV. Pastikan kolom: kode, uraian")
+    st.error("Gagal membaca CSV. Pastikan ada kolom 'kode' dan 'uraian'")
     st.stop()
 
-# validasi kolom
+# validasi
 if "kode" not in data.columns or "uraian" not in data.columns:
-    st.error("CSV harus punya kolom: kode dan uraian")
+    st.error("CSV harus memiliki kolom: kode dan uraian")
     st.stop()
 
 # ========================
-# PREPROCESS (SIMPLE & AMAN)
+# PREPROCESS SEDERHANA
 # ========================
 def preprocess(text):
     text = text.lower()
@@ -55,41 +54,27 @@ def preprocess(text):
 data["uraian_clean"] = data["uraian"].astype(str).apply(preprocess)
 
 # ========================
-# DOCX READER (LEBIH AKURAT)
+# INPUT USER
 # ========================
-def read_docx_best(file):
-    try:
-        doc = Document(file)
-        text = " ".join([p.text for p in doc.paragraphs if len(p.text) > 20])
-
-        sentences = text.split(".")
-        sentences = [s.strip() for s in sentences if len(s.strip()) > 30]
-
-        # ambil 3 kalimat tengah (biasanya inti)
-        if len(sentences) > 5:
-            mid = len(sentences) // 2
-            selected = sentences[mid-1:mid+2]
-        else:
-            selected = sentences[:3]
-
-        return ". ".join(selected)
-
-    except:
-        return ""
+uraian_user = st.text_input("🔍 Masukkan uraian atau kode klasifikasi:")
 
 # ========================
-# INPUT
+# DETEKSI KODE LANGSUNG 🔥
 # ========================
-uploaded = st.file_uploader("📂 Upload Word (.docx)", type=["docx"])
+if uraian_user:
+    kode_input = uraian_user.strip()
 
-if uploaded:
-    uraian_user = read_docx_best(uploaded)
-    st.success("Dokumen dibaca")
-else:
-    uraian_user = st.text_input("🔍 Masukkan uraian arsip:")
+    # cocokkan kode persis
+    match = data[data["kode"].astype(str) == kode_input]
+
+    if not match.empty:
+        row = match.iloc[0]
+        st.success("🎯 Hasil Pencarian Kode")
+        st.write(f"**{row['kode']} - {row['uraian']}**")
+        st.stop()
 
 # ========================
-# TF-IDF GLOBAL (SIMPLE)
+# TF-IDF PENCARIAN
 # ========================
 def cari_kandidat(df, text, top_n=5):
     vec = TfidfVectorizer(ngram_range=(1,2))
@@ -124,7 +109,7 @@ if uraian_user:
     st.write(f"**{terbaik['kode']} - {terbaik['uraian']}**")
 
     # ========================
-    # AI FINAL (TETAP ADA 🔥)
+    # AI (TETAP ADA 🔥)
     # ========================
     if model:
         if st.button("🚀 Validasi dengan AI"):
@@ -152,4 +137,4 @@ Alasan singkat
 # FOOTER
 # ========================
 st.markdown("---")
-st.caption("EKlasifikasi Arsip © 2026 | Clean Version")
+st.caption("EKlasifikasi Arsip © 2026 | by Heryanto S.Pd")
