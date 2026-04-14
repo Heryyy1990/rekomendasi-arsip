@@ -10,21 +10,15 @@ from docx import Document
 # CONFIG
 # ========================
 st.set_page_config(page_title="EKlasifikasi Arsip", page_icon="📁")
-
 st.title("📁 EKlasifikasi Arsip")
-st.caption("TF-IDF + AI (Stabil & Akurat)")
+st.caption("Versi Akurat: Smart Document + TF-IDF + AI")
 
 # ========================
-# API GEMINI
+# API GEMINI (OPSIONAL)
 # ========================
-try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-except:
-    st.warning("API Key belum diatur, mode AI tidak aktif")
-
-# auto detect model
 model = None
 try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     for m in genai.list_models():
         if "generateContent" in m.supported_generation_methods:
             model = genai.GenerativeModel(m.name)
@@ -46,24 +40,60 @@ except:
     st.stop()
 
 # ========================
+# STOPWORDS
+# ========================
+stopwords_id = [
+    "dan","yang","di","ke","dari","untuk","pada","dengan",
+    "adalah","itu","ini","dalam","oleh","atau","sebagai"
+]
+
+# ========================
+# KEYWORD MAPPING (OPSIONAL)
+# ========================
+keyword_map = {
+    "cuti": "cuti pegawai",
+    "izin": "cuti pegawai",
+    "gaji": "penggajian pegawai",
+    "honor": "penggajian pegawai",
+}
+
+# ========================
 # PREPROCESS
 # ========================
 def preprocess(text):
     text = text.lower()
+
+    for k,v in keyword_map.items():
+        text = text.replace(k, v)
+
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
+    words = text.split()
+    words = [w for w in words if w not in stopwords_id]
+
+    return " ".join(words)
 
 data['uraian_clean'] = data['uraian'].astype(str).apply(preprocess)
 
 # ========================
-# READ WORD
+# SMART DOCX READER
 # ========================
-def read_docx(file):
+def read_docx_smart(file):
     try:
         doc = Document(file)
-        teks = [p.text.strip() for p in doc.paragraphs if len(p.text.strip()) > 20]
-        return " ".join(teks[:5])
+        paragraphs = [p.text.strip() for p in doc.paragraphs if len(p.text.strip()) > 30]
+
+        if len(paragraphs) == 0:
+            return ""
+
+        full_text = " ".join(paragraphs)
+
+        sentences = full_text.split(".")
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 40]
+
+        sentences = sorted(sentences, key=len, reverse=True)[:5]
+
+        return ". ".join(sentences)
+
     except:
         return ""
 
@@ -73,9 +103,9 @@ def read_docx(file):
 uploaded = st.file_uploader("📂 Upload dokumen Word (.docx)", type=["docx"])
 
 if uploaded:
-    uraian_user = read_docx(uploaded)
+    uraian_user = read_docx_smart(uploaded)
     if uraian_user:
-        st.success("Dokumen berhasil dibaca")
+        st.success("Dokumen berhasil diproses (inti diambil)")
     else:
         st.warning("Dokumen kosong / tidak terbaca")
 else:
@@ -87,7 +117,8 @@ else:
 def tfidf_global(df, text, top_n=5):
     vec = TfidfVectorizer(
         ngram_range=(1,2),
-        sublinear_tf=True
+        sublinear_tf=True,
+        max_features=5000
     )
     
     tfidf = vec.fit_transform(df['uraian_clean'])
@@ -106,9 +137,20 @@ def tfidf_global(df, text, top_n=5):
 # ========================
 if uraian_user:
 
+    # 🔥 OPSIONAL: RINGKAS DENGAN AI
+    if model and len(uraian_user) > 300:
+        try:
+            prompt = f"Ringkas inti dokumen ini dalam 1 kalimat:\n{uraian_user}"
+            res = model.generate_content(prompt)
+            if hasattr(res, "text"):
+                uraian_user = res.text
+                st.info("🧠 Ringkasan AI digunakan")
+        except:
+            pass
+
     kandidat = tfidf_global(data, uraian_user, 5)
 
-    # urutkan: skor + panjang kode (lebih spesifik)
+    # urutkan (skor + panjang kode)
     kandidat['panjang_kode'] = kandidat['kode'].astype(str).apply(len)
     kandidat = kandidat.sort_values(by=['skor','panjang_kode'], ascending=False)
 
@@ -123,15 +165,15 @@ if uraian_user:
         kandidat_text += f"{row['kode']} - {row['uraian']}\n"
 
     # ========================
-    # HASIL OTOMATIS (NON AI)
+    # HASIL SISTEM
     # ========================
     terbaik = kandidat.iloc[0]
-    
+
     st.success("🎯 Rekomendasi Sistem")
     st.write(f"**{terbaik['kode']} - {terbaik['uraian']}**")
 
     # ========================
-    # AI (OPSIONAL)
+    # AI FINAL (OPSIONAL)
     # ========================
     if model:
         if st.button("🚀 Perjelas dengan AI"):
@@ -157,13 +199,13 @@ Alasan singkat
                     st.success("🎯 Hasil AI")
                     st.write(res.text)
                 else:
-                    raise Exception("Tidak ada respon AI")
+                    raise Exception()
 
-            except Exception as e:
+            except:
                 st.warning("AI gagal / quota habis → gunakan hasil sistem")
 
 # ========================
 # FOOTER
 # ========================
 st.markdown("---")
-st.caption("EKlasifikasi Arsip by Heryanto S.Pd © 2026 | Hybrid System")
+st.caption("EKlasifikasi Arsip © 2026 | by Heryanto S.Pd")
