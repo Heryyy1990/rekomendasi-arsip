@@ -27,13 +27,7 @@ model = genai.GenerativeModel("models/gemini-1.5-flash")
 def load_data():
     return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
-data = load_data()
-
-# ========================
-# TF-IDF
-# ========================
-vectorizer = TfidfVectorizer()
-tfidf_matrix = vectorizer.fit_transform(data['uraian'])
+data_awal = load_data()
 
 # ========================
 # SESSION STATE
@@ -42,14 +36,12 @@ if "history" not in st.session_state:
     st.session_state.history = []
 
 # ========================
-# FUNCTION BACA WORD (AMBIL INTI)
+# FUNCTION BACA WORD
 # ========================
 def read_docx(file):
     doc = Document(file)
     paragraphs = [p.text.strip() for p in doc.paragraphs if len(p.text.strip()) > 30]
-
-    # ambil maksimal 5 paragraf penting
-    return " ".join(paragraphs[:5])
+    return " ".join(paragraphs[:5])  # ambil inti saja
 
 # ========================
 # INPUT
@@ -60,17 +52,35 @@ uraian_user = ""
 
 if uploaded_file:
     uraian_user = read_docx(uploaded_file)
-    st.success("Dokumen berhasil diproses (inti diambil)")
-    st.text_area("📄 Ringkasan isi dokumen:", uraian_user, height=150)
+    st.success("Dokumen berhasil diproses")
 else:
     uraian_user = st.text_input("🔍 Masukkan uraian atau kode klasifikasi:")
 
 # ========================
 # FILTER
 # ========================
+data = data_awal.copy()
+
 filter_kata = st.text_input("📂 Filter bidang (opsional)")
+
 if filter_kata:
     data = data[data['uraian'].str.contains(filter_kata, case=False, na=False)]
+
+# reset index (WAJIB)
+data = data.reset_index(drop=True)
+
+# ========================
+# VALIDASI DATA
+# ========================
+if len(data) == 0:
+    st.warning("Data tidak ditemukan sesuai filter")
+    st.stop()
+
+# ========================
+# TF-IDF (SELALU SESUAI DATA)
+# ========================
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(data['uraian'])
 
 # ========================
 # DETEKSI KODE
@@ -83,7 +93,7 @@ if uraian_user:
             st.write(f"{row['kode']} - {row['uraian']}")
 
 # ========================
-# SARAN CEPAT + SKOR
+# SARAN CEPAT (AMAN)
 # ========================
 if uraian_user:
     user_vec = vectorizer.transform([uraian_user])
@@ -93,16 +103,17 @@ if uraian_user:
 
     st.info("💡 Saran cepat:")
     for i in top_auto:
-        skor = sim[0][i] * 100
-        st.write(f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']} ({skor:.2f}%)")
+        if i < len(data):
+            skor = sim[0][i] * 100
+            st.write(f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']} ({skor:.2f}%)")
 
 # ========================
-# AI BUTTON (1 HASIL UTAMA)
+# AI BUTTON
 # ========================
 if st.button("🚀 Analisis Klasifikasi Utama", use_container_width=True):
 
     if uraian_user.strip() != "":
-        with st.spinner("🤖 AI sedang menganalisis inti dokumen..."):
+        with st.spinner("🤖 AI sedang menganalisis..."):
 
             try:
                 user_vector = vectorizer.transform([uraian_user])
@@ -112,18 +123,17 @@ if st.button("🚀 Analisis Klasifikasi Utama", use_container_width=True):
 
                 kandidat = ""
                 for i in top_indices:
-                    kandidat += f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']}\n"
+                    if i < len(data):
+                        kandidat += f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']}\n"
 
-                # PROMPT FINAL (1 HASIL DOMINAN)
                 prompt = f"""
 Kamu adalah arsiparis profesional.
 
-Tugas:
-Tentukan 1 kode klasifikasi arsip yang PALING MEWAKILI keseluruhan isi dokumen.
+Tentukan 1 kode klasifikasi arsip yang PALING MEWAKILI dokumen ini.
 
 Langkah:
 1. Pahami inti dokumen
-2. Fokus pada masalah utama (bukan detail kecil)
+2. Fokus pada masalah utama
 3. Pilih kode paling dominan
 
 Kandidat:
@@ -132,7 +142,7 @@ Kandidat:
 Isi dokumen:
 {uraian_user}
 
-Jawaban format:
+Jawaban:
 Kode - Uraian
 Alasan singkat
 """
@@ -140,7 +150,7 @@ Alasan singkat
                 response = model.generate_content(prompt)
                 hasil = response.text
 
-                st.success("🎯 Klasifikasi Utama Dokumen")
+                st.success("🎯 Klasifikasi Utama")
                 st.write(hasil)
 
                 # simpan riwayat
@@ -175,7 +185,7 @@ if jumlah > 0:
 # RIWAYAT
 # ========================
 if st.session_state.history:
-    st.markdown("## 🧠 Riwayat Terakhir")
+    st.markdown("## 🧠 Riwayat")
     for h in reversed(st.session_state.history[-5:]):
         st.write(f"🔎 {h['input']}...")
         st.write(h['hasil'])
