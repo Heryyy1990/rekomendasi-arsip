@@ -245,5 +245,3 @@ Alasan singkat
 # ========================
 st.markdown("---")
 st.caption("EKlasifikasi Arsip PRO © 2026 | Ultimate Stable Version")
-st.markdown("---")
-st.caption("EKlasifikasi Arsip PRO © 2026 | Ultimate Stable Version")
