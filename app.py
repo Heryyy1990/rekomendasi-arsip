@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
+import google.generativeai as genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from docx import Document
@@ -9,9 +10,30 @@ from docx import Document
 # CONFIG
 # ========================
 st.set_page_config(page_title="EKlasifikasi Arsip PRO", page_icon="📁")
-
 st.title("📁 EKlasifikasi Arsip PRO")
-st.caption("Klasifikasi Arsip Berbasis Hierarki + Analisis Teks")
+st.caption("Hybrid: Hierarki + TF-IDF + AI")
+
+# ========================
+# API GEMINI (AUTO SAFE)
+# ========================
+try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+except:
+    st.error("API KEY belum diatur")
+    st.stop()
+
+# AUTO MODEL
+model = None
+try:
+    for m in genai.list_models():
+        if "generateContent" in m.supported_generation_methods:
+            model = genai.GenerativeModel(m.name)
+            break
+except:
+    pass
+
+if model is None:
+    model = genai.GenerativeModel("models/gemini-1.0-pro")
 
 # ========================
 # LOAD DATA
@@ -20,11 +42,7 @@ st.caption("Klasifikasi Arsip Berbasis Hierarki + Analisis Teks")
 def load_data():
     return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
-try:
-    data = load_data()
-except:
-    st.error("File klasifikasi_arsip.csv tidak ditemukan")
-    st.stop()
+data = load_data()
 
 # ========================
 # PREPROCESS
@@ -38,111 +56,117 @@ def preprocess(text):
 data['uraian_clean'] = data['uraian'].astype(str).apply(preprocess)
 
 # ========================
-# LEVEL KODE
+# LEVEL
 # ========================
-def get_level(kode):
-    return kode.count('.')
-
-data['level'] = data['kode'].apply(get_level)
-
-data_lv1 = data[data['level'] == 0]
-data_lv2 = data[data['level'] == 1]
-data_lv3 = data[data['level'] == 2]
+data['level'] = data['kode'].apply(lambda x: x.count('.'))
 
 # ========================
-# FUNCTION WORD
+# WORD READER
 # ========================
 def read_docx(file):
     doc = Document(file)
-    paragraphs = [p.text.strip() for p in doc.paragraphs if len(p.text.strip()) > 20]
-    return " ".join(paragraphs[:5])
+    return " ".join([p.text for p in doc.paragraphs if len(p.text) > 20][:5])
 
 # ========================
 # INPUT
 # ========================
-uploaded_file = st.file_uploader("📂 Upload dokumen Word (.docx)", type=["docx"])
+uploaded = st.file_uploader("📂 Upload Word", type=["docx"])
 
-if uploaded_file:
-    uraian_user = read_docx(uploaded_file)
-    st.success("Dokumen berhasil dibaca")
+if uploaded:
+    uraian_user = read_docx(uploaded)
+    st.success("Dokumen dibaca")
 else:
-    uraian_user = st.text_input("🔍 Masukkan uraian arsip:")
+    uraian_user = st.text_input("🔍 Masukkan uraian:")
 
 # ========================
-# FUNCTION CARI TERBAIK
+# FUNCTION TFIDF
 # ========================
-def cari_terbaik(df, text):
+def tfidf_search(df, text, top_n=3):
     if len(df) == 0:
-        return None
+        return []
 
-    vectorizer = TfidfVectorizer(
-        ngram_range=(1,2),
-        sublinear_tf=True
-    )
+    vec = TfidfVectorizer(ngram_range=(1,2))
+    tfidf = vec.fit_transform(df['uraian_clean'])
+    user_vec = vec.transform([preprocess(text)])
 
-    tfidf = vectorizer.fit_transform(df['uraian_clean'])
-    user_vec = vectorizer.transform([preprocess(text)])
+    sim = cosine_similarity(user_vec, tfidf)[0]
+    idx = sim.argsort()[-top_n:][::-1]
 
-    sim = cosine_similarity(user_vec, tfidf)
-    idx = sim[0].argmax()
-
-    return df.iloc[idx], sim[0][idx]
+    return df.iloc[idx]
 
 # ========================
-# PROSES UTAMA
+# PROSES
 # ========================
 if uraian_user:
 
     # LEVEL 1
-    hasil_lv1, skor1 = cari_terbaik(data_lv1, uraian_user)
+    lv1 = data[data['level'] == 0]
+    hasil_lv1 = tfidf_search(lv1, uraian_user, 1)
+
+    if hasil_lv1.empty:
+        st.warning("Tidak ditemukan")
+        st.stop()
+
+    kode_lv1 = hasil_lv1.iloc[0]['kode']
 
     # LEVEL 2
-    data_lv2_filter = data_lv2[data_lv2['kode'].str.startswith(hasil_lv1['kode'])]
-    hasil_lv2, skor2 = cari_terbaik(data_lv2_filter, uraian_user) if len(data_lv2_filter) else (None, 0)
+    lv2 = data[(data['level'] == 1) & (data['kode'].str.startswith(kode_lv1))]
+    hasil_lv2 = tfidf_search(lv2, uraian_user, 1)
 
     # LEVEL 3
-    data_lv3_filter = data_lv3[data_lv3['kode'].str.startswith(hasil_lv2['kode'])] if hasil_lv2 is not None else []
-    hasil_lv3, skor3 = cari_terbaik(data_lv3_filter, uraian_user) if len(data_lv3_filter) else (None, 0)
+    kandidat = []
+
+    if not hasil_lv2.empty:
+        kode_lv2 = hasil_lv2.iloc[0]['kode']
+        lv3 = data[(data['level'] == 2) & (data['kode'].str.startswith(kode_lv2))]
+        kandidat = tfidf_search(lv3, uraian_user, 3)
+
+    # fallback jika tidak ada level 3
+    if len(kandidat) == 0:
+        kandidat = tfidf_search(lv2, uraian_user, 3)
 
     # ========================
-    # HASIL FINAL
+    # TAMPILKAN KANDIDAT
     # ========================
-    if hasil_lv3 is not None:
-        final = hasil_lv3
-        skor = skor3
-    elif hasil_lv2 is not None:
-        final = hasil_lv2
-        skor = skor2
-    else:
-        final = hasil_lv1
-        skor = skor1
+    st.info("💡 Kandidat hasil sistem:")
+    kandidat_text = ""
+    for _, row in kandidat.iterrows():
+        st.write(f"{row['kode']} - {row['uraian']}")
+        kandidat_text += f"{row['kode']} - {row['uraian']}\n"
 
     # ========================
-    # OUTPUT
+    # AI FINAL SELECTOR
     # ========================
-    st.success("🎯 Klasifikasi Utama")
-    st.write(f"**{final['kode']} - {final['uraian']}**")
-    st.write(f"Skor kemiripan: {skor*100:.2f}%")
+    if st.button("🚀 Tentukan Klasifikasi Terbaik (AI)"):
 
-# ========================
-# SARAN CEPAT (OPSIONAL)
-# ========================
-if uraian_user:
+        try:
+            prompt = f"""
+Kamu adalah arsiparis ahli.
 
-    vectorizer_all = TfidfVectorizer(ngram_range=(1,2))
-    tfidf_all = vectorizer_all.fit_transform(data['uraian_clean'])
-    user_vec_all = vectorizer_all.transform([preprocess(uraian_user)])
+Pilih 1 kode klasifikasi paling tepat.
 
-    sim_all = cosine_similarity(user_vec_all, tfidf_all)
-    top_idx = sim_all[0].argsort()[-3:][::-1]
+Kandidat:
+{kandidat_text}
 
-    st.info("💡 Saran alternatif:")
-    for i in top_idx:
-        if i < len(data):
-            st.write(f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']} ({sim_all[0][i]*100:.2f}%)")
+Uraian:
+{uraian_user}
 
-# ========================
-# FOOTER
-# ========================
-st.markdown("---")
-st.caption("EKlasifikasi Arsip PRO - Hierarchical System © 2026")
+Gunakan logika:
+- pahami isi dokumen
+- pilih paling mewakili
+
+Jawaban:
+Kode - Uraian
+Alasan singkat
+"""
+
+            res = model.generate_content(prompt)
+            st.success("🎯 Hasil Akhir AI")
+            st.write(res.text)
+
+        except Exception as e:
+            st.warning("AI gagal / quota habis → pakai hasil terbaik sistem")
+
+            terbaik = kandidat.iloc[0]
+            st.success("🎯 Hasil Sistem")
+            st.write(f"{terbaik['kode']} - {terbaik['uraian']}")
