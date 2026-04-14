@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # ========================
-# STYLE (BERSIH & MOBILE)
+# STYLE
 # ========================
 st.markdown("""
 <style>
@@ -50,12 +50,12 @@ st.markdown('<div class="title">📁 EKlasifikasi Arsip</div>', unsafe_allow_htm
 st.markdown('<div class="subtitle">AI Klasifikasi Arsip (Hybrid: Cepat + Pintar)</div>', unsafe_allow_html=True)
 
 # ========================
-# API GEMINI (SECRET)
+# API GEMINI
 # ========================
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # ========================
-# AUTO DETECT MODEL (ANTI ERROR)
+# AUTO DETECT MODEL
 # ========================
 model = None
 try:
@@ -72,7 +72,7 @@ try:
 except Exception as e:
     st.error(f"Gagal load model: {e}")
 
-# fallback kalau gagal
+# fallback
 if model is None:
     model = genai.GenerativeModel("models/gemini-1.0-pro")
 
@@ -86,7 +86,7 @@ def load_data():
 data = load_data()
 
 # ========================
-# TF-IDF (PENCARIAN CEPAT)
+# TF-IDF
 # ========================
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(data['uraian'])
@@ -94,10 +94,21 @@ tfidf_matrix = vectorizer.fit_transform(data['uraian'])
 # ========================
 # INPUT USER
 # ========================
-uraian_user = st.text_input("🔍 Masukkan uraian arsip:")
+uraian_user = st.text_input("🔍 Masukkan uraian atau kode klasifikasi:")
 
 # ========================
-# AUTO SARAN
+# DETEKSI KODE LANGSUNG
+# ========================
+if uraian_user:
+    kode_match = data[data['kode'].str.contains(uraian_user, case=False, na=False)]
+
+    if not kode_match.empty:
+        st.success("📌 Kode ditemukan")
+        for _, row in kode_match.iterrows():
+            st.write(f"**{row['kode']}** - {row['uraian']}")
+
+# ========================
+# SARAN CEPAT (TF-IDF)
 # ========================
 if uraian_user:
     user_vec = vectorizer.transform([uraian_user])
@@ -118,7 +129,7 @@ if st.button("🚀 Cari Klasifikasi Pintar", use_container_width=True):
         with st.spinner("🤖 AI sedang menganalisis..."):
 
             try:
-                # STEP 1: TF-IDF ambil kandidat
+                # STEP 1: TF-IDF kandidat
                 user_vector = vectorizer.transform([uraian_user])
                 similarity = cosine_similarity(user_vector, tfidf_matrix)
 
@@ -128,23 +139,37 @@ if st.button("🚀 Cari Klasifikasi Pintar", use_container_width=True):
                 for i in top_indices:
                     kandidat += f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']}\n"
 
-                # STEP 2: GEMINI
+                # STEP 2: GEMINI (LOGIKA ARSIP)
                 prompt = f"""
-                Kamu adalah ahli klasifikasi arsip pemerintahan.
+Kamu adalah arsiparis profesional di instansi pemerintah.
 
-                Kandidat klasifikasi:
-                {kandidat}
+Ikuti langkah berikut:
 
-                Uraian:
-                "{uraian_user}"
+1. Analisis isi:
+Pahami inti masalah dari uraian arsip.
 
-                Pilih 3 paling tepat.
+2. Pilih kode terdekat:
+Dari kandidat, pilih yang paling relevan.
 
-                Format:
-                1. Kode - Uraian
-                2. Kode - Uraian
-                3. Kode - Uraian
-                """
+3. Tentukan sub masalah:
+Persempit ke rincian masalah.
+
+4. Tentukan sub-sub masalah:
+Pilih klasifikasi paling spesifik.
+
+Kandidat klasifikasi:
+{kandidat}
+
+Uraian arsip:
+"{uraian_user}"
+
+Tampilkan 3 hasil terbaik.
+
+Format:
+1. Kode - Uraian (alasan singkat)
+2. Kode - Uraian (alasan singkat)
+3. Kode - Uraian (alasan singkat)
+"""
 
                 response = model.generate_content(prompt)
 
