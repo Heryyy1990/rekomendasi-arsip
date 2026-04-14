@@ -12,13 +12,46 @@ from docx import Document
 st.set_page_config(page_title="EKlasifikasi Arsip PRO", page_icon="📁")
 
 st.title("📁 EKlasifikasi Arsip PRO")
-st.caption("AI Klasifikasi Arsip (1 Dokumen = 1 Klasifikasi Utama)")
+st.caption("AI Klasifikasi Arsip (Ultra Stabil Version)")
 
 # ========================
-# API GEMINI
+# API GEMINI (AMAN)
 # ========================
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel("models/gemini-1.5-flash")
+try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+except:
+    st.error("API KEY Gemini belum diatur di secrets")
+    st.stop()
+
+# ========================
+# AUTO DETECT MODEL
+# ========================
+model = None
+
+try:
+    available_models = [
+        m.name for m in genai.list_models()
+        if "generateContent" in m.supported_generation_methods
+    ]
+
+    for m in available_models:
+        if "gemini" in m:
+            model = genai.GenerativeModel(m)
+            break
+
+except Exception as e:
+    st.warning(f"Gagal load model otomatis: {e}")
+
+# fallback
+if model is None:
+    try:
+        model = genai.GenerativeModel("models/gemini-1.0-pro")
+    except:
+        st.error("Semua model tidak tersedia")
+        st.stop()
+
+# debug model
+st.caption(f"Model aktif: {model._model_name}")
 
 # ========================
 # LOAD DATA
@@ -27,21 +60,28 @@ model = genai.GenerativeModel("models/gemini-1.5-flash")
 def load_data():
     return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
-data_awal = load_data()
+try:
+    data_awal = load_data()
+except:
+    st.error("File klasifikasi_arsip.csv tidak ditemukan")
+    st.stop()
 
 # ========================
-# SESSION STATE
+# SESSION
 # ========================
 if "history" not in st.session_state:
     st.session_state.history = []
 
 # ========================
-# FUNCTION BACA WORD
+# FUNCTION WORD
 # ========================
 def read_docx(file):
-    doc = Document(file)
-    paragraphs = [p.text.strip() for p in doc.paragraphs if len(p.text.strip()) > 30]
-    return " ".join(paragraphs[:5])  # ambil inti saja
+    try:
+        doc = Document(file)
+        paragraphs = [p.text.strip() for p in doc.paragraphs if len(p.text.strip()) > 30]
+        return " ".join(paragraphs[:5])
+    except:
+        return ""
 
 # ========================
 # INPUT
@@ -52,7 +92,12 @@ uraian_user = ""
 
 if uploaded_file:
     uraian_user = read_docx(uploaded_file)
-    st.success("Dokumen berhasil diproses")
+
+    if uraian_user == "":
+        st.warning("Isi dokumen kosong atau tidak terbaca")
+    else:
+        st.success("Dokumen berhasil diproses")
+
 else:
     uraian_user = st.text_input("🔍 Masukkan uraian atau kode klasifikasi:")
 
@@ -66,18 +111,14 @@ filter_kata = st.text_input("📂 Filter bidang (opsional)")
 if filter_kata:
     data = data[data['uraian'].str.contains(filter_kata, case=False, na=False)]
 
-# reset index (WAJIB)
 data = data.reset_index(drop=True)
 
-# ========================
-# VALIDASI DATA
-# ========================
 if len(data) == 0:
-    st.warning("Data tidak ditemukan sesuai filter")
+    st.warning("Data tidak ditemukan")
     st.stop()
 
 # ========================
-# TF-IDF (SELALU SESUAI DATA)
+# TF-IDF
 # ========================
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(data['uraian'])
@@ -86,26 +127,32 @@ tfidf_matrix = vectorizer.fit_transform(data['uraian'])
 # DETEKSI KODE
 # ========================
 if uraian_user:
-    kode_match = data[data['kode'].str.contains(uraian_user, case=False, na=False)]
-    if not kode_match.empty:
-        st.success("📌 Kode ditemukan")
-        for _, row in kode_match.iterrows():
-            st.write(f"{row['kode']} - {row['uraian']}")
+    try:
+        kode_match = data[data['kode'].str.contains(uraian_user, case=False, na=False)]
+        if not kode_match.empty:
+            st.success("📌 Kode ditemukan")
+            for _, row in kode_match.iterrows():
+                st.write(f"{row['kode']} - {row['uraian']}")
+    except:
+        pass
 
 # ========================
-# SARAN CEPAT (AMAN)
+# SARAN CEPAT
 # ========================
 if uraian_user:
-    user_vec = vectorizer.transform([uraian_user])
-    sim = cosine_similarity(user_vec, tfidf_matrix)
+    try:
+        user_vec = vectorizer.transform([uraian_user])
+        sim = cosine_similarity(user_vec, tfidf_matrix)
 
-    top_auto = sim[0].argsort()[-3:][::-1]
+        top_auto = sim[0].argsort()[-3:][::-1]
 
-    st.info("💡 Saran cepat:")
-    for i in top_auto:
-        if i < len(data):
-            skor = sim[0][i] * 100
-            st.write(f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']} ({skor:.2f}%)")
+        st.info("💡 Saran cepat:")
+        for i in top_auto:
+            if i < len(data):
+                skor = sim[0][i] * 100
+                st.write(f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']} ({skor:.2f}%)")
+    except:
+        st.warning("Tidak bisa menghitung saran")
 
 # ========================
 # AI BUTTON
@@ -113,7 +160,7 @@ if uraian_user:
 if st.button("🚀 Analisis Klasifikasi Utama", use_container_width=True):
 
     if uraian_user.strip() != "":
-        with st.spinner("🤖 AI sedang menganalisis..."):
+        with st.spinner("AI menganalisis..."):
 
             try:
                 user_vector = vectorizer.transform([uraian_user])
@@ -129,17 +176,12 @@ if st.button("🚀 Analisis Klasifikasi Utama", use_container_width=True):
                 prompt = f"""
 Kamu adalah arsiparis profesional.
 
-Tentukan 1 kode klasifikasi arsip yang PALING MEWAKILI dokumen ini.
-
-Langkah:
-1. Pahami inti dokumen
-2. Fokus pada masalah utama
-3. Pilih kode paling dominan
+Tentukan 1 klasifikasi utama dokumen ini.
 
 Kandidat:
 {kandidat}
 
-Isi dokumen:
+Isi:
 {uraian_user}
 
 Jawaban:
@@ -148,12 +190,15 @@ Alasan singkat
 """
 
                 response = model.generate_content(prompt)
-                hasil = response.text
 
-                st.success("🎯 Klasifikasi Utama")
+                if hasattr(response, "text"):
+                    hasil = response.text
+                else:
+                    hasil = "AI tidak memberikan respon."
+
+                st.success("🎯 Hasil")
                 st.write(hasil)
 
-                # simpan riwayat
                 st.session_state.history.append({
                     "input": uraian_user[:100],
                     "hasil": hasil
@@ -163,7 +208,7 @@ Alasan singkat
                 st.error(f"Error AI: {e}")
 
     else:
-        st.warning("Masukkan uraian atau upload dokumen dulu")
+        st.warning("Masukkan uraian terlebih dahulu")
 
 # ========================
 # STATISTIK
@@ -177,7 +222,6 @@ if jumlah > 0:
     kata = [h["input"] for h in st.session_state.history]
     populer = Counter(kata).most_common(3)
 
-    st.write("Pencarian populer:")
     for k, v in populer:
         st.write(f"- {k} ({v}x)")
 
