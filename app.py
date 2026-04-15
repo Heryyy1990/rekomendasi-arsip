@@ -2,22 +2,21 @@ import streamlit as st
 import pandas as pd
 import google.generativeai as genai
 from thefuzz import process, fuzz
-import re
 
 # ========================
-# 1. KONFIGURASI HALAMAN
+# 1. KONFIGURASI
 # ========================
-st.set_page_config(page_title="AI Klasifikasi Arsip", page_icon="📁", layout="centered")
+st.set_page_config(page_title="EKlasifikasi Pro", page_icon="📁", layout="centered")
 
 st.markdown("""
 <style>
     .title { text-align: center; font-size: 28px; font-weight: bold; color: #1E3A8A; }
-    .stButton>button { width: 100%; border-radius: 8px; height: 45px; background-color: #2563EB; color: white; font-weight: bold; }
+    .stButton>button { width: 100%; border-radius: 8px; height: 45px; background-color: #047857; color: white; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
 # ========================
-# 2. LOAD MASTER DATA
+# 2. LOAD DATA
 # ========================
 @st.cache_data
 def load_data():
@@ -28,25 +27,35 @@ def load_data():
 data = load_data()
 
 # ========================
-# 3. PENCARIAN LOKAL (FUZZY LOGIC)
+# 3. PENCARIAN CERDAS (ANTI-POLUSI DATA)
 # ========================
-def get_local_candidates(query, df, limit=3):
-    query = str(query).lower().strip()
-    choices = df['uraian_ai'].tolist()
+def get_clean_candidates(query, df, limit=10):
+    # Hilangkan kata umum agar pencarian fokus ke inti masalah
+    stop_words = ["surat", "arsip", "dokumen", "administrasi", "tentang", "perihal"]
     
-    raw_results = process.extract(query, choices, scorer=fuzz.token_set_ratio, limit=limit)
+    clean_query = str(query).lower().strip()
+    for word in stop_words:
+        clean_query = clean_query.replace(word, "")
+    clean_query = clean_query.strip()
+    
+    # Jika setelah dibersihkan kosong (misal user cuma ketik "arsip"), kembalikan ke awal
+    if clean_query == "":
+        clean_query = str(query).lower().strip()
+
+    # KITA GUNAKAN KOLOM 'uraian' ASLI, BUKAN 'uraian_ai'
+    choices = df['uraian'].dropna().tolist()
+    
+    # Cari 10 kandidat terbaik agar AI punya pilihan lebih luas
+    raw_results = process.extract(clean_query, choices, scorer=fuzz.token_set_ratio, limit=limit)
     
     candidates = []
-    for res in raw_results:
-        match_text = res[0]
-        score = res[1]
-        match_idx = df[df['uraian_ai'] == match_text].index[0]
+    for match_text, score in raw_results:
+        # Cari baris aslinya
+        match_idx = df[df['uraian'] == match_text].index[0]
         row = df.iloc[match_idx]
-        
         candidates.append({
-            "Kode": str(row['kode']),
-            "Uraian": row['uraian'],
-            "Skor": f"{score}%"
+            "Kode": str(row['kode']).strip(),
+            "Uraian": str(row['uraian']).strip()
         })
     return candidates
 
@@ -54,58 +63,54 @@ def get_local_candidates(query, df, limit=3):
 # 4. ANTARMUKA (UI)
 # ========================
 st.markdown('<div class="title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:gray;'>Sistem Rekomendasi Kearsipan Cerdas</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Sistem Cerdas Kearsipan (Bebas Polusi Data)</p>", unsafe_allow_html=True)
 
-# Cek API Key di Secrets
-if "GEMINI_API_KEY" not in st.secrets:
-    st.error("⚠️ GEMINI_API_KEY belum ditambahkan di Streamlit Secrets.")
-    st.stop()
-
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel("gemini-1.5-flash")
-
-uraian_user = st.text_input("🔍 Masukkan Perihal Surat / Uraian Arsip:")
+uraian_user = st.text_input("🔍 Masukkan Perihal Arsip:", placeholder="Contoh: Sosialisasi kearsipan desa")
 
 if uraian_user:
-    if st.button("🚀 Proses Klasifikasi"):
+    if st.button("🚀 Cari Kode Klasifikasi"):
         
-        # --- TAHAP 1: FILTER LOKAL ---
-        kandidat_lokal = get_local_candidates(uraian_user, data, limit=3)
-        
-        st.markdown("### 🔎 3 Kandidat Terdekat dari Master Data:")
-        st.table(pd.DataFrame(kandidat_lokal))
-        
-        # --- TAHAP 2: VALIDASI AI ---
-        with st.spinner("🤖 AI sedang memvalidasi kode yang paling sesuai..."):
-            kandidat_str = "\n".join([f"- {c['Kode']} : {c['Uraian']}" for c in kandidat_lokal])
+        if "GEMINI_API_KEY" not in st.secrets:
+            st.error("⚠️ API Key belum dimasukkan di Streamlit Secrets!")
+            st.stop()
             
-            # PROMPT BERSIH, TEGAS, TANPA ASUMSI NGAWUR
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        with st.spinner("🔍 Memindai database dan menganalisis fungsi arsip..."):
+            
+            # 1. Dapatkan 10 kandidat teratas dari data lokal
+            kandidat_lokal = get_clean_candidates(uraian_user, data, limit=10)
+            kandidat_str = "\n".join([f"- Kode: {c['Kode']} | Uraian: {c['Uraian']}" for c in kandidat_lokal])
+            
+            # 2. Minta AI memilih 1 yang paling akurat dari 10 kandidat tersebut
             prompt = f"""
-            Anda adalah Arsiparis Ahli Pemerintah. 
-            Tugas Anda adalah memilih 1 kode klasifikasi yang paling akurat berdasarkan fungsi kearsipannya.
+            Anda adalah Arsiparis Profesional. Klasifikasikan arsip berikut.
             
-            Uraian Arsip dari User: "{uraian_user}"
+            Uraian Arsip: "{uraian_user}"
             
-            Daftar Pilihan Kode:
+            DAFTAR KANDIDAT KODE:
             {kandidat_str}
             
-            ATURAN MUTLAK:
-            1. Anda WAJIB memilih salah satu kode dari Daftar Pilihan Kode di atas.
-            2. DILARANG membuat atau merekomendasikan kode di luar daftar tersebut.
+            TUGAS:
+            1. Pilih HANYA 1 (satu) kode dari DAFTAR KANDIDAT di atas yang paling sesuai secara hierarki tata naskah dinas.
+            2. Jika tentang "sosialisasi/penyuluhan kearsipan", cari kode yang berkaitan dengan Pembinaan Kearsipan, Perpustakaan, atau Pendidikan.
             
-            Pilih satu yang paling relevan dengan konteks uraian user.
-            
-            FORMAT JAWABAN WAJIB:
+            FORMAT JAWABAN:
             **KODE TERPILIH:** [Tulis Kode] - [Tulis Uraian]
-            **ALASAN:** [Satu kalimat penjelasan logis kearsipan]
+            **ALASAN:** [Jelaskan singkat 1 kalimat]
             """
             
             try:
                 response = model.generate_content(prompt)
-                st.success("✅ Validasi AI Selesai")
-                st.markdown(response.text)
+                st.success("✅ Klasifikasi Berhasil Ditemukan")
+                st.write(response.text)
+                
+                with st.expander("Lihat Daftar Kandidat Sistem Lokal"):
+                    st.table(pd.DataFrame(kandidat_lokal))
+                    
             except Exception as e:
-                st.error(f"Gagal memanggil AI. Pastikan kuota/koneksi API aman. Detail: {e}")
+                st.error(f"Gagal memanggil AI. Detail: {e}")
 
 st.markdown("---")
-st.caption("Dikembangkan untuk efisiensi tata kelola kearsipan pemerintah daerah.")
+st.caption("Dikembangkan untuk Aktualisasi Arsiparis Muna Barat")
