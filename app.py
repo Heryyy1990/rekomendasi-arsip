@@ -5,126 +5,122 @@ from thefuzz import process, fuzz
 import re
 
 # ========================
-# 1. KONFIGURASI HALAMAN
+# 1. STYLE & LAYOUT
 # ========================
-st.set_page_config(page_title="EKlasifikasi Pro", page_icon="📁", layout="centered")
+st.set_page_config(page_title="EKlasifikasi Pro v4", page_icon="📁", layout="centered")
 
 st.markdown("""
 <style>
     .title { text-align: center; font-size: 30px; font-weight: bold; color: #1E3A8A; }
-    .stButton>button { width: 100%; border-radius: 10px; height: 50px; background-color: #2563EB; color: white; font-weight: bold; }
-    .result-card { padding: 15px; border-radius: 10px; background-color: #F1F5F9; border-left: 5px solid #2563EB; margin-top: 10px; }
+    .stButton>button { width: 100%; border-radius: 10px; height: 50px; background-color: #047857; color: white; font-weight: bold; }
+    .status-box { padding: 20px; border-radius: 10px; background-color: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; }
 </style>
 """, unsafe_allow_html=True)
 
 # ========================
-# 2. INISIALISASI AI (ANTI 404)
+# 2. INISIALISASI AI (ROBUST)
 # ========================
-def get_gemini_model():
+def get_model():
     if "GEMINI_API_KEY" not in st.secrets:
-        st.error("⚠️ Secrets 'GEMINI_API_KEY' belum diatur!")
-        return None
-    
+        st.error("⚠️ Masukkan API Key di Secrets Streamlit!")
+        st.stop()
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    try:
-        # Mencari model yang didukung secara dinamis
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # Prioritas: 1.5 Flash -> 1.5 Pro -> 1.0 Pro
-        target_models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro", "models/gemini-1.0-pro"]
-        
-        for tm in target_models:
-            if tm in models:
-                return genai.GenerativeModel(tm)
-        
-        # Jika tidak ada yang cocok, ambil yang pertama tersedia
-        return genai.GenerativeModel(models[0])
-    except Exception as e:
-        # Fallback paling aman
-        return genai.GenerativeModel("gemini-1.5-flash")
+    # Menggunakan nama model yang paling stabil
+    return genai.GenerativeModel("gemini-1.5-flash")
 
-model = get_gemini_model()
+model = get_model()
 
 # ========================
-# 3. DATA & LOGIKA SEARCH
+# 3. LOAD DATA (MASTER 3000 KODE)
 # ========================
 @st.cache_data
 def load_data():
+    # Pastikan file ini ada di GitHub Anda
     df = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
     df.columns = df.columns.str.strip()
     return df
 
 data = load_data()
 
-def hybrid_thinking(query, df):
+# ========================
+# 4. LOGIKA ANALISIS FUNGSI (ISO 15489)
+# ========================
+def get_functional_candidates(query, df):
     query = str(query).lower().strip()
-    # Gunakan 'uraian_ai' untuk pencarian lokal agar lebih kaya konteks
+    
+    # Langkah 1: Pencarian berbasis skor gabungan (Fuzzy + Context)
+    # Kami mencari di 'uraian_ai' karena mengandung kata kunci fungsional
     choices = df['uraian_ai'].tolist()
     
-    # Ambil 5 kandidat untuk dipertimbangkan AI
-    raw_results = process.extract(query, choices, scorer=fuzz.token_set_ratio, limit=5)
+    # Ambil 10 kandidat teratas untuk dianalisis lebih dalam oleh AI
+    raw_results = process.extract(query, choices, scorer=fuzz.token_set_ratio, limit=10)
     
     candidates = []
     for res in raw_results:
-        val_text = res[0]
+        match_text = res[0]
         score = res[1]
-        # Cari index baris di dataframe
-        match_idx = df[df['uraian_ai'] == val_text].index[0]
+        match_idx = df[df['uraian_ai'] == match_text].index[0]
         row = df.iloc[match_idx]
-        candidates.append({"kode": str(row['kode']), "uraian": row['uraian']})
-    
+        candidates.append({
+            "kode": str(row['kode']),
+            "uraian": row['uraian'],
+            "context": row['uraian_ai']
+        })
     return candidates
 
 # ========================
-# 4. ANTARMUKA (UI)
+# 5. ANTARMUKA (UI)
 # ========================
-st.markdown('<div class="title">📁 EKlasifikasi Pro v3</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Sistem Digitalisasi Arsip Berbasis Kecerdasan Buatan</p>", unsafe_allow_html=True)
+st.markdown('<div class="title">📁 EKlasifikasi Pro v4</div>', unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Standar Internasional ISO 15489 - Analisis Fungsi Kearsipan</p>", unsafe_allow_html=True)
 
-uraian_user = st.text_input("🔍 Masukkan Perihal atau Uraian Arsip:", placeholder="Contoh: Surat permohonan cuti tahunan")
+uraian_user = st.text_input("🔍 Masukkan Perihal atau Isi Ringkas Arsip:", 
+                            placeholder="Contoh: Surat permohonan bantuan dana hibah pembangunan masjid")
 
 if uraian_user:
-    # 1. Cek Cepat (Kecocokan Kode Langsung)
-    exact_match = data[data['kode'].str.fullmatch(re.escape(uraian_user), case=False, na=False)]
-    if not exact_match.empty:
-        st.success("📌 Kode Ditemukan:")
-        for _, r in exact_match.iterrows():
-            st.write(f"**{r['kode']}** - {r['uraian']}")
-
-    # 2. Proses Rekomendasi Pintar
-    if st.button("🚀 Cari Rekomendasi Paling Akurat"):
-        with st.spinner("🤖 AI sedang menganalisis database kearsipan..."):
+    if st.button("🚀 Analisis Klasifikasi Sekarang"):
+        with st.spinner("🤖 Melakukan Analisis Fungsi (Functional Analysis)..."):
             
-            # Ambil kandidat lokal
-            candidates = hybrid_thinking(uraian_user, data)
-            kandidat_str = "\n".join([f"- {c['kode']} {c['uraian']}" for c in candidates])
+            # AMBIL KANDIDAT BERDASARKAN KONTEKS
+            candidates = get_functional_candidates(uraian_user, data)
+            kandidat_str = "\n".join([f"- {c['kode']} | {c['uraian']} (Konteks: {c['context']})" for c in candidates])
             
+            # PROMPT DENGAN LOGIKA ARSIPARIS DUNIA
             prompt = f"""
-            Tugas: Pilih 3 kode klasifikasi paling tepat dari daftar kandidat untuk uraian surat berikut.
+            Tugas Anda adalah melakukan klasifikasi arsip berdasarkan standar ISO 15489 (Functional Analysis).
             
-            Uraian Surat: "{uraian_user}"
+            URAIAN ARSIP USER: "{uraian_user}"
             
-            Daftar Kandidat (Ditemukan di Database):
+            DAFTAR KODE TERSEDIA (KANDIDAT):
             {kandidat_str}
             
-            Instruksi:
-            1. Analisis hubungan antara uraian surat dengan fungsi organisasi.
-            2. Urutkan berdasarkan yang paling spesifik.
-            3. Jawab dengan format: [KODE] - [URAIAN] - [Keyakinan %]
+            LANGKAH BERPIKIR (LOGIKA):
+            1. Tentukan FUNGSI utama (apakah ini urusan Keuangan, Kepegawaian, Pembangunan, atau Hukum?).
+            2. Tentukan KEGIATAN spesifik di bawah fungsi tersebut.
+            3. Pilih KODE yang paling menggambarkan transaksi akhir.
             
-            Tampilkan 3 baris saja.
+            HASIL YANG DIMINTA:
+            Tampilkan 3 rekomendasi terbaik yang paling akurat.
+            Setiap hasil harus mengikuti format:
+            **[KODE] - [URAIAN]**
+            *Analisis Fungsi:* [Penjelasan singkat kenapa kode ini dipilih berdasarkan fungsi organisasi]
+            *Akurasi:* [X]%
+            
+            Berikan hasil yang sangat formal dan presisi.
             """
             
             try:
                 response = model.generate_content(prompt)
-                st.markdown("### 🎯 Rekomendasi Terbaik:")
-                st.write(response.text)
+                
+                st.markdown('<div class="status-box">✅ Hasil Analisis Fungsi Berhasil</div>', unsafe_allow_html=True)
+                st.divider()
+                st.markdown(response.text)
+                
             except Exception as e:
-                st.error(f"Eror saat memanggil AI: {e}. Pastikan API Key Anda aktif.")
+                st.error(f"Gagal memanggil AI: {e}. Coba lagi dalam beberapa saat.")
 
 # ========================
-# 5. FOOTER
+# 6. FOOTER
 # ========================
 st.markdown("---")
-st.caption("EKlasifikasi Pro | Dikembangkan untuk Archivist Muna Barat")
+st.caption("EKlasifikasi Pro v4 | Berdasarkan Standar Pengelolaan Arsip Internasional")
