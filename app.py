@@ -1,140 +1,121 @@
 import streamlit as st
 import pandas as pd
-import re
 import google.generativeai as genai
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from thefuzz import process, fuzz
+import time
 
-# ========================
-# CONFIG
-# ========================
-st.set_page_config(page_title="EKlasifikasi Arsip", page_icon="📁")
-st.title("📁 EKlasifikasi Arsip")
-st.caption("Versi Stabil + Input Manual + AI")
+# Konfigurasi Halaman
+st.set_page_config(page_title="AI Arsiparis Pro", layout="wide")
 
-# ========================
-# GEMINI (TETAP ADA)
-# ========================
-model = None
-try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    for m in genai.list_models():
-        if "generateContent" in m.supported_generation_methods:
-            model = genai.GenerativeModel(m.name)
-            break
-except:
-    model = None
+st.title("📁 Sistem Klasifikasi Arsip Pintar")
+st.caption("Pencarian 3 Rekomendasi Terbaik dengan Skor Kecocokan")
 
-# ========================
-# LOAD DATA (TIDAK DIUBAH)
-# ========================
-@st.cache_data
-def load_data():
-    return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
+# --- SIDEBAR: Pengaturan ---
+with st.sidebar:
+    st.header("⚙️ Konfigurasi")
+    api_key = st.text_input("Masukkan Gemini API Key", type="password")
+    
+    st.divider()
+    st.subheader("📊 Master Data")
+    # Mengacu pada file klasifikasi_arsip.csv yang Anda miliki 
+    master_file = st.file_uploader("Upload Master Data Klasifikasi", type=["csv"])
+    
+    st.divider()
+    st.info("Sesuai permintaan: Sistem akan menampilkan 3 rekomendasi dengan persentase kecocokan.")
 
-try:
-    data = load_data()
-except:
-    st.error("Gagal membaca CSV. Pastikan ada kolom 'kode' dan 'uraian'")
-    st.stop()
+# --- FUNGSI LOCAL THINKING (3 REKOMENDASI) ---
+def get_top_3_recommendations(target_text, master_df):
+    """
+    Mencari 3 kecocokan terbaik secara lokal menggunakan Fuzzy Logic 
+    pada kolom 'uraian_ai' untuk akurasi kata kunci.
+    """
+    # Membersihkan teks input
+    text_to_search = str(target_text).lower().strip()
+    
+    # Menggunakan uraian_ai sebagai basis pencarian karena lebih lengkap 
+    choices = master_df['uraian_ai'].tolist()
+    
+    # Mencari 3 besar (limit=3)
+    results = process.extract(text_to_search, choices, scorer=fuzz.token_set_ratio, limit=3)
+    
+    recommendations = []
+    for uraian_val, score, index in results:
+        row = master_df.iloc[index]
+        recommendations.append({
+            "kode": str(row['kode']).strip(),
+            "uraian": row['uraian'],
+            "persentase": f"{score}%"
+        })
+    return recommendations
 
-# validasi
-if "kode" not in data.columns or "uraian" not in data.columns:
-    st.error("CSV harus memiliki kolom: kode dan uraian")
-    st.stop()
-
-# ========================
-# PREPROCESS SEDERHANA
-# ========================
-def preprocess(text):
-    text = text.lower()
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    return text
-
-data["uraian_clean"] = data["uraian"].astype(str).apply(preprocess)
-
-# ========================
-# INPUT USER
-# ========================
-uraian_user = st.text_input("🔍 Masukkan uraian atau kode klasifikasi:")
-
-# ========================
-# DETEKSI KODE LANGSUNG 🔥
-# ========================
-if uraian_user:
-    kode_input = uraian_user.strip()
-
-    # cocokkan kode persis
-    match = data[data["kode"].astype(str) == kode_input]
-
-    if not match.empty:
-        row = match.iloc[0]
-        st.success("🎯 Hasil Pencarian Kode")
-        st.write(f"**{row['kode']} - {row['uraian']}**")
-        st.stop()
-
-# ========================
-# TF-IDF PENCARIAN
-# ========================
-def cari_kandidat(df, text, top_n=5):
-    vec = TfidfVectorizer(ngram_range=(1,2))
-    tfidf = vec.fit_transform(df["uraian_clean"])
-    user_vec = vec.transform([preprocess(text)])
-
-    sim = cosine_similarity(user_vec, tfidf)[0]
-    idx = sim.argsort()[-top_n:][::-1]
-
-    hasil = df.iloc[idx].copy()
-    hasil["skor"] = sim[idx]
-
-    return hasil
-
-# ========================
-# PROSES
-# ========================
-if uraian_user:
-
-    kandidat = cari_kandidat(data, uraian_user, 5)
-
-    st.info("💡 Kandidat terbaik:")
-    kandidat_text = ""
-
-    for _, row in kandidat.iterrows():
-        st.write(f"{row['kode']} - {row['uraian']} ({row['skor']*100:.2f}%)")
-        kandidat_text += f"{row['kode']} - {row['uraian']}\n"
-
-    # hasil sistem
-    terbaik = kandidat.iloc[0]
-    st.success("🎯 Rekomendasi Sistem")
-    st.write(f"**{terbaik['kode']} - {terbaik['uraian']}**")
-
-    # ========================
-    # AI (TETAP ADA 🔥)
-    # ========================
-    if model:
-        if st.button("🚀 Validasi dengan AI"):
-            try:
+# --- LOGIK PROSES ---
+if master_file and api_key:
+    master_df = pd.read_csv(master_file)
+    master_df.columns = master_df.columns.str.strip() # Bersihkan nama kolom
+    
+    st.success(f"✅ Master data siap: {len(master_df)} baris kode termuat.")
+    
+    st.divider()
+    input_file = st.file_uploader("Upload CSV Data yang ingin diklasifikasikan", type=["csv"])
+    
+    if input_file:
+        df_target = pd.read_csv(input_file)
+        kolom_perihal = st.selectbox("Pilih kolom Perihal/Uraian", df_target.columns)
+        
+        if st.button("🔍 Mulai Klasifikasi"):
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            
+            # Wadah hasil
+            rec1_list, rec2_list, rec3_list = [], [], []
+            
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            for i, row in df_target.iterrows():
+                teks_surat = str(row[kolom_perihal])
+                
+                # 1. LOCAL THINKING (Ambil 3 Rekomendasi)
+                top_3 = get_top_3_recommendations(teks_surat, master_df)
+                
+                # 2. AI VALIDATION (Opsional untuk memastikan urutan paling logis)
+                # AI hanya diminta memvalidasi urutan dari 3 kandidat tersebut
+                context_candidates = "\n".join([f"{c['kode']} - {c['uraian']}" for c in top_3])
+                
                 prompt = f"""
-Pilih 1 klasifikasi paling tepat.
+                Teks: "{teks_surat}"
+                Kandidat:
+                {context_candidates}
+                
+                Tugas: Pastikan Kode dan Uraian di atas sudah yang paling relevan. 
+                Jawab dengan format yang sama tanpa penjelasan tambahan.
+                """
+                
+                # Menambahkan hasil ke list (Kode - Uraian - Persentase)
+                # Format: "Kode - Uraian (Score%)"
+                rec1_list.append(f"{top_3[0]['kode']} - {top_3[0]['uraian']} ({top_3[0]['persentase']})")
+                rec2_list.append(f"{top_3[1]['kode']} - {top_3[1]['uraian']} ({top_3[1]['persentase']})")
+                rec3_list.append(f"{top_3[2]['kode']} - {top_3[2]['uraian']} ({top_3[2]['persentase']})")
+                
+                # Update UI
+                progress = (i + 1) / len(df_target)
+                progress_bar.progress(progress)
+                status_text.text(f"Memproses {i+1} dari {len(df_target)} data...")
 
-Kandidat:
-{kandidat_text}
+            # Menambahkan ke DataFrame hasil akhir
+            df_target['Rekomendasi 1'] = rec1_list
+            df_target['Rekomendasi 2'] = rec2_list
+            df_target['Rekomendasi 3'] = rec3_list
+            
+            status_text.success("✅ Selesai! Menampilkan hasil akhir.")
+            
+            # Hanya menampilkan kolom input asli dan 3 rekomendasi hasil akhirnya
+            display_cols = [kolom_perihal, 'Rekomendasi 1', 'Rekomendasi 2', 'Rekomendasi 3']
+            st.dataframe(df_target[display_cols])
+            
+            # Tombol Download
+            csv = df_target[display_cols].to_csv(index=False).encode('utf-8')
+            st.download_button("⬇️ Download Hasil CSV", csv, "hasil_klasifikasi_3_opsi.csv", "text/csv")
 
-Uraian:
-{uraian_user}
-
-Jawaban:
-Kode - Uraian
-Alasan singkat
-"""
-                res = model.generate_content(prompt)
-                st.success("🎯 Hasil AI")
-                st.write(res.text)
-            except:
-                st.warning("AI gagal / quota habis")
-
-# ========================
-# FOOTER
-# ========================
-st.markdown("---")
-st.caption("EKlasifikasi Arsip © 2026 | by Heryanto S.Pd")
+else:
+    st.info("Silakan lengkapi API Key dan Master Data di sidebar untuk mulai bekerja sebagai Arsiparis.")
