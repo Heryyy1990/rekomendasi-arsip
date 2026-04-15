@@ -1,85 +1,107 @@
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
-from thefuzz import process, fuzz
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from thefuzz import process, fuzz # Pastikan instal: pip install thefuzz
 
-st.set_page_config(page_title="AI Archivist Pro - Muna Barat", layout="wide")
+# ========================
+# CONFIG & SECRETS
+# ========================
+st.set_page_config(page_title="AI Archivist Pro", page_icon="📁", layout="centered")
 
-# --- AUTO-LOAD CONFIGURATION ---
-# Ambil API Key dari Secrets Streamlit
+# Mengambil API Key dari Secrets Streamlit
 API_KEY = st.secrets.get("GEMINI_API_KEY")
 
-# Masukkan link RAW CSV Master Data Anda di sini
-GITHUB_RAW_URL = "URL_MASTER_DATA_RAW_ANDA_DI_SINI"
-
-st.title("📁 AI Klasifikasi Arsip Profesional")
-st.caption("Sistem Rekomendasi 3 Kode Klasifikasi dengan Skor Kecocokan")
-
+# ========================
+# LOAD MASTER DATA
+# ========================
 @st.cache_data
-def load_master_from_github(url):
-    try:
-        df = pd.read_csv(url)
-        df.columns = df.columns.str.strip()
-        return df
-    except Exception as e:
-        st.error(f"Gagal memuat Master Data: {e}")
-        return None
+def load_data():
+    # Memastikan file dibaca dengan benar sesuai master data Anda
+    df = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
+    df.columns = df.columns.str.strip()
+    return df
 
-def get_top_3(target_text, master_df):
-    text_to_search = str(target_text).lower().strip()
-    # Menggunakan uraian_ai untuk akurasi kata kunci
-    choices = master_df['uraian_ai'].tolist()
-    
-    # Ambil 3 terbaik secara lokal (Local Thinking)
-    results = process.extract(text_to_search, choices, scorer=fuzz.token_set_ratio, limit=3)
-    
-    recs = []
-    for uraian_val, score, index in results:
-        row = master_df.iloc[index]
-        # Format sesuai permintaan: Kode - Uraian (Score%)
-        recs.append(f"{row['kode']} - {row['uraian']} ({score}%)")
-    return recs
+data = load_data()
 
-# --- ALUR UTAMA ---
+# ========================
+# LOGIC: HYBRID SEARCH
+# ========================
+def hybrid_search(query, df, limit=3):
+    """
+    Menggabungkan TF-IDF dan Fuzzy Matching untuk akurasi maksimal.
+    """
+    # 1. Fuzzy Matching pada 'uraian_ai' karena lebih kaya kata kunci 
+    choices = df['uraian_ai'].tolist()
+    fuzzy_results = process.extract(query, choices, scorer=fuzz.token_set_ratio, limit=10)
+    
+    candidates = []
+    for uraian_ai_val, score, index in fuzzy_results:
+        row = df.iloc[index]
+        candidates.append({
+            "kode": str(row['kode']),
+            "uraian": row['uraian'],
+            "score": score
+        })
+    
+    # Sort berdasarkan skor tertinggi dan ambil 3
+    return sorted(candidates, key=lambda x: x['score'], reverse=True)[:limit]
+
+# ========================
+# UI HEADER
+# ========================
+st.markdown("<h1 style='text-align: center;'>📁 AI Klasifikasi Arsip</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>Sistem Otomasi Kearsipan Muna Barat</p>", unsafe_allow_html=True)
+
 if not API_KEY:
-    st.error("⚠️ API Key tidak ditemukan! Harap masukkan GEMINI_API_KEY di menu Secrets Streamlit.")
+    st.error("⚠️ API Key tidak ditemukan di Streamlit Secrets!")
 else:
-    # Memuat master data secara otomatis
-    master_df = load_master_from_github(GITHUB_RAW_URL)
-    
-    if master_df is not None:
-        st.success(f"✅ Sistem Aktif. {len(master_df)} Kode Klasifikasi telah sinkron dari GitHub.")
-        
-        # Area upload file yang ingin diklasifikasi
-        input_file = st.file_uploader("Upload Data yang ingin diklasifikasi (CSV)", type=["csv"])
-        
-        if input_file:
-            df_target = pd.read_csv(input_file)
-            kolom_perihal = st.selectbox("Pilih kolom perihal/deskripsi arsip", df_target.columns)
-            
-            if st.button("🔍 Mulai Klasifikasi"):
-                genai.configure(api_key=API_KEY)
-                
-                r1, r2, r3 = [], [], []
-                progress = st.progress(0)
-                
-                for i, row in df_target.iterrows():
-                    top_3 = get_top_3(row[kolom_perihal], master_df)
-                    r1.append(top_3[0])
-                    r2.append(top_3[1])
-                    r3.append(top_3[2])
-                    progress.progress((i + 1) / len(df_target))
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
-                # Menyusun DataFrame hasil akhir
-                df_target['Rekomendasi 1'] = r1
-                df_target['Rekomendasi 2'] = r2
-                df_target['Rekomendasi 3'] = r3
+    uraian_user = st.text_input("🔍 Masukkan Perihal Surat / Uraian Arsip:", placeholder="Contoh: Daftar gaji pegawai bulan April")
+
+    if uraian_user:
+        # Ambil 3 kandidat terbaik secara lokal
+        top_candidates = hybrid_search(uraian_user, data)
+        
+        with st.spinner("🤖 AI sedang memvalidasi akurasi..."):
+            # Susun kandidat untuk Gemini
+            context_list = "\n".join([f"{c['kode']} - {c['uraian']}" for c in top_candidates])
+            
+            # PROMPT PAKAR ARSIPARIS
+            prompt = f"""
+            Anda adalah pakar Arsiparis Pemerintah Indonesia.
+            Tugas: Validasi dan urutkan 3 kode klasifikasi berikut berdasarkan tingkat relevansi yang paling presisi dengan uraian user.
+
+            Uraian User: "{uraian_user}"
+
+            Daftar Kandidat (Kode - Nama Kategori):
+            {context_list}
+
+            ATURAN:
+            1. Tampilkan hanya 3 hasil terbaik.
+            2. Sertakan persentase keyakinan Anda (0-100%).
+            3. Gunakan format: [Kode] - [Uraian] - [Skor%]
+            4. Berikan 1 kalimat alasan teknis kearsipan di bawah setiap hasil.
+            """
+
+            try:
+                response = model.generate_content(prompt)
                 
-                # Filter hanya kolom yang dibutuhkan
-                display_cols = [kolom_perihal, 'Rekomendasi 1', 'Rekomendasi 2', 'Rekomendasi 3']
+                st.success("🎯 Rekomendasi Klasifikasi Terbaik:")
+                st.markdown(response.text)
                 
-                st.subheader("📊 Hasil Analisis Rekomendasi")
-                st.dataframe(df_target[display_cols])
-                
-                csv = df_target[display_cols].to_csv(index=False).encode('utf-8')
-                st.download_button("⬇️ Download Hasil", csv, "hasil_arsip.csv", "text/csv")
+                # Opsi tambahan: Tampilkan tabel perbandingan skor lokal jika perlu
+                with st.expander("Lihat Skor Kecocokan Teknis (Lokal)"):
+                    st.table(pd.DataFrame(top_candidates))
+
+            except Exception as e:
+                st.error(f"Gagal memproses AI: {e}")
+
+# ========================
+# FOOTER
+# ========================
+st.markdown("---")
+st.caption("Proyek Aktualisasi Digitalisasi Arsip © 2026 | Kecerdasan Buatan Terintegrasi")
