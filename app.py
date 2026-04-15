@@ -27,10 +27,10 @@ def load_data():
 data = load_data()
 
 # ========================
-# 3. PENCARIAN CERDAS (ANTI-POLUSI DATA)
+# 3. PENCARIAN CERDAS (BEBAS POLUSI)
 # ========================
-def get_clean_candidates(query, df, limit=10):
-    # Hilangkan kata umum agar pencarian fokus ke inti masalah
+def get_clean_candidates(query, df, limit=5):
+    # Buang kata umum agar fokus ke substansi (misal: "sosialisasi")
     stop_words = ["surat", "arsip", "dokumen", "administrasi", "tentang", "perihal"]
     
     clean_query = str(query).lower().strip()
@@ -38,24 +38,22 @@ def get_clean_candidates(query, df, limit=10):
         clean_query = clean_query.replace(word, "")
     clean_query = clean_query.strip()
     
-    # Jika setelah dibersihkan kosong (misal user cuma ketik "arsip"), kembalikan ke awal
     if clean_query == "":
         clean_query = str(query).lower().strip()
 
-    # KITA GUNAKAN KOLOM 'uraian' ASLI, BUKAN 'uraian_ai'
+    # Cari di kolom 'uraian' ASLI (Bukan uraian_ai)
     choices = df['uraian'].dropna().tolist()
     
-    # Cari 10 kandidat terbaik agar AI punya pilihan lebih luas
     raw_results = process.extract(clean_query, choices, scorer=fuzz.token_set_ratio, limit=limit)
     
     candidates = []
     for match_text, score in raw_results:
-        # Cari baris aslinya
         match_idx = df[df['uraian'] == match_text].index[0]
         row = df.iloc[match_idx]
         candidates.append({
             "Kode": str(row['kode']).strip(),
-            "Uraian": str(row['uraian']).strip()
+            "Uraian": str(row['uraian']).strip(),
+            "Kecocokan": f"{score}%"
         })
     return candidates
 
@@ -63,12 +61,12 @@ def get_clean_candidates(query, df, limit=10):
 # 4. ANTARMUKA (UI)
 # ========================
 st.markdown('<div class="title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Sistem Cerdas Kearsipan (Bebas Polusi Data)</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Transparansi Pencarian Lokal & Analisis AI</p>", unsafe_allow_html=True)
 
 uraian_user = st.text_input("🔍 Masukkan Perihal Arsip:", placeholder="Contoh: Sosialisasi kearsipan desa")
 
 if uraian_user:
-    if st.button("🚀 Cari Kode Klasifikasi"):
+    if st.button("🚀 Proses Klasifikasi"):
         
         if "GEMINI_API_KEY" not in st.secrets:
             st.error("⚠️ API Key belum dimasukkan di Streamlit Secrets!")
@@ -77,38 +75,41 @@ if uraian_user:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         model = genai.GenerativeModel("gemini-1.5-flash")
         
-        with st.spinner("🔍 Memindai database dan menganalisis fungsi arsip..."):
+        # --- TAHAP 1: TAMPILKAN HASIL LOKAL ---
+        st.markdown("### 🔎 Tahap 1: Kandidat Sistem Lokal")
+        st.info("Berikut 5 kode dengan kata kunci paling mirip sebelum divalidasi oleh AI:")
+        
+        # Ambil 5 kandidat
+        kandidat_lokal = get_clean_candidates(uraian_user, data, limit=5)
+        st.table(pd.DataFrame(kandidat_lokal)) # Menampilkan tabel secara terbuka!
+        
+        # --- TAHAP 2: VALIDASI AI ---
+        st.markdown("### 🤖 Tahap 2: Keputusan Arsiparis (AI)")
+        with st.spinner("AI sedang memilih kode yang paling tepat secara hierarki tata naskah..."):
             
-            # 1. Dapatkan 10 kandidat teratas dari data lokal
-            kandidat_lokal = get_clean_candidates(uraian_user, data, limit=10)
             kandidat_str = "\n".join([f"- Kode: {c['Kode']} | Uraian: {c['Uraian']}" for c in kandidat_lokal])
             
-            # 2. Minta AI memilih 1 yang paling akurat dari 10 kandidat tersebut
             prompt = f"""
-            Anda adalah Arsiparis Profesional. Klasifikasikan arsip berikut.
+            Anda adalah Arsiparis Profesional.
             
             Uraian Arsip: "{uraian_user}"
             
-            DAFTAR KANDIDAT KODE:
+            KANDIDAT KODE (HANYA BOLEH PILIH DARI SINI):
             {kandidat_str}
             
-            TUGAS:
-            1. Pilih HANYA 1 (satu) kode dari DAFTAR KANDIDAT di atas yang paling sesuai secara hierarki tata naskah dinas.
-            2. Jika tentang "sosialisasi/penyuluhan kearsipan", cari kode yang berkaitan dengan Pembinaan Kearsipan, Perpustakaan, atau Pendidikan.
+            TUGAS MUTLAK:
+            1. Pilih HANYA SATU kode dari daftar kandidat di atas yang paling tepat sesuai fungsi kearsipannya.
+            2. DILARANG merekomendasikan kode di luar 5 kandidat tersebut.
             
             FORMAT JAWABAN:
-            **KODE TERPILIH:** [Tulis Kode] - [Tulis Uraian]
-            **ALASAN:** [Jelaskan singkat 1 kalimat]
+            **KODE TERPILIH:** [Kode] - [Uraian]
+            **ALASAN:** [Jelaskan 1 kalimat kenapa kode ini paling tepat]
             """
             
             try:
                 response = model.generate_content(prompt)
-                st.success("✅ Klasifikasi Berhasil Ditemukan")
+                st.success("✅ Analisis Selesai")
                 st.write(response.text)
-                
-                with st.expander("Lihat Daftar Kandidat Sistem Lokal"):
-                    st.table(pd.DataFrame(kandidat_lokal))
-                    
             except Exception as e:
                 st.error(f"Gagal memanggil AI. Detail: {e}")
 
