@@ -1,5 +1,4 @@
 streamlit
 pandas
 google-generativeai
-thefuzz
-python-Levenshtein
+scikit-learn
