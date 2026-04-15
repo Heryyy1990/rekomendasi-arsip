@@ -1,122 +1,165 @@
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
+from thefuzz import fuzz, process
 import os
 
-st.set_page_config(page_title="AI Archivist Pro", page_icon="🏛️", layout="centered")
+# =================================================================
+# 1. KONFIGURASI HALAMAN
+# =================================================================
+st.set_page_config(page_title="AI Archivist Pro", page_icon="📁", layout="centered")
 
 st.markdown("""
 <style>
-    .main-title { text-align: center; font-size: 32px; font-weight: 900; color: #1E3A8A; margin-bottom: 5px; }
-    .sub-title { text-align: center; color: #475569; margin-bottom: 30px; font-size: 16px;}
-    .stButton>button { width: 100%; border-radius: 8px; height: 50px; background-color: #0F766E; color: white; font-weight: bold; border:none;}
-    .result-card { padding: 25px; border-radius: 12px; background-color: #F0FDF4; border-left: 8px solid #16A34A; margin-top: 20px;}
+    .main-title { text-align: center; font-size: 30px; font-weight: bold; color: #1E3A8A; margin-bottom: 5px; }
+    .sub-title { text-align: center; color: #64748B; margin-bottom: 30px; }
+    .stButton>button { width: 100%; border-radius: 10px; height: 50px; background-color: #0F766E; color: white; font-weight: bold; border:none;}
+    .result-card { padding: 20px; border-radius: 12px; background-color: #F0FDF4; border-left: 6px solid #16A34A; margin-top: 20px;}
 </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 1. PERSIAPAN SISTEM & AI
+# 2. INISIALISASI DATA & AI
 # =================================================================
-if not os.path.exists("klasifikasi_arsip_vektor_hf.pkl"):
-    st.error("🚨 File 'klasifikasi_arsip_vektor_hf.pkl' tidak ditemukan di GitHub!")
-    st.stop()
+@st.cache_data
+def inisialisasi_sistem_lokal():
+    try:
+        df = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
+        df.columns = df.columns.str.strip()
+        df['uraian_ai'] = df['uraian_ai'].fillna("")
+        return df
+    except Exception as e:
+        st.error(f"Gagal membaca file CSV: {e}")
+        st.stop()
 
-@st.cache_resource
-def load_system():
-    # 1. Load Data Vektor
-    df = pd.read_pickle("klasifikasi_arsip_vektor_hf.pkl")
-    db_embeddings = np.array(df['vektor'].tolist())
-    
-    # 2. Load Model Vektor Open Source (Tanpa API)
-    model_vektor = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    return df, db_embeddings, model_vektor
+df_data = inisialisasi_sistem_lokal()
 
-df_vektor, matriks_vektor, mesin_pencari = load_system()
-
-# 3. Setup Gemini (Hanya untuk merangkum teks, tidak pakai vektor google)
+# Setup Gemini untuk Tahap 2
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     try:
-        model_pemikir = genai.GenerativeModel("gemini-1.5-flash")
+        model_ai = genai.GenerativeModel("gemini-1.5-flash")
     except:
-        model_pemikir = genai.GenerativeModel("gemini-pro")
+        model_ai = genai.GenerativeModel("gemini-pro")
 else:
-    model_pemikir = None
+    model_ai = None
 
 # =================================================================
-# 2. FUNGSI PENCARI MAKNA (HUGGING FACE)
+# 3. MESIN PENCARI HYBRID (KHUSUS BAHASA INDONESIA)
 # =================================================================
-def cari_makna(query, df, matriks_db, mesin, limit=6):
-    # Ubah teks user jadi vektor
-    query_emb = mesin.encode([str(query).strip()])
+def cari_kandidat_hybrid(query, df, limit=6):
+    query_clean = str(query).lower().strip()
+    query_words = set(query_clean.split())
     
-    # Hitung jarak makna
-    skor = cosine_similarity(query_emb, matriks_db)[0]
-    top_indices = skor.argsort()[-limit:][::-1]
+    # Kata kunci prioritas yang memaksa mesin menargetkan kelompok tertentu
+    keyword_map = {
+        "cuti": "800", "gaji": "900", "mutasi": "800", "pensiun": "800", "cpns": "800",
+        "keuangan": "900", "spp": "900", "spm": "900", "sp2d": "900", "apbd": "900",
+        "arsip": "040", "kearsipan": "040", "sosialisasi": "000", "rapat": "000"
+    }
     
-    kandidat = []
-    for idx in top_indices:
-        if skor[idx] > 0.3: # Batas relevansi
-            row = df.iloc[idx]
-            kandidat.append({
-                "Kode": str(row['kode']).strip(),
+    # Deteksi prioritas kelompok (misal: ada kata "cuti", langsung fokus ke 800)
+    target_prefix = None
+    for word in query_words:
+        for key, prefix in keyword_map.items():
+            if key in word:
+                target_prefix = prefix
+                break
+        if target_prefix: break
+
+    results = []
+    for idx, row in df.iterrows():
+        uraian_asli = str(row['uraian']).lower()
+        uraian_ai = str(row['uraian_ai']).lower()
+        kode = str(row['kode']).strip()
+        
+        # 1. Skor Token Set (Cocok logis antar kata)
+        score_set_ai = fuzz.token_set_ratio(query_clean, uraian_ai)
+        score_set_asli = fuzz.token_set_ratio(query_clean, uraian_asli)
+        
+        # 2. Skor Token Sort (Kecocokan murni teks)
+        score_sort = fuzz.token_sort_ratio(query_clean, uraian_ai)
+        
+        # 3. Pembobotan Hibrida
+        # Uraian asli lebih penting (bobot 2x) daripada silsilah AI untuk mencegah bias
+        total_score = (score_set_asli * 2) + score_set_ai + score_sort
+        
+        # 4. Injeksi Prioritas (Jika sistem mendeteksi kata kunci khusus)
+        if target_prefix and kode.startswith(target_prefix):
+            total_score += 150 # Beri bonus besar untuk kode yang sesuai target
+        
+        if total_score > 100: # Batas toleransi relevansi
+            results.append({
+                "Kode": kode,
                 "Uraian": str(row['uraian']).strip(),
                 "Konteks": str(row['uraian_ai']).strip(),
-                "Akurasi": f"{round(skor[idx] * 100, 1)}%"
+                "Score": total_score
             })
-    return kandidat
+            
+    # Urutkan dan ambil yang terbaik
+    results = sorted(results, key=lambda x: x['Score'], reverse=True)[:limit]
+    
+    # Format nilai agar mudah dibaca user
+    for r in results:
+        r['Relevansi'] = "Tinggi" if r['Score'] > 250 else ("Sedang" if r['Score'] > 150 else "Rendah")
+        
+    return results
 
 # =================================================================
-# 3. ANTARMUKA (UI)
+# 4. ANTARMUKA (UI)
 # =================================================================
-st.markdown('<div class="main-title">🏛️ AI Archivist Enterprise</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Sistem Vector RAG (HuggingFace + Google AI)</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Mesin Pencari Hybrid (Optimasi Tata Naskah Indonesia)</div>', unsafe_allow_html=True)
 
-uraian_user = st.text_input("🔍 Ketik Uraian/Perihal Arsip:", placeholder="Contoh: Pencairan dana desa")
+uraian_user = st.text_input("🔍 Masukkan Perihal Surat / Uraian Arsip:", placeholder="Contoh: Cuti tahunan pegawai")
 
 if uraian_user:
     if st.button("🚀 EKSEKUSI KLASIFIKASI"):
         
-        with st.spinner("🤖 Mengukur jarak semantik (Hugging Face)..."):
-            kandidat_makna = cari_makna(uraian_user, df_vektor, matriks_vektor, mesin_pencari, limit=6)
-            
-        st.markdown("### 🔎 Bukti Transparansi Mesin (Tahap 1)")
-        if not kandidat_makna:
-            st.warning("Uraian terlalu melenceng dari standar kearsipan pemerintah.")
+        # --- TAHAP 1: PENCARIAN HYBRID LOKAL ---
+        kandidat = cari_kandidat_hybrid(uraian_user, df_data, limit=6)
+        
+        st.markdown("### 🔎 Tahap 1: Hasil Pencarian Lokal")
+        if not kandidat:
+            st.warning("Tidak ditemukan kecocokan di database.")
         else:
-            st.table(pd.DataFrame(kandidat_makna)[["Kode", "Uraian", "Akurasi"]])
+            st.table(pd.DataFrame(kandidat)[["Kode", "Uraian", "Relevansi"]])
             
-            st.markdown("### 🧠 Putusan Final Arsiparis AI (Tahap 2)")
-            if model_pemikir:
-                with st.spinner("Gemini menerapkan panduan tata naskah..."):
-                    kandidat_str = "\n".join([f"- {c['Kode']} | {c['Konteks']}" for c in kandidat_makna])
-                    prompt = f"""
-                    Anda Auditor Kearsipan. Kunci 1 KODE KLASIFIKASI yang paling akurat.
-                    URAIAN PENGGUNA: "{uraian_user}"
-                    KANDIDAT DARI DATABASE:
-                    {kandidat_str}
-                    STANDAR OPERASIONAL:
-                    - "Sosialisasi" tentang "Kearsipan" -> INTI = KEARSIPAN (040/000.5).
-                    - "SK/Keputusan" tentang "Nasib Pegawai/Mutasi" -> INTI = KEPEGAWAIAN (800).
+            # --- TAHAP 2: VALIDASI AI ---
+            if model_ai:
+                st.markdown("### 🤖 Tahap 2: Keputusan Akhir AI")
+                with st.spinner("AI sedang mengunci fungsi utama..."):
+                    kandidat_str = "\n".join([f"- Kode {c['Kode']} | {c['Uraian']} (Konteks: {c['Konteks']})" for c in kandidat])
                     
-                    PILIH 1 KODE SAJA.
-                    FORMAT PUTUSAN:
-                    **BAGIAN INTI:** [Nama Urusan]
+                    prompt = f"""
+                    Anda adalah Ahli Tata Naskah Dinas Pemerintah Indonesia.
+                    
+                    URAIAN PENGGUNA: "{uraian_user}"
+                    
+                    KANDIDAT KODE:
+                    {kandidat_str}
+                    
+                    PANDUAN MUTLAK:
+                    - Surat tentang Cuti/Mutasi/Nasib Pegawai WAJIB masuk kelompok Kepegawaian (800).
+                    - Surat pencairan uang WAJIB masuk Keuangan (900).
+                    - Sosialisasi/Bimtek tentang kearsipan WAJIB masuk Kearsipan (040/000.5).
+                    
+                    Pilih HANYA 1 KODE TERBAIK dari kandidat di atas.
+                    
+                    FORMAT HASIL:
+                    **BAGIAN INTI:** [Nama Urusan, misal: Kepegawaian]
                     **KODE FINAL:** [Kode] - [Uraian]
-                    **ANALISIS ARSIPARIS:** [Alasan]
+                    **ANALISIS:** [Jelaskan alasan pemilihannya]
                     """
                     try:
-                        hasil_final = model_pemikir.generate_content(prompt)
+                        response = model_ai.generate_content(prompt)
                         st.markdown('<div class="result-card">', unsafe_allow_html=True)
-                        st.write(hasil_final.text)
+                        st.write(response.text)
                         st.markdown('</div>', unsafe_allow_html=True)
                     except Exception as e:
-                        st.error(f"Gagal mengambil putusan akhir: {e}")
+                        st.error(f"Gagal menghubungi AI: {e}")
             else:
-                st.info("API Gemini tidak tersedia. Silakan gunakan tabel di atas.")
+                st.info("API Gemini tidak aktif. Silakan pilih dari tabel di atas.")
 
 st.markdown("---")
-st.caption("Hybrid Engine: HuggingFace Sentence-Transformers & Google Generative AI")
+st.caption("EKlasifikasi Pro | Sistem Pencari Berbasis Kata Kunci Prioritas")
