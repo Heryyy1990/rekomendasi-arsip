@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
-from thefuzz import fuzz
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 # =================================================================
 # 1. KONFIGURASI HALAMAN
@@ -18,121 +20,124 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2. DATA & AI
+# 2. DATA, MODEL AI, & MESIN PEMBOBOTAN KATA (TF-IDF)
 # =================================================================
 @st.cache_data
-def load_data():
+def load_data_and_vectorizer():
+    # Load Master Data
     df = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
     df.columns = df.columns.str.strip()
-    return df
+    
+    # Pastikan data aman
+    df['uraian_ai'] = df['uraian_ai'].fillna("")
+    
+    # Inisialisasi Mesin Pembobot Kata (TF-IDF)
+    vectorizer = TfidfVectorizer()
+    # Melatih mesin untuk mengenali bobot setiap kata di Silsilah Hierarki
+    tfidf_matrix = vectorizer.fit_transform(df['uraian_ai'])
+    
+    return df, vectorizer, tfidf_matrix
 
 def get_gemini_model():
     if "GEMINI_API_KEY" not in st.secrets:
         st.error("⚠️ GEMINI_API_KEY tidak ditemukan di Secrets!")
         st.stop()
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    return genai.GenerativeModel("gemini-1.5-flash")
+    
+    try:
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        target_model = next((m for m in available_models if "1.5-flash" in m), None)
+        if not target_model:
+            target_model = next((m for m in available_models if "gemini-pro" in m or "1.0-pro" in m), None)
+        return genai.GenerativeModel(target_model or available_models[0])
+    except:
+        return genai.GenerativeModel("gemini-pro")
 
-data = load_data()
+# Memuat data ke memori
+data, vectorizer, tfidf_matrix = load_data_and_vectorizer()
 model = get_gemini_model()
 
 # =================================================================
-# 3. MESIN PENCARI CUSTOM (ANTI BIAS 1 KATA)
+# 3. MESIN PENCARI SEMANTIK (MEMAHAMI INTI KATA)
 # =================================================================
-def get_smart_candidates(query, df, limit=8):
-    query_clean = str(query).lower().strip()
-    query_words = set(query_clean.split())
+def get_semantic_candidates(query, df, vectorizer, tfidf_matrix, limit=8):
+    # Mengubah kalimat ketikan user menjadi vektor angka berbobot
+    query_vec = vectorizer.transform([str(query).lower().strip()])
     
-    results = []
-    for idx, row in df.iterrows():
-        uraian_asli = str(row['uraian']).lower()
-        uraian_ai = str(row['uraian_ai']).lower()
-        
-        # 1. Hitung jumlah kata yang cocok di Silsilah (uraian_ai)
-        ai_words = set(uraian_ai.replace('.', ' ').replace(',', ' ').split())
-        overlap_ai = len(query_words.intersection(ai_words))
-        
-        # 2. Hitung jumlah kata yang cocok langsung di Uraian asli
-        asli_words = set(uraian_asli.replace('.', ' ').replace(',', ' ').split())
-        overlap_asli = len(query_words.intersection(asli_words))
-        
-        # 3. Rasio kemiripan murni
-        sort_score = fuzz.token_sort_ratio(query_clean, uraian_ai)
-        
-        # RUMUS SUPER: (Kecocokan Silsilah x 100) + (Kecocokan Asli x 50) + Kemiripan
-        total_score = (overlap_ai * 100) + (overlap_asli * 50) + sort_score
-        
-        if total_score > 30: # Hanya ambil yang relevan
-            results.append({
+    # Menghitung kemiripan (Cosine Similarity) antara ketikan user dengan seluruh database
+    similarity_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
+    
+    # Ambil index dengan skor tertinggi
+    top_indices = similarity_scores.argsort()[-limit:][::-1]
+    
+    candidates = []
+    for idx in top_indices:
+        score = similarity_scores[idx]
+        if score > 0.05: # Ambil yang punya relevansi saja
+            row = df.iloc[idx]
+            candidates.append({
                 "Kode": str(row['kode']).strip(),
                 "Uraian": str(row['uraian']).strip(),
-                "Konteks Silsilah": str(row['uraian_ai']).strip(),
-                "Score": total_score
+                "Konteks": str(row['uraian_ai']).strip(),
+                "Kecocokan": f"{round(score * 100, 1)}%"
             })
             
-    # Urutkan berdasarkan skor rumus dari yang paling tinggi
-    results = sorted(results, key=lambda x: x['Score'], reverse=True)[:limit]
-    
-    # Rapikan untuk tampilan tabel
-    for r in results:
-        r['Relevansi'] = "Tinggi" if r['Score'] > 200 else "Sedang"
-        
-    return results
+    return candidates
 
 # =================================================================
 # 4. ANTARMUKA PENGGUNA (UI)
 # =================================================================
 st.markdown('<div class="main-title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Algoritma Pencarian Cerdas (Bebas Bias Kata Tunggal)</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Algoritma Semantik (Memahami Subjek Utama)</div>', unsafe_allow_html=True)
 
 uraian_user = st.text_input("🔍 Masukkan Perihal Surat / Uraian Arsip:", placeholder="Contoh: Sosialisasi kearsipan desa")
 
 if uraian_user:
-    if st.button("🚀 JALANKAN ANALISIS HIERARKI"):
+    if st.button("🚀 JALANKAN ANALISIS KLASIFIKASI"):
         
-        # --- TAHAP 1: PENCARIAN LOKAL KUSTOM ---
-        candidates = get_smart_candidates(uraian_user, data, limit=8)
+        # --- TAHAP 1: PENCARIAN SEMANTIK ---
+        candidates = get_semantic_candidates(uraian_user, data, vectorizer, tfidf_matrix, limit=8)
         
-        st.markdown("### 🔎 Tahap 1: Tabel Kandidat (Lokal)")
-        st.info("Kini tabel mengambil kandidat dari fungsi kata yang merata, tidak terfokus pada 1 kata saja.")
-        # Tampilkan tabel yang lebih rapi (tanpa menampilkan kolom silsilah yang kepanjangan)
-        st.table(pd.DataFrame(candidates)[["Kode", "Uraian", "Relevansi"]])
-        
-        # --- TAHAP 2: VALIDASI AI ---
-        st.markdown("### 🤖 Tahap 2: Analisis Pakar (AI)")
-        with st.spinner("Menganalisis Fungsi Utama..."):
+        st.markdown("### 🔎 Tahap 1: Tabel Kandidat Prioritas Subjek")
+        if not candidates:
+            st.warning("Tidak ditemukan kandidat yang cocok di database.")
+        else:
+            # Tampilkan ke user tanpa kolom Konteks yang panjang
+            st.table(pd.DataFrame(candidates)[["Kode", "Uraian", "Kecocokan"]])
             
-            kandidat_str = "\n".join([f"- {c['Kode']} | {c['Uraian']} (Silsilah: {c['Konteks Silsilah']})" for c in candidates])
-            
-            prompt = f"""
-            Anda adalah Arsiparis Profesional.
-            
-            URAIAN SURAT: "{uraian_user}"
-            
-            DAFTAR KANDIDAT KODE:
-            {kandidat_str}
-            
-            INSTRUKSI VALIDASI:
-            1. Tentukan 'BAGIAN INTI' (Fungsi Utama) dari urusan tersebut (contoh: Kearsipan, Keuangan, Kepegawaian).
-            2. Tentukan 'SUB BAGIAN' (Kegiatan spesifik).
-            3. Pilih 1 KODE TERBAIK dari kandidat yang secara hierarki paling cocok. Jika ada sosialisasi mengenai kearsipan, pilih kode kearsipan, BUKAN kode kesra/umum.
-            
-            FORMAT HASIL (WAJIB):
-            **BAGIAN INTI:** [Sebutkan urusan utamanya]
-            **SUB BAGIAN:** [Sebutkan kegiatannya]
-            **KODE TERPILIH:** [Kode] - [Uraian]
-            **ALASAN:** [Penjelasan singkat]
-            """
-            
-            try:
-                response = model.generate_content(prompt)
+            # --- TAHAP 2: VALIDASI AI ---
+            st.markdown("### 🤖 Tahap 2: Keputusan Akhir AI")
+            with st.spinner("AI sedang mengunci fungsi utama kearsipan..."):
                 
-                st.markdown('<div class="result-card">', unsafe_allow_html=True)
-                st.write(response.text)
-                st.markdown('</div>', unsafe_allow_html=True)
+                kandidat_str = "\n".join([f"- {c['Kode']} | {c['Uraian']} (Silsilah: {c['Konteks']})" for c in candidates])
                 
-            except Exception as e:
-                st.error(f"Koneksi AI bermasalah: {e}")
+                prompt = f"""
+                Anda adalah Ahli Tata Naskah Dinas dan Kearsipan.
+                
+                URAIAN SURAT: "{uraian_user}"
+                
+                KANDIDAT KODE (Urut berdasarkan algoritma pembobot):
+                {kandidat_str}
+                
+                INSTRUKSI VALIDASI:
+                1. Analisis 'BAGIAN INTI' (Subjek Utama) dari uraian tersebut (contoh: apakah tentang Kearsipan, Kepegawaian, Hukum, dll?).
+                2. Pilih HANYA 1 KODE dari kandidat yang secara hierarki mewakili inti dan kegiatan surat.
+                
+                FORMAT HASIL (WAJIB):
+                **BAGIAN INTI:** [Sebutkan urusan utamanya]
+                **KODE TERPILIH:** [Kode] - [Uraian]
+                **ALASAN:** [Jelaskan 1 kalimat]
+                """
+                
+                try:
+                    response = model.generate_content(prompt)
+                    
+                    st.markdown('<div class="result-card">', unsafe_allow_html=True)
+                    st.write(response.text)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                except Exception as e:
+                    st.error(f"Koneksi AI bermasalah: {e}")
 
 st.markdown("---")
-st.caption("EKlasifikasi Pro | Pemecahan Masalah Metode Fuzzy Logic")
+st.caption("EKlasifikasi Pro | Sistem Analisis Subjek Sesuai Tata Naskah")
