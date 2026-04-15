@@ -1,63 +1,189 @@
 import streamlit as st
 import pandas as pd
+import google.generativeai as genai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-st.set_page_config(page_title="Klasifikasi Arsip (Vector)", layout="wide")
+# ========================
+# CONFIG
+# ========================
+st.set_page_config(
+    page_title="EKlasifikasi Arsip",
+    page_icon="📁",
+    layout="centered"
+)
 
-st.title("📁 Klasifikasi Arsip Berbasis Vector (Lebih Akurat)")
+# ========================
+# STYLE
+# ========================
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+}
+.title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+}
+.subtitle {
+    text-align: center;
+    color: gray;
+    margin-bottom: 20px;
+}
+.stTextInput input {
+    border-radius: 10px;
+    padding: 10px;
+}
+.stButton>button {
+    border-radius: 10px;
+    height: 45px;
+    font-weight: bold;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# =========================
-# INPUT CSV
-# =========================
-csv_url = st.text_input("Masukkan link RAW CSV GitHub")
+# ========================
+# HEADER
+# ========================
+st.markdown('<div class="title">📁 EKlasifikasi Arsip</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">AI Klasifikasi Arsip (Hybrid: Cepat + Pintar)</div>', unsafe_allow_html=True)
 
+# ========================
+# API GEMINI
+# ========================
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
+# ========================
+# AUTO DETECT MODEL
+# ========================
+model = None
+try:
+    available_models = [
+        m.name for m in genai.list_models()
+        if "generateContent" in m.supported_generation_methods
+    ]
+
+    for m in available_models:
+        if "gemini" in m:
+            model = genai.GenerativeModel(m)
+            break
+
+except Exception as e:
+    st.error(f"Gagal load model: {e}")
+
+# fallback
+if model is None:
+    model = genai.GenerativeModel("models/gemini-1.0-pro")
+
+# ========================
+# LOAD DATA
+# ========================
 @st.cache_data
-def load_data(url):
-    try:
-        return pd.read_csv(url)
-    except:
-        return pd.read_csv(url, encoding="latin1")
+def load_data():
+    return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
 
-if csv_url:
-    df = load_data(csv_url)
-    st.success("CSV berhasil dimuat")
-    st.dataframe(df)
+data = load_data()
 
-    # =========================
-    # PILIH KOLOM
-    # =========================
-    kolom_teks = st.selectbox("Kolom Teks", df.columns)
-    kolom_label = st.selectbox("Kolom Kategori (Label)", df.columns)
+# ========================
+# TF-IDF
+# ========================
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(data['uraian'])
 
-    # =========================
-    # INPUT TEKS BARU
-    # =========================
-    st.subheader("🔍 Uji Klasifikasi")
+# ========================
+# INPUT USER
+# ========================
+uraian_user = st.text_input("🔍 Masukkan uraian atau kode klasifikasi:")
 
-    input_teks = st.text_input("Masukkan teks arsip")
+# ========================
+# DETEKSI KODE LANGSUNG
+# ========================
+if uraian_user:
+    kode_match = data[data['kode'].str.contains(uraian_user, case=False, na=False)]
 
-    if st.button("Klasifikasikan"):
+    if not kode_match.empty:
+        st.success("📌 Kode ditemukan")
+        for _, row in kode_match.iterrows():
+            st.write(f"**{row['kode']}** - {row['uraian']}")
 
-        # vectorize
-        vectorizer = TfidfVectorizer()
-        tfidf_matrix = vectorizer.fit_transform(df[kolom_teks].astype(str))
+# ========================
+# SARAN CEPAT (TF-IDF)
+# ========================
+if uraian_user:
+    user_vec = vectorizer.transform([uraian_user])
+    sim = cosine_similarity(user_vec, tfidf_matrix)
 
-        input_vec = vectorizer.transform([input_teks])
+    top_auto = sim[0].argsort()[-3:][::-1]
 
-        # hitung similarity
-        similarity = cosine_similarity(input_vec, tfidf_matrix)
+    st.info("💡 Saran cepat:")
+    for i in top_auto:
+        st.write(f"**{data.iloc[i]['kode']}** - {data.iloc[i]['uraian']}")
 
-        # ambil yang paling mirip
-        idx = similarity.argmax()
-        skor = similarity[0][idx]
+# ========================
+# BUTTON AI
+# ========================
+if st.button("🚀 Cari Klasifikasi Pintar", use_container_width=True):
 
-        kategori = df.iloc[idx][kolom_label]
+    if uraian_user.strip() != "":
+        with st.spinner("🤖 AI sedang menganalisis..."):
 
-        st.success("Hasil Klasifikasi:")
-        st.write(f"Kategori: **{kategori}**")
-        st.write(f"Tingkat kemiripan: {round(skor, 3)}")
+            try:
+                # STEP 1: TF-IDF kandidat
+                user_vector = vectorizer.transform([uraian_user])
+                similarity = cosine_similarity(user_vector, tfidf_matrix)
 
-        # tampilkan referensi terdekat
-        st.subheader("📄 Referensi Paling Mirip")
-        st.write(df.iloc[idx][kolom_teks])
+                top_indices = similarity[0].argsort()[-5:][::-1]
+
+                kandidat = ""
+                for i in top_indices:
+                    kandidat += f"{data.iloc[i]['kode']} - {data.iloc[i]['uraian']}\n"
+
+                # STEP 2: GEMINI (LOGIKA ARSIP)
+                prompt = f"""
+Kamu adalah arsiparis profesional di instansi pemerintah.
+
+Ikuti langkah berikut:
+
+1. Analisis isi:
+Pahami inti masalah dari uraian arsip.
+
+2. Pilih kode terdekat:
+Dari kandidat, pilih yang paling relevan.
+
+3. Tentukan sub masalah:
+Persempit ke rincian masalah.
+
+4. Tentukan sub-sub masalah:
+Pilih klasifikasi paling spesifik.
+
+Kandidat klasifikasi:
+{kandidat}
+
+Uraian arsip:
+"{uraian_user}"
+
+Tampilkan 3 hasil terbaik.
+
+Format:
+1. Kode - Uraian (alasan singkat)
+2. Kode - Uraian (alasan singkat)
+3. Kode - Uraian (alasan singkat)
+"""
+
+                response = model.generate_content(prompt)
+
+                st.success("🎯 Hasil Klasifikasi AI")
+                st.write(response.text)
+
+            except Exception as e:
+                st.error(f"Error AI: {e}")
+
+    else:
+        st.warning("Masukkan uraian arsip dulu")
+
+# ========================
+# FOOTER
+# ========================
+st.markdown("---")
+st.caption("EKlasifikasi Arsip by Heryanto S.Pd © 2026 | Powered by Gemini AI")
