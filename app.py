@@ -3,115 +3,144 @@ import pandas as pd
 import google.generativeai as genai
 from thefuzz import process, fuzz
 
-# ========================
-# 1. KONFIGURASI UI
-# ========================
-st.set_page_config(page_title="EKlasifikasi Hierarki", page_icon="📁", layout="centered")
+# =================================================================
+# 1. KONFIGURASI HALAMAN & STYLE
+# =================================================================
+st.set_page_config(
+    page_title="AI Archivist Pro - Muna Barat", 
+    page_icon="📁", 
+    layout="centered"
+)
 
 st.markdown("""
 <style>
-    .title { text-align: center; font-size: 28px; font-weight: bold; color: #1E3A8A; }
-    .stButton>button { width: 100%; border-radius: 8px; height: 45px; background-color: #0F766E; color: white; font-weight: bold; }
-    .result-box { background-color: #F0FDF4; padding: 15px; border-radius: 8px; border-left: 5px solid #16A34A; }
+    .main-title { text-align: center; font-size: 30px; font-weight: bold; color: #1E3A8A; margin-bottom: 5px; }
+    .sub-title { text-align: center; color: #64748B; margin-bottom: 30px; }
+    .stButton>button { 
+        width: 100%; 
+        border-radius: 10px; 
+        height: 50px; 
+        background-color: #0F766E; 
+        color: white; 
+        font-weight: bold; 
+        border: none;
+    }
+    .result-card { 
+        padding: 20px; 
+        border-radius: 12px; 
+        background-color: #F0FDF4; 
+        border-left: 6px solid #16A34A; 
+        margin-top: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ========================
-# 2. LOAD DATA
-# ========================
+# =================================================================
+# 2. PENGATURAN DATA & AI
+# =================================================================
 @st.cache_data
 def load_data():
+    # Memuat master data yang sudah berisi silsilah hierarki di 'uraian_ai'
     df = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
     df.columns = df.columns.str.strip()
     return df
 
+def get_gemini_model():
+    if "GEMINI_API_KEY" not in st.secrets:
+        st.error("⚠️ GEMINI_API_KEY tidak ditemukan di Secrets!")
+        st.stop()
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    return genai.GenerativeModel("gemini-1.5-flash")
+
+# Inisialisasi Data dan Model
 data = load_data()
+model = get_gemini_model()
 
-# ========================
-# 3. PENCARIAN BERSIH (MENYEDIAKAN KANDIDAT)
-# ========================
-def get_candidates(query, df, limit=7):
-    # Membersihkan kata umum agar tidak mengganggu pencarian inti
-    stop_words = ["surat", "arsip", "dokumen", "administrasi", "perihal", "tentang"]
-    clean_query = str(query).lower().strip()
-    for word in stop_words:
-        clean_query = clean_query.replace(word, "")
-    clean_query = clean_query.strip()
+# =================================================================
+# 3. LOGIKA PENCARIAN (LOCAL THINKING)
+# =================================================================
+def get_hierarchical_candidates(query, df, limit=5):
+    query = str(query).lower().strip()
+    # Mencari di kolom 'uraian_ai' karena mengandung silsilah lengkap (Induk ➔ Ranting)
+    choices = df['uraian_ai'].dropna().tolist()
     
-    if not clean_query:
-        clean_query = str(query).lower().strip()
-
-    choices = df['uraian'].dropna().tolist()
-    raw_results = process.extract(clean_query, choices, scorer=fuzz.token_set_ratio, limit=limit)
+    # Menggunakan token_set_ratio agar lebih fleksibel terhadap urutan kata
+    raw_results = process.extract(query, choices, scorer=fuzz.token_set_ratio, limit=limit)
     
     candidates = []
     for match_text, score in raw_results:
-        match_idx = df[df['uraian'] == match_text].index[0]
+        # Menemukan baris asli berdasarkan teks uraian_ai
+        match_idx = df[df['uraian_ai'] == match_text].index[0]
         row = df.iloc[match_idx]
         candidates.append({
             "Kode": str(row['kode']).strip(),
-            "Uraian": str(row['uraian']).strip()
+            "Uraian": str(row['uraian']).strip(),
+            "Konteks Silsilah": str(row['uraian_ai']).strip(),
+            "Skor": f"{score}%"
         })
     return candidates
 
-# ========================
-# 4. APLIKASI UTAMA
-# ========================
-st.markdown('<div class="title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Metode Pemikiran Hierarki (Inti ➔ Sub Bagian ➔ Kode)</p>", unsafe_allow_html=True)
+# =================================================================
+# 4. ANTARMUKA PENGGUNA (UI)
+# =================================================================
+st.markdown('<div class="main-title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Sistem Rekomendasi Berbasis Analisis Hierarki Kearsipan</div>', unsafe_allow_html=True)
 
-uraian_user = st.text_input("🔍 Masukkan Perihal Arsip:", placeholder="Contoh: Sosialisasi tata kelola kearsipan desa")
+uraian_user = st.text_input("🔍 Masukkan Perihal Surat / Uraian Arsip:", placeholder="Contoh: Sosialisasi tata kelola kearsipan")
 
 if uraian_user:
-    if st.button("🚀 Analisis Hierarki Kearsipan"):
+    if st.button("🚀 JALANKAN ANALISIS KLASIFIKASI"):
         
-        if "GEMINI_API_KEY" not in st.secrets:
-            st.error("⚠️ API Key belum dimasukkan di Streamlit Secrets!")
-            st.stop()
+        # --- TAHAP 1: PENCARIAN LOKAL (TRANSPARAN) ---
+        st.markdown("### 🔎 Tahap 1: Pencarian Silsilah Lokal")
+        st.info("Sistem menemukan kandidat berikut berdasarkan kemiripan silsilah di database:")
+        
+        candidates = get_hierarchical_candidates(uraian_user, data)
+        # Menampilkan tabel hanya kolom Kode, Uraian, dan Skor
+        st.table(pd.DataFrame(candidates)[["Kode", "Uraian", "Skor"]])
+        
+        # --- TAHAP 2: VALIDASI AI (HIERARKI) ---
+        st.markdown("### 🤖 Tahap 2: Analisis Pakar (AI)")
+        with st.spinner("Menganalisis hubungan Fungsi Utama dan Sub Bagian..."):
             
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        
-        # 1. Tarik 7 Kandidat dari Database
-        kandidat = get_candidates(uraian_user, data, limit=7)
-        kandidat_str = "\n".join([f"- {c['Kode']} | {c['Uraian']}" for c in kandidat])
-        
-        st.markdown("### 🔎 Tabel Referensi Sistem Lokal")
-        st.table(pd.DataFrame(kandidat))
-        
-        # 2. Paksa AI Berpikir Top-Down (Inti -> Sub -> Kode)
-        st.markdown("### 🤖 Analisis Pohon Klasifikasi (AI)")
-        with st.spinner("Mengidentifikasi Bagian Inti dan Sub Bagian..."):
+            # Mempersiapkan data kandidat untuk dikirim ke AI
+            kandidat_str = "\n".join([f"- {c['Kode']} | {c['Uraian']} (Silsilah: {c['Konteks Silsilah']})" for c in candidates])
             
             prompt = f"""
-            Anda adalah Pakar Arsiparis. Tugas Anda adalah menemukan kode yang tepat dengan metode Analisis Hierarki (Top-Down).
+            Anda adalah Arsiparis Profesional. Klasifikasikan perihal surat menggunakan metode Analisis Hierarki.
             
-            URAIAN SURAT: "{uraian_user}"
+            PERIHAL SURAT: "{uraian_user}"
             
-            KANDIDAT KODE YANG TERSEDIA:
+            DAFTAR KANDIDAT KODE & SILSILAH:
             {kandidat_str}
             
-            INSTRUKSI WAJIB (Ikuti urutan berpikir ini):
-            1. Tentukan "Bagian Inti" (Fungsi Utama) dari surat tersebut. Apakah ini urusan Kepegawaian, Keuangan, Kearsipan/Perpustakaan, Umum, dll?
-            2. Tentukan "Sub Bagian" (Kegiatan). Apa rincian spesifik dari inti tersebut?
-            3. Berdasarkan Inti dan Sub Bagian di atas, pilih 1 (SATU) KODE FINAL dari daftar kandidat yang paling akurat.
+            INSTRUKSI VALIDASI:
+            1. Tentukan 'BAGIAN INTI' (Fungsi Utama) dari urusan tersebut.
+            2. Tentukan 'SUB BAGIAN' (Kegiatan spesifik).
+            3. Pilih 3 rekomendasi terbaik dari kandidat yang diberikan, urutkan dari yang paling akurat.
             
-            FORMAT JAWABAN (Harus persis seperti ini):
-            **1. BAGIAN INTI:** [Sebutkan urusan utamanya]
-            **2. SUB BAGIAN:** [Sebutkan kegiatannya]
-            **3. KODE KLASIFIKASI:** [Kode Terpilih] - [Uraian Terpilih]
+            FORMAT HASIL (WAJIB):
+            1. [KODE] - [URAIAN]
+               - Inti: [Sebutkan urusan utamanya]
+               - Alasan: [Penjelasan singkat]
+            2. [KODE] - [URAIAN]
+            3. [KODE] - [URAIAN]
             """
             
             try:
                 response = model.generate_content(prompt)
                 
-                # Menampilkan hasil dengan kotak hijau yang rapi
-                st.markdown('<div class="result-box">', unsafe_allow_html=True)
-                st.write(response.text)
+                st.markdown('<div class="result-card">', unsafe_allow_html=True)
+                st.success("🎯 Rekomendasi Akhir Berhasil Ditemukan")
+                st.markdown(response.text)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
             except Exception as e:
-                st.error(f"Gagal memanggil AI. Pastikan kuota/koneksi aman. Detail: {e}")
+                st.error(f"Terjadi kendala pada koneksi AI: {e}")
 
+# =================================================================
+# 5. FOOTER
+# =================================================================
 st.markdown("---")
-st.caption("Logika Kearsipan Sesuai Tata Naskah Dinas")
+st.caption("EKlasifikasi Pro | Dikembangkan untuk Efisiensi Tata Kelola Kearsipan Pemerintah")
