@@ -7,17 +7,17 @@ import re
 # ========================
 # 1. KONFIGURASI HALAMAN
 # ========================
-st.set_page_config(page_title="EKlasifikasi Pro", page_icon="📁", layout="centered")
+st.set_page_config(page_title="AI Klasifikasi Arsip", page_icon="📁", layout="centered")
 
 st.markdown("""
 <style>
-    .title { text-align: center; font-size: 30px; font-weight: bold; color: #1E3A8A; }
-    .stButton>button { width: 100%; border-radius: 10px; height: 50px; background-color: #2563EB; color: white; font-weight: bold; }
+    .title { text-align: center; font-size: 28px; font-weight: bold; color: #1E3A8A; }
+    .stButton>button { width: 100%; border-radius: 8px; height: 45px; background-color: #2563EB; color: white; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
 # ========================
-# 2. LOAD DATA
+# 2. LOAD MASTER DATA
 # ========================
 @st.cache_data
 def load_data():
@@ -28,104 +28,84 @@ def load_data():
 data = load_data()
 
 # ========================
-# 3. PENCARIAN LOKAL (3 KANDIDAT)
+# 3. PENCARIAN LOKAL (FUZZY LOGIC)
 # ========================
 def get_local_candidates(query, df, limit=3):
     query = str(query).lower().strip()
     choices = df['uraian_ai'].tolist()
     
-    # Ambil 3 terbaik
     raw_results = process.extract(query, choices, scorer=fuzz.token_set_ratio, limit=limit)
     
     candidates = []
     for res in raw_results:
         match_text = res[0]
         score = res[1]
-        
-        # Cari data aslinya
         match_idx = df[df['uraian_ai'] == match_text].index[0]
         row = df.iloc[match_idx]
         
         candidates.append({
             "Kode": str(row['kode']),
             "Uraian": row['uraian'],
-            "Skor Kecocokan Lokal": f"{score}%"
+            "Skor": f"{score}%"
         })
     return candidates
 
 # ========================
-# 4. FUNGSI AI DENGAN ANTI-EROR (FALLBACK)
+# 4. ANTARMUKA (UI)
 # ========================
-def generate_ai_response(prompt):
-    if "GEMINI_API_KEY" not in st.secrets:
-        return "⚠️ EROR: API Key tidak ditemukan di Streamlit Secrets."
-    
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    # Percobaan 1: Menggunakan Gemini 1.5 Flash
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e1:
-        # Percobaan 2: Jika 404, pindah ke Gemini 1.0 Pro (Pasti Aman)
-        try:
-            model_fallback = genai.GenerativeModel("gemini-pro")
-            response_fallback = model_fallback.generate_content(prompt)
-            return f"*(Menggunakan model cadangan karena 1.5-flash sibuk/eror)*\n\n{response_fallback.text}"
-        except Exception as e2:
-            return f"⚠️ EROR FATAL API: Gagal memanggil semua model AI. Detail: {e2}"
+st.markdown('<div class="title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:gray;'>Sistem Rekomendasi Kearsipan Cerdas</p>", unsafe_allow_html=True)
 
-# ========================
-# 5. ANTARMUKA (UI)
-# ========================
-st.markdown('<div class="title">📁 EKlasifikasi Pro v5</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Transparansi Pencarian Lokal & Validasi AI</p>", unsafe_allow_html=True)
+# Cek API Key di Secrets
+if "GEMINI_API_KEY" not in st.secrets:
+    st.error("⚠️ GEMINI_API_KEY belum ditambahkan di Streamlit Secrets.")
+    st.stop()
 
-uraian_user = st.text_input("🔍 Masukkan Perihal atau Isi Ringkas Arsip:", placeholder="Contoh: Pembelian alat tulis kantor")
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+uraian_user = st.text_input("🔍 Masukkan Perihal Surat / Uraian Arsip:")
 
 if uraian_user:
     if st.button("🚀 Proses Klasifikasi"):
         
-        # --- TAHAP 1: TAMPILKAN HASIL LOKAL ---
-        st.markdown("### 🔎 Tahap 1: Pencarian Lokal (Tanpa AI)")
-        st.info("Berikut adalah 3 kode yang paling mirip dengan ketikan Anda berdasarkan Master Data:")
-        
+        # --- TAHAP 1: FILTER LOKAL ---
         kandidat_lokal = get_local_candidates(uraian_user, data, limit=3)
-        # Menampilkan sebagai tabel agar rapi
+        
+        st.markdown("### 🔎 3 Kandidat Terdekat dari Master Data:")
         st.table(pd.DataFrame(kandidat_lokal))
         
         # --- TAHAP 2: VALIDASI AI ---
-        st.markdown("### 🤖 Tahap 2: Validasi Analisis Fungsi oleh AI")
-        with st.spinner("AI sedang memikirkan mana yang paling logis secara aturan kearsipan..."):
+        with st.spinner("🤖 AI sedang memvalidasi kode yang paling sesuai..."):
+            kandidat_str = "\n".join([f"- {c['Kode']} : {c['Uraian']}" for c in kandidat_lokal])
             
-            kandidat_str = "\n".join([f"- Kode: {c['Kode']} | Uraian: {c['Uraian']}" for c in kandidat_lokal])
-            
+            # PROMPT BERSIH, TEGAS, TANPA ASUMSI NGAWUR
             prompt = f"""
-            Tugas Anda adalah memvalidasi klasifikasi arsip berdasarkan standar kearsipan pemerintah.
+            Anda adalah Arsiparis Ahli Pemerintah. 
+            Tugas Anda adalah memilih 1 kode klasifikasi yang paling akurat berdasarkan fungsi kearsipannya.
             
-            Uraian Surat: "{uraian_user}"
+            Uraian Arsip dari User: "{uraian_user}"
             
-            3 Kandidat dari Sistem Lokal:
+            Daftar Pilihan Kode:
             {kandidat_str}
             
-            INSTRUKSI:
-            1. Analisis apakah surat tersebut secara fungsi lebih cocok ke urusan Umum, Keuangan, Kepegawaian, dsb.
-            2. Pilih 1 KODE PALING TEPAT dari 3 kandidat di atas. Jika ketiganya kurang pas, pilih yang paling mendekati.
-            3. Berikan alasan teknis kearsipan mengapa Anda memilih kode tersebut.
+            ATURAN MUTLAK:
+            1. Anda WAJIB memilih salah satu kode dari Daftar Pilihan Kode di atas.
+            2. DILARANG membuat atau merekomendasikan kode di luar daftar tersebut.
             
-            FORMAT JAWABAN:
-            **KODE TERPILIH:** [KODE] - [URAIAN]
-            **ALASAN:** [Jelaskan singkat logika analisis fungsinya]
+            Pilih satu yang paling relevan dengan konteks uraian user.
+            
+            FORMAT JAWABAN WAJIB:
+            **KODE TERPILIH:** [Tulis Kode] - [Tulis Uraian]
+            **ALASAN:** [Satu kalimat penjelasan logis kearsipan]
             """
             
-            hasil_ai = generate_ai_response(prompt)
-            
-            st.success("Analisis Selesai!")
-            st.write(hasil_ai)
+            try:
+                response = model.generate_content(prompt)
+                st.success("✅ Validasi AI Selesai")
+                st.markdown(response.text)
+            except Exception as e:
+                st.error(f"Gagal memanggil AI. Pastikan kuota/koneksi API aman. Detail: {e}")
 
-# ========================
-# 6. FOOTER
-# ========================
 st.markdown("---")
-st.caption("Sistem Klasifikasi Hibrida (Fuzzy Matching + Generative AI)")
+st.caption("Dikembangkan untuk efisiensi tata kelola kearsipan pemerintah daerah.")
