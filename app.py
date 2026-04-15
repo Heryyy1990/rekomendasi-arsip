@@ -1,72 +1,65 @@
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
+import os
 
-# =================================================================
-# 1. KONFIGURASI HALAMAN
-# =================================================================
-st.set_page_config(page_title="AI Archivist Pro", page_icon="📁", layout="centered")
+st.set_page_config(page_title="AI Archivist Pro", page_icon="🏛️", layout="centered")
 
 st.markdown("""
 <style>
-    .main-title { text-align: center; font-size: 30px; font-weight: bold; color: #1E3A8A; margin-bottom: 5px; }
-    .sub-title { text-align: center; color: #64748B; margin-bottom: 30px; }
-    .stButton>button { width: 100%; border-radius: 10px; height: 50px; background-color: #0F766E; color: white; font-weight: bold; border:none;}
-    .result-card { padding: 20px; border-radius: 12px; background-color: #F0FDF4; border-left: 6px solid #16A34A; margin-top: 20px;}
+    .main-title { text-align: center; font-size: 32px; font-weight: 900; color: #1E3A8A; margin-bottom: 5px; }
+    .sub-title { text-align: center; color: #475569; margin-bottom: 30px; font-size: 16px;}
+    .stButton>button { width: 100%; border-radius: 8px; height: 50px; background-color: #0F766E; color: white; font-weight: bold; border:none;}
+    .result-card { padding: 25px; border-radius: 12px; background-color: #F0FDF4; border-left: 8px solid #16A34A; margin-top: 20px;}
 </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2. PEMBUATAN VEKTOR LOKAL (TANPA API GOOGLE)
+# 1. PERSIAPAN SISTEM & AI
 # =================================================================
+if not os.path.exists("klasifikasi_arsip_vektor_hf.pkl"):
+    st.error("🚨 File 'klasifikasi_arsip_vektor_hf.pkl' tidak ditemukan di GitHub!")
+    st.stop()
+
 @st.cache_resource
-def inisialisasi_sistem_lokal():
-    try:
-        # Membaca langsung dari CSV, bukan PKL
-        df = pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
-        df.columns = df.columns.str.strip()
-        df['uraian_ai'] = df['uraian_ai'].fillna("arsip")
-        
-        # Membuat vektor makna langsung di dalam aplikasi (Local Vector)
-        vectorizer = TfidfVectorizer()
-        matriks_vektor = vectorizer.fit_transform(df['uraian_ai'])
-        
-        return df, vectorizer, matriks_vektor
-    except Exception as e:
-        st.error(f"Gagal membaca file klasifikasi_arsip.csv: {e}")
-        st.stop()
+def load_system():
+    # 1. Load Data Vektor
+    df = pd.read_pickle("klasifikasi_arsip_vektor_hf.pkl")
+    db_embeddings = np.array(df['vektor'].tolist())
+    
+    # 2. Load Model Vektor Open Source (Tanpa API)
+    model_vektor = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    return df, db_embeddings, model_vektor
 
-# Load Data
-df_data, mesin_vektor, database_vektor = inisialisasi_sistem_lokal()
+df_vektor, matriks_vektor, mesin_pencari = load_system()
 
-# Konfigurasi AI untuk Tahap 2 (Hanya jika API Key valid untuk teks)
+# 3. Setup Gemini (Hanya untuk merangkum teks, tidak pakai vektor google)
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     try:
-        # Fallback paling aman untuk menghindari 404 di Text Generation
-        model_ai = genai.GenerativeModel("gemini-pro") 
+        model_pemikir = genai.GenerativeModel("gemini-1.5-flash")
     except:
-        model_ai = None
+        model_pemikir = genai.GenerativeModel("gemini-pro")
 else:
-    model_ai = None
+    model_pemikir = None
 
 # =================================================================
-# 3. MESIN PENCARI MAKNA (LOCAL RAG)
+# 2. FUNGSI PENCARI MAKNA (HUGGING FACE)
 # =================================================================
-def cari_kandidat(query, df, vectorizer, matriks_db, limit=6):
-    # Mengubah teks pengguna menjadi vektor lokal
-    query_vec = vectorizer.transform([str(query).lower().strip()])
+def cari_makna(query, df, matriks_db, mesin, limit=6):
+    # Ubah teks user jadi vektor
+    query_emb = mesin.encode([str(query).strip()])
     
-    # Menghitung kemiripan matematika
-    skor = cosine_similarity(query_vec, matriks_db).flatten()
+    # Hitung jarak makna
+    skor = cosine_similarity(query_emb, matriks_db)[0]
     top_indices = skor.argsort()[-limit:][::-1]
     
     kandidat = []
     for idx in top_indices:
-        if skor[idx] > 0.05: # Ambil yang relevan
+        if skor[idx] > 0.3: # Batas relevansi
             row = df.iloc[idx]
             kandidat.append({
                 "Kode": str(row['kode']).strip(),
@@ -77,58 +70,53 @@ def cari_kandidat(query, df, vectorizer, matriks_db, limit=6):
     return kandidat
 
 # =================================================================
-# 4. ANTARMUKA (UI)
+# 3. ANTARMUKA (UI)
 # =================================================================
-st.markdown('<div class="main-title">📁 AI Klasifikasi Arsip</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Mesin Pencari Makna Lokal Berbasis TF-IDF Vector</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">🏛️ AI Archivist Enterprise</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Sistem Vector RAG (HuggingFace + Google AI)</div>', unsafe_allow_html=True)
 
-uraian_user = st.text_input("🔍 Masukkan Perihal Surat / Uraian Arsip:", placeholder="Contoh: Sosialisasi kearsipan desa")
+uraian_user = st.text_input("🔍 Ketik Uraian/Perihal Arsip:", placeholder="Contoh: Pencairan dana desa")
 
 if uraian_user:
     if st.button("🚀 EKSEKUSI KLASIFIKASI"):
         
-        # --- TAHAP 1: PENCARIAN VEKTOR LOKAL ---
-        kandidat_makna = cari_kandidat(uraian_user, df_data, mesin_vektor, database_vektor, limit=6)
-        
-        st.markdown("### 🔎 Tahap 1: Hasil Pencarian Vektor Lokal")
+        with st.spinner("🤖 Mengukur jarak semantik (Hugging Face)..."):
+            kandidat_makna = cari_makna(uraian_user, df_vektor, matriks_vektor, mesin_pencari, limit=6)
+            
+        st.markdown("### 🔎 Bukti Transparansi Mesin (Tahap 1)")
         if not kandidat_makna:
-            st.warning("Tidak ditemukan kecocokan di database.")
+            st.warning("Uraian terlalu melenceng dari standar kearsipan pemerintah.")
         else:
             st.table(pd.DataFrame(kandidat_makna)[["Kode", "Uraian", "Akurasi"]])
             
-            # --- TAHAP 2: VALIDASI AI ---
-            if model_ai:
-                st.markdown("### 🤖 Tahap 2: Keputusan Akhir AI")
-                with st.spinner("AI sedang mengunci fungsi utama..."):
-                    kandidat_str = "\n".join([f"- {c['Kode']} | {c['Uraian']} (Konteks: {c['Konteks']})" for c in kandidat_makna])
-                    
+            st.markdown("### 🧠 Putusan Final Arsiparis AI (Tahap 2)")
+            if model_pemikir:
+                with st.spinner("Gemini menerapkan panduan tata naskah..."):
+                    kandidat_str = "\n".join([f"- {c['Kode']} | {c['Konteks']}" for c in kandidat_makna])
                     prompt = f"""
-                    Anda adalah Ahli Tata Naskah Dinas.
-                    
-                    URAIAN SURAT: "{uraian_user}"
-                    KANDIDAT KODE:
+                    Anda Auditor Kearsipan. Kunci 1 KODE KLASIFIKASI yang paling akurat.
+                    URAIAN PENGGUNA: "{uraian_user}"
+                    KANDIDAT DARI DATABASE:
                     {kandidat_str}
+                    STANDAR OPERASIONAL:
+                    - "Sosialisasi" tentang "Kearsipan" -> INTI = KEARSIPAN (040/000.5).
+                    - "SK/Keputusan" tentang "Nasib Pegawai/Mutasi" -> INTI = KEPEGAWAIAN (800).
                     
-                    STANDAR MUTLAK:
-                    - "Sosialisasi" tentang "Kearsipan" -> INTI = KEARSIPAN (040/000.5), BUKAN UMUM.
-                    - "SK/Keputusan" tentang "Pegawai/Mutasi" -> INTI = KEPEGAWAIAN (800).
-                    
-                    Pilih HANYA 1 KODE TERBAIK.
-                    
-                    FORMAT HASIL:
+                    PILIH 1 KODE SAJA.
+                    FORMAT PUTUSAN:
                     **BAGIAN INTI:** [Nama Urusan]
-                    **KODE TERPILIH:** [Kode] - [Uraian]
-                    **ALASAN:** [Jelaskan 1 kalimat]
+                    **KODE FINAL:** [Kode] - [Uraian]
+                    **ANALISIS ARSIPARIS:** [Alasan]
                     """
                     try:
-                        response = model_ai.generate_content(prompt)
+                        hasil_final = model_pemikir.generate_content(prompt)
                         st.markdown('<div class="result-card">', unsafe_allow_html=True)
-                        st.write(response.text)
+                        st.write(hasil_final.text)
                         st.markdown('</div>', unsafe_allow_html=True)
                     except Exception as e:
-                        st.error("Gagal menghubungi AI Google untuk analisis akhir. Tabel di atas adalah hasil pencarian final.")
+                        st.error(f"Gagal mengambil putusan akhir: {e}")
             else:
-                st.info("Sistem AI generasi teks tidak aktif. Silakan pilih kode yang paling sesuai dari tabel di atas.")
+                st.info("API Gemini tidak tersedia. Silakan gunakan tabel di atas.")
 
 st.markdown("---")
-st.caption("EKlasifikasi Pro | Sistem Analisis Subjek Tanpa API External")
+st.caption("Hybrid Engine: HuggingFace Sentence-Transformers & Google Generative AI")
