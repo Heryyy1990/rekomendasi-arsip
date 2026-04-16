@@ -1,140 +1,108 @@
 import streamlit as st
 import pandas as pd
-import re
-import google.generativeai as genai
-from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
+from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import google.generativeai as genai
+import json
+import os
 
-# ========================
-# CONFIG
-# ========================
-st.set_page_config(page_title="EKlasifikasi Arsip", page_icon="📁")
-st.title("📁 EKlasifikasi Arsip")
-st.caption("Versi Stabil + Input Manual + AI")
+st.set_page_config(
+    page_title="Klasifikasi Arsip Pemerintah",
+    page_icon="🗂️",
+    layout="wide"
+)
 
-# ========================
-# GEMINI (TETAP ADA)
-# ========================
-model = None
-try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    for m in genai.list_models():
-        if "generateContent" in m.supported_generation_methods:
-            model = genai.GenerativeModel(m.name)
-            break
+st.title("🗂️ Sistem Rekomendasi Klasifikasi Arsip")
+st.caption("Model Semantik (HuggingFace) + Validasi Arsiparis Digital (Google Gemini)")
+
+@st.cache_resource
+def load_semua():
+    try:
+    df = pd.read_csv("data/klasifikasi.csv", encoding="utf-8")
 except:
-    model = None
+    df = pd.read_csv("data/klasifikasi.csv", encoding="latin-1")
+    df.columns = df.columns.str.strip()
+    
+    model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+    embeddings = model.encode(
+        df["uraian arsip"].tolist(),
+        show_progress_bar=False
+    )
+    return df, model, embeddings
 
-# ========================
-# LOAD DATA (TIDAK DIUBAH)
-# ========================
-@st.cache_data
-def load_data():
-    return pd.read_csv("klasifikasi_arsip.csv", encoding="utf-8-sig")
+with st.spinner("⏳ Memuat model AI..."):
+    df, model, embeddings = load_semua()
 
-try:
-    data = load_data()
-except:
-    st.error("Gagal membaca CSV. Pastikan ada kolom 'kode' dan 'uraian'")
-    st.stop()
+st.success(f"✅ Siap — {len(df)} kode klasifikasi tersedia")
+st.divider()
 
-# validasi
-if "kode" not in data.columns or "uraian" not in data.columns:
-    st.error("CSV harus memiliki kolom: kode dan uraian")
-    st.stop()
+st.subheader("📝 Masukkan Uraian Arsip")
+uraian_input = st.text_area("Uraian arsip:", height=130)
 
-# ========================
-# PREPROCESS SEDERHANA
-# ========================
-def preprocess(text):
-    text = text.lower()
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    return text
+proses = st.button("🔍 Klasifikasikan")
 
-data["uraian_clean"] = data["uraian"].astype(str).apply(preprocess)
+if proses and uraian_input.strip():
 
-# ========================
-# INPUT USER
-# ========================
-uraian_user = st.text_input("🔍 Masukkan uraian atau kode klasifikasi:")
+    q_emb = model.encode([uraian_input])
+    skor = cosine_similarity(q_emb, embeddings)[0]
+    top3_idx = np.argsort(skor)[::-1][:3]
 
-# ========================
-# DETEKSI KODE LANGSUNG 🔥
-# ========================
-if uraian_user:
-    kode_input = uraian_user.strip()
+    kandidat = [
+        {
+            "kode": str(df.iloc[i]["kode"]),
+            "uraian": df.iloc[i]["uraian arsip"],
+            "skor": float(skor[i])
+        }
+        for i in top3_idx
+    ]
 
-    # cocokkan kode persis
-    match = data[data["kode"].astype(str) == kode_input]
+    st.subheader("📋 Tahap 1 — 3 Kandidat")
 
-    if not match.empty:
-        row = match.iloc[0]
-        st.success("🎯 Hasil Pencarian Kode")
-        st.write(f"**{row['kode']} - {row['uraian']}**")
-        st.stop()
+    for k in kandidat:
+        st.write(k["kode"], "-", k["uraian"])
 
-# ========================
-# TF-IDF PENCARIAN
-# ========================
-def cari_kandidat(df, text, top_n=5):
-    vec = TfidfVectorizer(ngram_range=(1,2))
-    tfidf = vec.fit_transform(df["uraian_clean"])
-    user_vec = vec.transform([preprocess(text)])
+    st.subheader("🤖 Tahap 2 — Validasi Gemini")
 
-    sim = cosine_similarity(user_vec, tfidf)[0]
-    idx = sim.argsort()[-top_n:][::-1]
+    api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
 
-    hasil = df.iloc[idx].copy()
-    hasil["skor"] = sim[idx]
+    if not api_key:
+        st.error("API Key tidak ditemukan")
+    else:
+        genai.configure(api_key=api_key)
 
-    return hasil
+        kandidat_text = "\n".join([
+            f"{i+1}. {k['kode']} - {k['uraian']}"
+            for i, k in enumerate(kandidat)
+        ])
 
-# ========================
-# PROSES
-# ========================
-if uraian_user:
-
-    kandidat = cari_kandidat(data, uraian_user, 5)
-
-    st.info("💡 Kandidat terbaik:")
-    kandidat_text = ""
-
-    for _, row in kandidat.iterrows():
-        st.write(f"{row['kode']} - {row['uraian']} ({row['skor']*100:.2f}%)")
-        kandidat_text += f"{row['kode']} - {row['uraian']}\n"
-
-    # hasil sistem
-    terbaik = kandidat.iloc[0]
-    st.success("🎯 Rekomendasi Sistem")
-    st.write(f"**{terbaik['kode']} - {terbaik['uraian']}**")
-
-    # ========================
-    # AI (TETAP ADA 🔥)
-    # ========================
-    if model:
-        if st.button("🚀 Validasi dengan AI"):
-            try:
-                prompt = f"""
-Pilih 1 klasifikasi paling tepat.
+        prompt = f"""
+Dokumen:
+{uraian_input}
 
 Kandidat:
 {kandidat_text}
 
-Uraian:
-{uraian_user}
-
-Jawaban:
-Kode - Uraian
-Alasan singkat
+Pilih 1 kode terbaik.
+Jawab JSON:
+{{
+"kode_terpilih": "...",
+"uraian_terpilih": "...",
+"alasan": "..."
+}}
 """
-                res = model.generate_content(prompt)
-                st.success("🎯 Hasil AI")
-                st.write(res.text)
-            except:
-                st.warning("AI gagal / quota habis")
 
-# ========================
-# FOOTER
-# ========================
-st.markdown("---")
-st.caption("EKlasifikasi Arsip © 2026 | Versi Stabil")
+        try:
+            model_gemini = genai.GenerativeModel("gemini-1.5-flash")
+            response = model_gemini.generate_content(prompt)
+
+            raw = response.text.strip()
+            raw = raw.replace("```json", "").replace("```", "").strip()
+
+            hasil = json.loads(raw)
+
+            st.success("Hasil:")
+            st.write(hasil)
+
+        except Exception as e:
+            st.error(str(e))
