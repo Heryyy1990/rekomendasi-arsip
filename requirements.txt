@@ -1,4 +1,5 @@
 streamlit
 pandas
 scikit-learn
-google-generativeai
+Sastrawi
+thefuzz
