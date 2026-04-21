@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import re
+import os
+from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
@@ -8,7 +10,44 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 from thefuzz import process, fuzz
 
 # --- KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️")
+st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
+
+# --- UI & CSS CUSTOM (SUPPORT DARK MODE & LIGHT MODE) ---
+st.markdown("""
+    <style>
+    /* Konfigurasi Judul Utama dengan Gradasi yang cocok di layar hitam & putih */
+    .sikap-title {
+        font-size: 4.5rem; 
+        font-weight: 900; 
+        text-align: center;
+        margin-bottom: -15px; 
+        letter-spacing: 3px;
+        background: linear-gradient(45deg, #00BFA5, #0288D1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .sikap-subtitle {
+        font-size: 1.3rem; 
+        text-align: center; 
+        font-weight: 600;
+        margin-bottom: 40px;
+        letter-spacing: 1px;
+        opacity: 0.8; 
+    }
+    /* Mengubah warna header expander tab manual agar lebih elegan */
+    .streamlit-expanderHeader {
+        font-weight: bold;
+        color: #0288D1;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- INISIALISASI SESSION STATE ---
+if 'search_history' not in st.session_state:
+    st.session_state.search_history = []
+if 'feedback_submitted' not in st.session_state:
+    st.session_state.feedback_submitted = False
 
 # --- INISIALISASI NLP (Sastrawi) ---
 @st.cache_resource
@@ -19,11 +58,8 @@ def init_nlp():
 
 stemmer, remover = init_nlp()
 
-# --- KAMUS JARGON & SINGKATAN BIROKRASI (VERSI FULL PERMENDAGRI 83/2022) ---
+# --- KAMUS JARGON & SINGKATAN BIROKRASI (ASLI 100%) ---
 kamus_birokrasi = {
-    # ==========================================
-    # 1. KEUANGAN & ANGGARAN (KODE 900)
-    # ==========================================
     "apbd": "anggaran pendapatan dan belanja daerah",
     "apbn": "anggaran pendapatan dan belanja negara",
     "tapd": "tim anggaran pemerintah daerah",
@@ -48,10 +84,6 @@ kamus_birokrasi = {
     "dau": "dana alokasi umum",
     "dak": "dana alokasi khusus",
     "dbh": "dana bagi hasil",
-
-    # ==========================================
-    # 2. KEPEGAWAIAN (KODE 800)
-    # ==========================================
     "asn": "aparatur sipil negara",
     "pns": "pegawai negeri sipil",
     "cpns": "calon pegawai negeri sipil",
@@ -59,7 +91,7 @@ kamus_birokrasi = {
     "p3k": "pegawai pemerintah dengan perjanjian kerja",
     "nip": "nomor induk pegawai",
     "bkn": "badan kepegawaian negara",
-    "skp": "standar kinerja pegawai", # atau sasaran kinerja pegawai
+    "skp": "sasaran kinerja pegawai", 
     "duk": "daftar urut kepangkatan",
     "karpeg": "kartu pegawai",
     "kpe": "kartu pegawai elektronik",
@@ -71,10 +103,6 @@ kamus_birokrasi = {
     "bpjs": "badan penyelenggara jaminan sosial",
     "diklat": "pendidikan dan pelatihan",
     "bimtek": "bimbingan teknis",
-
-    # ==========================================
-    # 3. PENGAWASAN & HUKUM (KODE 700 & 100)
-    # ==========================================
     "lhp": "laporan hasil pemeriksaan",
     "lha": "laporan hasil audit",
     "lhpo": "laporan hasil pemeriksaan operasional",
@@ -88,10 +116,6 @@ kamus_birokrasi = {
     "mou": "memorandum of understanding nota kesepakatan",
     "sop": "standar operasional prosedur",
     "haki": "hak atas kekayaan intelektual",
-
-    # ==========================================
-    # 4. PEMERINTAHAN, POLITIK & UMUM (KODE 000, 100, 200)
-    # ==========================================
     "dprd": "dewan perwakilan rakyat daerah",
     "musrenbang": "musyawarah perencanaan pembangunan",
     "lkpj": "laporan keterangan pertanggungjawaban",
@@ -115,10 +139,6 @@ kamus_birokrasi = {
     "ormas": "organisasi kemasyarakatan",
     "lsm": "lembaga swadaya masyarakat",
     "parpol": "partai politik",
-
-    # ==========================================
-    # 5. KEARSIPAN & TEKNIS LAINNYA (KODE 000.5, 400, 500, 600)
-    # ==========================================
     "anri": "arsip nasional republik indonesia",
     "jra": "jadwal retensi arsip",
     "sikn": "sistem informasi kearsipan nasional",
@@ -140,116 +160,98 @@ kamus_birokrasi = {
 
 # --- FUNGSI PENERJEMAH SINGKATAN ---
 def terjemahkan_singkatan(text):
-    # Memecah kalimat menjadi kata-kata tunggal
     kata_kata = str(text).lower().split()
-    # Mengecek satu per satu, apakah kata tersebut ada di kamus?
     kata_terjemahan = [kamus_birokrasi.get(kata, kata) for kata in kata_kata]
-    # Menggabungkannya kembali menjadi kalimat utuh
     return " ".join(kata_terjemahan)
 
 # --- FUNGSI PEMBERSIH UTAMA ---
 def preprocess_text(text):
     text = str(text).lower()
-    
-    # 1. Terjemahkan singkatan terlebih dahulu! (Ini kuncinya)
     text = terjemahkan_singkatan(text)
-    
-    # 2. Kecilkan huruf & hapus karakter aneh/simbol
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    
-    # 3. Hapus Stopwords (kata sambung seperti "di", "dan", "yang")
     text = remover.remove(text)
-    
-    # 4. Stemming (Potong imbuhan menggunakan Sastrawi)
-    text = stemmer.stem(text)
-    
-    return text
-
-def preprocess_text(text):
-    # 1. Kecilkan huruf & hapus karakter aneh
-    text = str(text).lower()
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    # 2. Hapus Stopwords (kata sambung)
-    text = remover.remove(text)
-    # 3. Stemming (Potong imbuhan)
     text = stemmer.stem(text)
     return text
 
-# --- 1. MEMUAT DATABASE (Jurus Pamungkas) ---
+# --- 1. MEMUAT DATABASE ---
 @st.cache_data
 def load_data():
-    # 1. Coba buka file dengan koma, jika gagal pakai titik koma
     try:
         df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str)
     except:
         df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str)
     
-    # 2. Jika datanya menyatu di satu kolom, paksa belah dua
     if len(df.columns) == 1:
         col_name = df.columns[0]
         df[['kode', 'uraian']] = df[col_name].str.split(r'[,;]', n=1, expand=True)
         df = df.drop(columns=[col_name])
         
-    # 3. PAKSA GANTI NAMA KOLOM (Ini yang akan menghilangkan Error 'uraian')
-    # Tidak peduli apa nama aslinya, kolom ke-1 pasti 'kode', ke-2 pasti 'uraian'
     if len(df.columns) >= 2:
         kolom_baru = list(df.columns)
         kolom_baru[0] = 'kode'
         kolom_baru[1] = 'uraian'
         df.columns = kolom_baru
     
-    # 4. Bersihkan isi baris dari karakter titik koma (;) di ujung kalimat jika ada terbawa
     df['uraian'] = df['uraian'].astype(str).str.replace(r';$', '', regex=True).str.strip().fillna("")
     df['kode'] = df['kode'].astype(str).str.strip().fillna("000")
-    
-    # 5. Lakukan pembersihan NLP
     df['clean_uraian'] = df['uraian'].apply(preprocess_text)
-    
     return df
+
+# --- FUNGSI PEMBUAT DESAIN BADGE (HIERARKI & IKON FOLDER) ---
+def get_badge_html(kode, uraian, level):
+    levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
+    label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
+    
+    warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C"]
+    warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
+    
+    indent = level * 30 
+    
+    # PENAMBAHAN IKON FOLDER SESUAI INSTRUKSI
+    if level == 0 or level == 1:
+        simbol = "📁 "
+    else:
+        simbol = "└─ "
+    
+    return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
+           f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);'>" \
+           f"<strong>{simbol}{kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
+           f"</span></div>"
 
 # --- 2. FITUR HIERARKI ---
 def get_hierarchy(kode_target, df):
     parts = str(kode_target).split('.')
     hierarchy_list = []
     current_code = ""
-    levels = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
 
     for i, part in enumerate(parts):
         current_code = (current_code + "." + part) if current_code else part
         match = df[df['kode'] == current_code]
         uraian = match.iloc[0]['uraian'].title() if not match.empty else "Detail Klasifikasi"
-        label = levels[i] if i < len(levels) else f"Level {i+1}"
-        hierarchy_list.append(f"└─ **{current_code}**: {uraian} *({label})*")
+        
+        html_string = get_badge_html(current_code, uraian, i)
+        hierarchy_list.append(html_string)
     return hierarchy_list
 
-# --- 3. LOGIKA NLP & FUZZY MATCHING (Versi "Magnet Rumpun") ---
+# --- 3. LOGIKA NLP TF-IDF & FUZZY MATCHING (KEMBALI KE ASLI) ---
 def smart_classify(user_input, df, top_n=3):
-    # A. Preprocess input user
     clean_input = preprocess_text(user_input)
-    
-    # B. TF-IDF Matching (Akurasi Makna)
     vectorizer = TfidfVectorizer(ngram_range=(1, 2))
     all_docs = df['clean_uraian'].tolist() + [clean_input]
     tfidf_matrix = vectorizer.fit_transform(all_docs)
-    
     cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
     
-    # C. Hitung Skor Murni Awal
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
         fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
         combined_score = (score * 0.70) + (fuzzy_score * 0.30)
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
-    # Urutkan untuk mengetahui siapa Juara 1 sesungguhnya
     skor_awal = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)
     
-    # D. FITUR MAGNET RUMPUN (Merapikan Juara 2 dan 3 agar tidak melenceng)
     if skor_awal:
         idx_juara_1 = skor_awal[0]['idx']
         kode_juara_1 = str(df.iloc[idx_juara_1]['kode'])
-        
-        # Ambil rumpun utama dari Juara 1 (Contoh: "900.1.3.1" -> "900.1")
         bagian_kode = kode_juara_1.split('.')
         rumpun_utama = ".".join(bagian_kode[:2]) if len(bagian_kode) >= 2 else bagian_kode[0]
         
@@ -258,43 +260,109 @@ def smart_classify(user_input, df, top_n=3):
             idx = item['idx']
             skor = item['skor']
             kode_item = str(df.iloc[idx]['kode'])
-            
-            # Berikan bonus skor 50% jika item ini satu rumpun dengan Juara 1
             if kode_item.startswith(rumpun_utama) and idx != idx_juara_1:
                 skor = skor * 1.5 
-                
             hasil_akhir.append((idx, skor))
             
-        # Urutkan kembali setelah bonus diberikan
         hasil_akhir = sorted(hasil_akhir, key=lambda x: x[1], reverse=True)
-        
-        # Selalu tampilkan 3 teratas sesuai permintaan
         return hasil_akhir[:top_n]
-    
     return []
 
-# --- 4. ANTARMUKA ---
-st.title("🗂️ SIKAP (Ultimate)")
-st.caption("Asisten Arsiparis Cerdas - Pendekatan NLP & Fuzzy Logic")
+# --- 4. ANTARMUKA UTAMA ---
+
+st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
+st.markdown("<div class='sikap-subtitle'>SIstem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
 
 try:
     df = load_data()
-    user_input = st.text_input("Masukkan Perihal Surat:", placeholder="Contoh: keneikan pangkt pns...")
+    
+    with st.sidebar:
+        st.header("🕒 Riwayat Pencarian")
+        if st.session_state.search_history:
+            for riwayat in reversed(st.session_state.search_history[-10:]):
+                st.caption(f"• {riwayat}")
+            if st.button("Hapus Riwayat", use_container_width=True):
+                st.session_state.search_history = []
+                st.rerun()
+        else:
+            st.info("Belum ada pencarian.")
 
-    if user_input:
-        with st.spinner('Menganalisis bahasa...'):
-            results = smart_classify(user_input, df)
+    tab_ai, tab_katalog = st.tabs(["🤖 Pencarian AI (Cerdas)", "📂 Jelajah Kode Klasifikasi (Manual)"])
+
+    # ================= TAB 1: PENCARIAN AI =================
+    with tab_ai:
+        st.write("Masukkan perihal atau deskripsi surat, biarkan kecerdasan buatan mencari kode klasifikasi yang paling tepat untuk Anda.")
+        user_input = st.text_input("📝 Perihal Surat / Dokumen:", placeholder="Contoh: permohonan cuti tahunan pegawai atau undangan rapat tapd...", key="input_ai")
+
+        if user_input:
+            if user_input not in st.session_state.search_history:
+                st.session_state.search_history.append(user_input)
+
+            with st.spinner('Menganalisis bahasa dan mencari kecocokan...'):
+                results = smart_classify(user_input, df)
+                
+                if results:
+                    st.success("Analisis selesai! Berikut adalah rekomendasi kode untuk dokumen Anda:")
+                    pilihan_feedback = [] 
+                    
+                    for i, (idx, score) in enumerate(results):
+                        res = df.iloc[idx]
+                        pilihan_feedback.append(f"{res['kode']} - {res['uraian'].title()}")
+                        
+                        with st.expander(f"🏅 Rekomendasi #{i+1}: Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
+                            st.markdown(f"**Uraian Akhir:** {res['uraian'].title()}")
+                            st.markdown("**Struktur Hierarki:**")
+                            hierarki = get_hierarchy(res['kode'], df)
+                            for h in hierarki:
+                                st.markdown(h, unsafe_allow_html=True)
+                    
+                    st.divider()
+                    
+                    st.markdown("#### 💡 Bantu SIKAP Menjadi Lebih Pintar")
+                    st.write("Dari rekomendasi di atas, mana kode yang paling tepat menurut Anda?")
+                    
+                    with st.form("feedback_form"):
+                        jawaban_benar = st.radio("Pilih kode yang benar:", pilihan_feedback)
+                        submit_feedback = st.form_submit_button("Kirim Masukan")
+                        
+                        if submit_feedback:
+                            waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            data_feedback = f"{waktu_sekarang} | Input: {user_input} | Terpilih: {jawaban_benar}\n"
+                            with open("feedback_ai_log.txt", "a", encoding="utf-8") as f:
+                                f.write(data_feedback)
+                            st.success(f"Terima kasih! Pilihan Anda ({jawaban_benar.split(' - ')[0]}) telah disimpan untuk evaluasi AI ke depannya.")
+                else:
+                    st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
+
+    # ================= TAB 2: JELAJAH KODE (DIROMBAK TOTAL) =================
+    with tab_katalog:
+        st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka isinya):")
+        
+        # Otomatis membentuk list 000, 100, 200, sampai 900
+        daftar_primer = [f"{i}00" for i in range(10)]
+        
+        for p in daftar_primer:
+            # Cari judul dari kode primer tersebut di database
+            cek_df = df[df['kode'] == p]
+            uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
             
-            if results:
-                st.write("---")
-                for i, (idx, score) in enumerate(results):
-                    res = df.iloc[idx]
-                    with st.expander(f"Rekomendasi #{i+1}: Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                        st.write("**Struktur Hierarki:**")
-                        hierarki = get_hierarchy(res['kode'], df)
-                        for h in hierarki:
-                            st.markdown(h)
-            else:
-                st.warning("Tidak ditemukan klasifikasi yang cocok.")
+            # Membuat kotak (expander) untuk tiap Rumpun Utama
+            with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
+                
+                # Mengambil semua kode yang berawalan angka primer ini
+                hasil_filter = df[df['kode'].str.startswith(p)]
+                
+                if not hasil_filter.empty:
+                    for index, row in hasil_filter.iterrows():
+                        kode = str(row['kode'])
+                        uraian = str(row['uraian']).title()
+                        level = kode.count('.') 
+                        
+                        # Merender badge HTML (dengan ikon folder dan warna sesuai level)
+                        html_badge = get_badge_html(kode, uraian, level)
+                        st.markdown(html_badge, unsafe_allow_html=True)
+                else:
+                    st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
+
 except Exception as e:
-    st.error(f"Error: {e}")
+    st.error(f"Terjadi kesalahan saat memuat data: {e}")
