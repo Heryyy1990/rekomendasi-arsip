@@ -177,7 +177,7 @@ def preprocess_text(text):
     text = stemmer.stem(text)
     return text
 
-# --- 1. MEMUAT DATABASE ---
+# --- 1. MEMUAT DATABASE (ASLI 100%) ---
 @st.cache_data
 def load_data():
     try:
@@ -201,15 +201,13 @@ def load_data():
     df['clean_uraian'] = df['uraian'].apply(preprocess_text)
     return df
 
-# --- FUNGSI PEMBUAT DESAIN BADGE (TAB 1 AI) ---
+# --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
 def get_badge_html(kode, uraian, level):
-    # KUNCI PERBAIKAN: Batasi nama level maksimal 4 (Kuartier) untuk Tab 1 AI
-    display_level = level if level < 4 else 3
-    levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
-    label = levels_name[display_level]
+    levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
+    label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
     
-    warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
-    warna_bg = warna_level[display_level]
+    warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C"]
+    warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
     indent = level * 30 
     
@@ -218,7 +216,7 @@ def get_badge_html(kode, uraian, level):
            f"<strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
            f"</span></div>"
 
-# --- 2. FITUR HIERARKI (TAB 1 AI) ---
+# --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
 def get_hierarchy(kode_target, df):
     parts = str(kode_target).split('.')
     hierarchy_list = []
@@ -228,7 +226,6 @@ def get_hierarchy(kode_target, df):
         current_code = (current_code + "." + part) if current_code else part
         match = df[df['kode'] == current_code]
         uraian = match.iloc[0]['uraian'].title() if not match.empty else "Detail Klasifikasi"
-        
         html_string = get_badge_html(current_code, uraian, i)
         hierarchy_list.append(html_string)
     return hierarchy_list
@@ -334,38 +331,31 @@ try:
                 else:
                     st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
 
-    # ================= TAB 2: JELAJAH KODE (ROLLBACK KE VERSI BAGUS!) =================
+    # ================= TAB 2: JELAJAH KODE (ROLLBACK DENGAN FIX NATURAL SORTING) =================
     with tab_katalog:
         st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka isinya):")
         
-        # Otomatis membentuk list 000, 100, 200, sampai 900
         daftar_primer = [f"{i}00" for i in range(10)]
         
         for p in daftar_primer:
-            # Cari judul dari kode primer tersebut di database
             cek_df = df[df['kode'] == p]
             uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
             
-            # Membuat kotak (expander) untuk tiap Rumpun Utama (Ini 100% versi bagus Anda)
             with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
                 
-                # Mengambil semua kode yang berawalan angka primer ini
                 hasil_filter = df[df['kode'].str.startswith(p)]
                 
                 if not hasil_filter.empty:
-                    # 1. Bersihkan kode agar terhindar dari sampah CSV
                     hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
                     
-                    # 2. Bangun pohon (nodes) HANYA untuk di dalam expander Primer ini
                     nodes = {}
                     for _, row in hasil_filter.iterrows():
                         k = str(row['kode']).strip()
                         u = str(row['uraian']).title()
                         nodes[k] = {'uraian': u, 'children': []}
                         
-                    # 3. Hubungkan anak ke induknya yang tepat (100% UTUH)
                     for k in nodes:
-                        if k == p: continue # Lewati sang Primer
+                        if k == p: continue 
                         curr = k
                         parent = None
                         while True:
@@ -386,22 +376,20 @@ try:
                                 parent = curr
                                 break
                         
-                        # Jika induknya tidak ketemu, paksa numpang ke Primer p
                         if not parent or parent not in nodes:
                             parent = p
                         
-                        # Sambungkan!
                         if parent in nodes and parent != k:
                             nodes[parent]['children'].append(k)
                             
-                    # 4. Fungsi mencetak kode HTML Lipat 1-per-1
                     def render_tree(k):
                         node = nodes[k]
                         u = node['uraian']
                         children = node['children']
-                        children.sort()
                         
-                        # KUNCI PERBAIKAN: Hitung titik untuk menentukan level secara akurat, MAKSIMAL 4 TINGKAT
+                        # ---> KUNCI PERBAIKAN: NATURAL SORTING AGAR 10 TIDAK MUNCUL SEBELUM 2 <---
+                        children.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+                        
                         titik_count = str(k).count('.')
                         actual_level = titik_count if titik_count < 4 else 3
                         
@@ -421,11 +409,11 @@ try:
                             html += f'<div style="margin-bottom: 8px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></div>'
                         return html
                         
-                    # 5. Cetak ke Layar
                     if p in nodes:
                         full_html = ""
-                        # Loop HANYA untuk anak langsung dari Primer p (TIDAK mecetak ulang Primer p nya)
-                        for child_kode in sorted(nodes[p]['children']):
+                        # Sort bagian paling atas (anak dari primer) dengan Natural Sorting juga
+                        sorted_children = sorted(nodes[p]['children'], key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+                        for child_kode in sorted_children:
                             full_html += render_tree(child_kode)
                         st.markdown(full_html, unsafe_allow_html=True)
                     
