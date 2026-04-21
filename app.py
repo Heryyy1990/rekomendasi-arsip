@@ -40,6 +40,14 @@ st.markdown("""
         font-weight: bold;
         color: #0288D1;
     }
+    /* PEMBUNUH IKON PANAH BIRU BAWAAN BROWSER UNTUK TAB 2 */
+    details > summary {
+        list-style: none !important;
+        outline: none !important;
+    }
+    details > summary::-webkit-details-marker {
+        display: none !important; 
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -353,16 +361,89 @@ try:
                 hasil_filter = df[df['kode'].str.startswith(p)]
                 
                 if not hasil_filter.empty:
-                    for index, row in hasil_filter.iterrows():
-                        kode = str(row['kode'])
-                        uraian = str(row['uraian']).title()
-                        level = kode.count('.') 
+                    # ---> BEGIN INJEKSI LOGIKA BUKA 1 PER 1 <---
+                    
+                    # 1. Bersihkan kode agar terhindar dari sampah CSV
+                    hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
+                    
+                    # 2. Bangun pohon (nodes) HANYA untuk di dalam expander Primer ini
+                    nodes = {}
+                    for _, row in hasil_filter.iterrows():
+                        k = str(row['kode']).strip()
+                        u = str(row['uraian']).title()
+                        nodes[k] = {'uraian': u, 'children': []}
                         
-                        # Merender badge HTML (dengan ikon folder dan warna sesuai level)
-                        html_badge = get_badge_html(kode, uraian, level)
-                        st.markdown(html_badge, unsafe_allow_html=True)
+                    # 3. Hubungkan anak ke induknya yang tepat
+                    for k in nodes:
+                        if k == p: continue # Lewati sang Primer
+                        curr = k
+                        parent = None
+                        while True:
+                            if '.' in curr:
+                                curr = curr.rsplit('.', 1)[0]
+                            else:
+                                if len(curr) == 3 and curr.endswith('00'):
+                                    parent = curr
+                                    break
+                                elif len(curr) > 3:
+                                    curr = curr[:-1]
+                                elif len(curr) == 3:
+                                    if curr.endswith('0'): curr = curr[0] + '00'
+                                    else: curr = curr[0:2] + '0'
+                                else:
+                                    break
+                            if curr in nodes:
+                                parent = curr
+                                break
+                        
+                        # Jika induknya tidak ketemu, paksa numpang ke Primer p
+                        if not parent or parent not in nodes:
+                            parent = p
+                        
+                        # Sambungkan!
+                        if parent in nodes and parent != k:
+                            nodes[parent]['children'].append(k)
+                            
+                    # 4. Fungsi mencetak kode HTML Lipat 1-per-1 (tanpa spasi Markdown)
+                    def render_tree(k):
+                        node = nodes[k]
+                        u = node['uraian']
+                        children = node['children']
+                        children.sort()
+                        
+                        # Kalkulasi level warna persis seperti ANRI
+                        if '.' in k:
+                            level = 2 + k.count('.')
+                        else:
+                            if k.endswith('00'): level = 0
+                            elif k.endswith('0'): level = 1
+                            else: level = 2
+                            
+                        warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C", "#00838F", "#424242"]
+                        warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
+                        levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier", "Seksier", "Septier"]
+                        label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
+                        
+                        html = ""
+                        if children:
+                            html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
+                            for c in children:
+                                html += render_tree(c)
+                            html += '</div></details>'
+                        else:
+                            html += f'<div style="margin-bottom: 8px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></div>'
+                        return html
+                        
+                    # 5. Cetak ke Layar
+                    if p in nodes:
+                        full_html = ""
+                        # Loop HANYA untuk anak langsung dari Primer p (TIDAK mecetak ulang Primer p nya)
+                        for child_kode in sorted(nodes[p]['children']):
+                            full_html += render_tree(child_kode)
+                        st.markdown(full_html, unsafe_allow_html=True)
+                    # ---> END INJEKSI <---
+                    
                 else:
                     st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
 
-except Exception as e:
-    st.error(f"Terjadi kesalahan saat memuat data: {e}")
+except
