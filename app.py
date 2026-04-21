@@ -333,4 +333,4 @@ try:
 
     # ================= TAB 2: JELAJAH KODE (GEMBOK 10 PRIMER!) =================
     with tab_katalog:
-        st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik
+        st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka anak cabangnya):")
