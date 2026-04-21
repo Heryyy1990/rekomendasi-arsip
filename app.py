@@ -12,7 +12,7 @@ from thefuzz import process, fuzz
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (PERBAIKAN MUTLAK LAYOUT POHON) ---
+# --- UI & CSS CUSTOM ---
 st.markdown("""
     <style>
     .sikap-title {
@@ -331,72 +331,68 @@ try:
                 else:
                     st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
 
-    # ================= TAB 2: JELAJAH KODE (DIROMBAK TOTAL & ANTI-BUG) =================
+    # ================= TAB 2: JELAJAH KODE (FIX LOGIKA POHON) =================
     with tab_katalog:
         st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka anak cabangnya):")
         
-        # 1. PEMBERSIHAN DATA EKSTREM: Buang semua baris yang kodenya bukan angka (Menghilangkan bug tulisan aneh/spasi)
+        # 1. PEMBERSIHAN DATA EKSTREM: Buang semua baris yang kodenya bukan angka murni di awal
         df_bersih = df[df['kode'].str.match(r'^\d')].copy()
         
         # 2. INISIALISASI POHON
         tree_nodes = {}
         
-        # KUNCI UTAMA: Memaksa 10 Folder Primer wajib ada, tidak boleh tertimpa
+        # KUNCI UTAMA: Memaksa 10 Folder Primer wajib ada
         uraian_primer_default = ["Umum", "Pemerintahan", "Politik", "Keamanan Dan Ketertiban", "Kesejahteraan Rakyat", "Perekonomian", "Pekerjaan Umum Dan Ketenagakerjaan", "Pengawasan", "Kepegawaian", "Keuangan"]
+        primer_keys = ["000", "100", "200", "300", "400", "500", "600", "700", "800", "900"]
+        
         for i in range(10):
             k = f"{i}00"
             tree_nodes[k] = {'uraian': uraian_primer_default[i], 'children': [], 'level': 0}
             
-        # Memasukkan sisa data bersih ke dalam pohon
+        # Memasukkan sisa data bersih ke memori
         for _, row in df_bersih.iterrows():
             k = str(row['kode']).strip()
             u = str(row['uraian']).title()
             if k not in tree_nodes:
-                tree_nodes[k] = {'uraian': u, 'children': [], 'level': 0} # Level akan dihitung otomatis saat dirender
+                tree_nodes[k] = {'uraian': u, 'children': [], 'level': 0} 
             else:
-                tree_nodes[k]['uraian'] = u # Update uraian jika sudah ada
+                tree_nodes[k]['uraian'] = u 
                 
-        # 3. MENGHUBUNGKAN ANAK KE INDUKNYA SECARA AKURAT
+        # 3. MENGHUBUNGKAN ANAK KE INDUKNYA (LOGIKA ANTI ERROR)
         for k in tree_nodes:
-            # Lewati jika dia adalah salah satu dari 10 Primer
-            if k.endswith('00') and len(k) == 3:
+            # Jika dia adalah salah satu dari 10 Primer utama, abaikan (karena dia pucuknya)
+            if k in primer_keys:
                 continue 
                 
-            # Mencari induk yang sah
             curr = k
             parent = None
             while True:
+                # Memotong kode dari ujung untuk mencari induknya
                 if '.' in curr:
                     curr = curr.rsplit('.', 1)[0]
                 else:
                     if len(curr) > 3:
-                        curr = curr[:-1] # Potong 1 angka dari belakang
-                    elif len(curr) == 3:
-                        if curr.endswith('0'): curr = curr[0] + '00'
-                        else: curr = curr[0:2] + '0'
+                        curr = curr[:-1] 
                     else:
-                        curr = curr[0] + '00' # Pukul rata buang ke Primer
+                        # Jika sudah mentok 3 digit atau kurang (misal '00', '15'), paksa masuk ke Primer
+                        curr = curr[0] + '00' 
                         
-                # Jika induk ketemu di memori
+                # Cek apakah induk buatan ini ada di memori
                 if curr in tree_nodes:
                     parent = curr
                     break
-                # Jika sudah mentok ke Primer
-                if len(curr) <= 3 and curr.endswith('00'):
-                    parent = curr
-                    break
                     
-            # Jika punya induk, masukkan dia sebagai anak
+            # Masukkan ke dalam daftar anak milik sang induk
             if parent and parent != k:
                 if k not in tree_nodes[parent]['children']:
                     tree_nodes[parent]['children'].append(k)
 
-        # 4. FUNGSI PEMBENTUK TAMPILAN HTML (ANTI-SPASI STREAMLIT)
+        # 4. FUNGSI PEMBENTUK TAMPILAN HTML
         def render_node(k, level):
             node = tree_nodes[k]
             u = node['uraian']
             children = node['children']
-            children.sort() # Mengurutkan anak-anaknya agar rapi
+            children.sort() 
             
             warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C", "#00838F", "#424242", "#424242"]
             warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
@@ -406,21 +402,20 @@ try:
             
             margin_kiri = 15 if level > 0 else 0
             
-            # KUNCI PERBAIKAN: HTML dirangkai tanpa ada enter/spasi kosong untuk menghindari bug Markdown Streamlit
+            # Merangkai HTML rapat tanpa spasi bawaan Markdown
             html = ""
             if children:
-                # Jika bisa dibuka (punya anak)
                 html += f'<details style="margin-left:{margin_kiri}px; margin-bottom:6px;"><summary style="display:block; cursor:pointer; list-style:none; outline:none;"><span style="background-color:{warna_bg}; color:#ffffff; padding:5px 10px; border-radius:5px; display:inline-block; font-size:0.9em; box-shadow:0 1px 3px rgba(0,0,0,0.2);">📁 {k} &nbsp;|&nbsp; {u} <i style="opacity:0.8; font-size:0.9em;">({label})</i></span></summary><div style="padding-left:10px; border-left:2px dashed #ccc; margin-left:12px; margin-top:6px;">'
                 for child in children:
                     html += render_node(child, level + 1)
                 html += '</div></details>'
             else:
-                # Jika ujung jalan (tidak punya anak)
                 html += f'<div style="margin-left:{margin_kiri}px; margin-bottom:6px; padding-left:15px;"><span style="background-color:{warna_bg}; color:#ffffff; padding:5px 10px; border-radius:5px; display:inline-block; font-size:0.9em; box-shadow:0 1px 3px rgba(0,0,0,0.2);">📁 {k} &nbsp;|&nbsp; {u} <i style="opacity:0.8; font-size:0.9em;">({label})</i></span></div>'
             return html
 
-        # 5. CETAK KE LAYAR (Hanya mencetak 10 Primer saja di awal)
+        # 5. CETAK KE LAYAR
         full_html = ""
+        # HANYA panggil 10 Primer Utama untuk tampil di awal
         for i in range(10):
             r = f"{i}00"
             full_html += render_node(r, 0)
