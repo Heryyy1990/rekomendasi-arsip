@@ -12,10 +12,9 @@ from thefuzz import process, fuzz
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (UPDATE TAMPILAN JELAJAH MANUAL) ---
+# --- UI & CSS CUSTOM (PERBAIKAN IKON & LAYOUT BROWSER) ---
 st.markdown("""
     <style>
-    /* Konfigurasi Judul Utama dengan Gradasi */
     .sikap-title {
         font-size: 4.5rem; 
         font-weight: 900; 
@@ -40,21 +39,13 @@ st.markdown("""
         color: #0288D1;
     }
 
-    /* CSS KUSTOM UNTUK TAB 2 (JELAJAH MANUAL) */
-    /* Menghilangkan panah segitiga biru bawaan details/summary */
+    /* KUNCI PERBAIKAN: Membunuh paksa ikon panah/play bawaan browser */
     details > summary {
-        list-style-type: none; /* Menghapus segitiga biru */
+        list-style: none !important;
+        outline: none;
     }
-    /* Membuat latar belakang summary (seluruh baris klik) menjadi bersih/transparan */
-    details > summary {
-        background-color: transparent !important;
-        color: inherit !important;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.95em;
-        box-shadow: none !important;
-        margin-left: 2px;
-        padding: 8px 12px;
+    details > summary::-webkit-details-marker {
+        display: none !important; 
     }
     </style>
 """, unsafe_allow_html=True)
@@ -220,7 +211,6 @@ def get_badge_html(kode, uraian, level):
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
     indent = level * 30 
-    simbol = "📁 " # Hanya menggunakan ikon folder sesuai instruksi
     
     return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
            f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);'>" \
@@ -342,17 +332,15 @@ try:
                 else:
                     st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
 
-    # ================= TAB 2: JELAJAH KODE (POHON INTERAKTIF - UI DIPERBAIKI) =================
+    # ================= TAB 2: JELAJAH KODE (POHON INTERAKTIF - BUG FIX SPASI MARKDOWN) =================
     with tab_katalog:
         st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder untuk membuka anak cabangnya):")
         
-        # 1. Algoritma Pembentuk Struktur Pohon dari DataFrame
         tree_nodes = {}
         for _, row in df.iterrows():
             k = str(row['kode'])
             u = str(row['uraian']).title()
             
-            # Deteksi Level Berdasarkan Karakteristik Kode ANRI
             if '.' in k:
                 level = 2 + k.count('.')
             else:
@@ -363,8 +351,6 @@ try:
             tree_nodes[k] = {'uraian': u, 'level': level, 'children': []}
             
         roots = []
-        
-        # 2. Mencari Induk (Parent) untuk setiap kode
         for k in tree_nodes:
             if tree_nodes[k]['level'] == 0:
                 roots.append(k)
@@ -394,7 +380,6 @@ try:
                 if not found:
                     roots.append(k)
         
-        # 3. Fungsi Render HTML (UI DIROMBAK UNTUK IKON BERSIH & WARNA TIDAK FULL)
         def render_tree(kode):
             node = tree_nodes[kode]
             level = node['level']
@@ -407,39 +392,18 @@ try:
             warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C", "#00838F", "#424242"]
             warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
             
-            # HANYA GUNAKAN IKON FOLDER (📁) SESUAI INSTRUKSI, Play & Note dihapus
+            # KUNCI PERBAIKAN: Menulis HTML dalam satu baris (tanpa spasi/enter di awal) agar terhindar dari bug abu-abu Streamlit Markdown
             html = ""
             if children:
-                # Jika punya anak (folder utama), buat sebagai <details> yang bisa diklik
-                # Warna latar belakang dipindahkan ke span di dalam untuk tampilan lencana
-                html += f'''
-                <details style="margin-bottom: 6px;">
-                    <summary>
-                        <span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; display: inline-block; font-weight: normal; box-shadow: 0px 2px 4px rgba(0,0,0,0.1);">
-                            <strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i>
-                        </span>
-                    </summary>
-                    <div style="margin-left: 15px; padding-top: 8px; border-left: 2px dashed #ccc; padding-left: 10px; margin-bottom: 8px;">
-                '''
+                html += f'<details style="margin-bottom: 6px; margin-left: 5px;"><summary style="cursor: pointer; outline: none;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; display: inline-block; font-size: 0.95em; font-weight: normal; box-shadow: 0px 2px 4px rgba(0,0,0,0.1);"><strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i></span></summary><div style="margin-left: 15px; padding-top: 8px; border-left: 2px dashed #ccc; padding-left: 10px; margin-bottom: 8px;">'
                 for child in children:
                     html += render_tree(child)
-                html += '''
-                    </div>
-                </details>
-                '''
+                html += '</div></details>'
             else:
-                # Jika tidak punya anak (ujung kode), tampilkan kotak lencana biasa
-                # Warna latar belakang dipindahkan ke span di dalam untuk tampilan lencana
-                html += f'''
-                <div style="margin-bottom: 6px; margin-left: 22px;">
-                    <span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; display: inline-block; font-size: 0.9em; box-shadow: 0px 2px 4px rgba(0,0,0,0.1);">
-                        <strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i>
-                    </span>
-                </div>
-                '''
+                html += f'<div style="margin-bottom: 6px; margin-left: 10px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; display: inline-block; font-size: 0.9em; box-shadow: 0px 2px 4px rgba(0,0,0,0.1);"><strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i></span></div>'
+            
             return html
 
-        # 4. Tampilkan ke Layar
         roots.sort()
         full_html = ""
         for r in roots:
