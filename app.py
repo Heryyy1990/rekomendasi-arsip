@@ -446,4 +446,5 @@ try:
                 else:
                     st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
 
-except
+except Exception as e:
+    st.error(f"Terjadi kesalahan saat memuat data: {e}")
