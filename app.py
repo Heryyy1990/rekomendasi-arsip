@@ -12,9 +12,10 @@ from thefuzz import process, fuzz
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM ---
+# --- UI & CSS CUSTOM (UPDATE TAMPILAN JELAJAH MANUAL) ---
 st.markdown("""
     <style>
+    /* Konfigurasi Judul Utama dengan Gradasi */
     .sikap-title {
         font-size: 4.5rem; 
         font-weight: 900; 
@@ -38,12 +39,22 @@ st.markdown("""
         font-weight: bold;
         color: #0288D1;
     }
-    /* Menghilangkan panah default browser pada details jika ingin UI lebih bersih, tapi kita biarkan agar user tahu bisa diklik */
+
+    /* CSS KUSTOM UNTUK TAB 2 (JELAJAH MANUAL) */
+    /* Menghilangkan panah segitiga biru bawaan details/summary */
     details > summary {
-        list-style-type: '▶️ ';
+        list-style-type: none; /* Menghapus segitiga biru */
     }
-    details[open] > summary {
-        list-style-type: '🔽 ';
+    /* Membuat latar belakang summary (seluruh baris klik) menjadi bersih/transparan */
+    details > summary {
+        background-color: transparent !important;
+        color: inherit !important;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.95em;
+        box-shadow: none !important;
+        margin-left: 2px;
+        padding: 8px 12px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -209,11 +220,11 @@ def get_badge_html(kode, uraian, level):
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
     indent = level * 30 
-    simbol = "📁 " if level == 0 or level == 1 else "└─ "
+    simbol = "📁 " # Hanya menggunakan ikon folder sesuai instruksi
     
     return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
            f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);'>" \
-           f"<strong>{simbol}{kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
+           f"<strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
            f"</span></div>"
 
 # --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
@@ -331,7 +342,7 @@ try:
                 else:
                     st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
 
-    # ================= TAB 2: JELAJAH KODE (POHON INTERAKTIF) =================
+    # ================= TAB 2: JELAJAH KODE (POHON INTERAKTIF - UI DIPERBAIKI) =================
     with tab_katalog:
         st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder untuk membuka anak cabangnya):")
         
@@ -372,7 +383,6 @@ try:
                         tree_nodes[curr_parent]['children'].append(k)
                         found = True
                         break
-                    # Jika induk tidak ditemukan, cari induk di level atasnya lagi
                     if '.' in curr_parent:
                         curr_parent = curr_parent.rsplit('.', 1)[0]
                     else:
@@ -384,7 +394,7 @@ try:
                 if not found:
                     roots.append(k)
         
-        # 3. Fungsi Render HTML (Bisa di Klik & Tampil Bertahap)
+        # 3. Fungsi Render HTML (UI DIROMBAK UNTUK IKON BERSIH & WARNA TIDAK FULL)
         def render_tree(kode):
             node = tree_nodes[kode]
             level = node['level']
@@ -397,16 +407,17 @@ try:
             warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C", "#00838F", "#424242"]
             warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
             
-            # Folder khusus Level 0 (Primer) dan Level 1 (Sekunder)
-            simbol = "📁 " if level in [0, 1] else "📄 "
-            
+            # HANYA GUNAKAN IKON FOLDER (📁) SESUAI INSTRUKSI, Play & Note dihapus
             html = ""
             if children:
-                # Jika punya anak, buat sebagai <details> yang bisa diklik (expand/collapse)
+                # Jika punya anak (folder utama), buat sebagai <details> yang bisa diklik
+                # Warna latar belakang dipindahkan ke span di dalam untuk tampilan lencana
                 html += f'''
                 <details style="margin-bottom: 6px;">
-                    <summary style="background-color: {warna_bg}; color: #ffffff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.95em; box-shadow: 0px 2px 4px rgba(0,0,0,0.1); margin-left: 2px;">
-                        <strong>{simbol}{kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i>
+                    <summary>
+                        <span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; display: inline-block; font-weight: normal; box-shadow: 0px 2px 4px rgba(0,0,0,0.1);">
+                            <strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i>
+                        </span>
                     </summary>
                     <div style="margin-left: 15px; padding-top: 8px; border-left: 2px dashed #ccc; padding-left: 10px; margin-bottom: 8px;">
                 '''
@@ -417,16 +428,19 @@ try:
                 </details>
                 '''
             else:
-                # Jika tidak punya anak (ujung kode), tampilkan kotak biasa
+                # Jika tidak punya anak (ujung kode), tampilkan kotak lencana biasa
+                # Warna latar belakang dipindahkan ke span di dalam untuk tampilan lencana
                 html += f'''
-                <div style="margin-bottom: 6px; background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-size: 0.9em; box-shadow: 0px 2px 4px rgba(0,0,0,0.1); margin-left: 22px;">
-                    <strong>{simbol}{kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i>
+                <div style="margin-bottom: 6px; margin-left: 22px;">
+                    <span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; display: inline-block; font-size: 0.9em; box-shadow: 0px 2px 4px rgba(0,0,0,0.1);">
+                        <strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style="opacity: 0.8; margin-left: 5px;">({label})</i>
+                    </span>
                 </div>
                 '''
             return html
 
         # 4. Tampilkan ke Layar
-        roots.sort() # Mengurutkan 000, 100, 200 dst
+        roots.sort()
         full_html = ""
         for r in roots:
             full_html += render_tree(r)
