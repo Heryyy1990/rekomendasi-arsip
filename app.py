@@ -12,9 +12,10 @@ from thefuzz import process, fuzz
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM ---
+# --- UI & CSS CUSTOM (SUPPORT DARK MODE & LIGHT MODE) ---
 st.markdown("""
     <style>
+    /* Konfigurasi Judul Utama dengan Gradasi yang cocok di layar hitam & putih */
     .sikap-title {
         font-size: 4.5rem; 
         font-weight: 900; 
@@ -34,17 +35,10 @@ st.markdown("""
         letter-spacing: 1px;
         opacity: 0.8; 
     }
+    /* Mengubah warna header expander tab manual agar lebih elegan */
     .streamlit-expanderHeader {
         font-weight: bold;
         color: #0288D1;
-    }
-    /* PEMBUNUH IKON PANAH BIRU BAWAAN BROWSER */
-    details > summary {
-        list-style: none !important;
-        outline: none !important;
-    }
-    details > summary::-webkit-details-marker {
-        display: none !important; 
     }
     </style>
 """, unsafe_allow_html=True)
@@ -52,6 +46,8 @@ st.markdown("""
 # --- INISIALISASI SESSION STATE ---
 if 'search_history' not in st.session_state:
     st.session_state.search_history = []
+if 'feedback_submitted' not in st.session_state:
+    st.session_state.feedback_submitted = False
 
 # --- INISIALISASI NLP (Sastrawi) ---
 @st.cache_resource
@@ -177,7 +173,7 @@ def preprocess_text(text):
     text = stemmer.stem(text)
     return text
 
-# --- 1. MEMUAT DATABASE (ASLI 100%) ---
+# --- 1. MEMUAT DATABASE ---
 @st.cache_data
 def load_data():
     try:
@@ -201,7 +197,7 @@ def load_data():
     df['clean_uraian'] = df['uraian'].apply(preprocess_text)
     return df
 
-# --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
+# --- FUNGSI PEMBUAT DESAIN BADGE (HIERARKI & IKON FOLDER) ---
 def get_badge_html(kode, uraian, level):
     levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
     label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
@@ -211,12 +207,18 @@ def get_badge_html(kode, uraian, level):
     
     indent = level * 30 
     
+    # PENAMBAHAN IKON FOLDER SESUAI INSTRUKSI
+    if level == 0 or level == 1:
+        simbol = "📁 "
+    else:
+        simbol = "└─ "
+    
     return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
            f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);'>" \
-           f"<strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
+           f"<strong>{simbol}{kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
            f"</span></div>"
 
-# --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
+# --- 2. FITUR HIERARKI ---
 def get_hierarchy(kode_target, df):
     parts = str(kode_target).split('.')
     hierarchy_list = []
@@ -226,11 +228,12 @@ def get_hierarchy(kode_target, df):
         current_code = (current_code + "." + part) if current_code else part
         match = df[df['kode'] == current_code]
         uraian = match.iloc[0]['uraian'].title() if not match.empty else "Detail Klasifikasi"
+        
         html_string = get_badge_html(current_code, uraian, i)
         hierarchy_list.append(html_string)
     return hierarchy_list
 
-# --- 3. LOGIKA NLP TF-IDF & FUZZY MATCHING (ASLI 100%) ---
+# --- 3. LOGIKA NLP TF-IDF & FUZZY MATCHING (KEMBALI KE ASLI) ---
 def smart_classify(user_input, df, top_n=3):
     clean_input = preprocess_text(user_input)
     vectorizer = TfidfVectorizer(ngram_range=(1, 2))
@@ -327,10 +330,39 @@ try:
                             data_feedback = f"{waktu_sekarang} | Input: {user_input} | Terpilih: {jawaban_benar}\n"
                             with open("feedback_ai_log.txt", "a", encoding="utf-8") as f:
                                 f.write(data_feedback)
-                            st.success(f"Terima kasih! Pilihan Anda telah disimpan untuk evaluasi AI ke depannya.")
+                            st.success(f"Terima kasih! Pilihan Anda ({jawaban_benar.split(' - ')[0]}) telah disimpan untuk evaluasi AI ke depannya.")
                 else:
                     st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
 
-    # ================= TAB 2: JELAJAH KODE (GEMBOK 10 PRIMER!) =================
+    # ================= TAB 2: JELAJAH KODE (DIROMBAK TOTAL) =================
     with tab_katalog:
-        st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka anak cabangnya):")
+        st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka isinya):")
+        
+        # Otomatis membentuk list 000, 100, 200, sampai 900
+        daftar_primer = [f"{i}00" for i in range(10)]
+        
+        for p in daftar_primer:
+            # Cari judul dari kode primer tersebut di database
+            cek_df = df[df['kode'] == p]
+            uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
+            
+            # Membuat kotak (expander) untuk tiap Rumpun Utama
+            with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
+                
+                # Mengambil semua kode yang berawalan angka primer ini
+                hasil_filter = df[df['kode'].str.startswith(p)]
+                
+                if not hasil_filter.empty:
+                    for index, row in hasil_filter.iterrows():
+                        kode = str(row['kode'])
+                        uraian = str(row['uraian']).title()
+                        level = kode.count('.') 
+                        
+                        # Merender badge HTML (dengan ikon folder dan warna sesuai level)
+                        html_badge = get_badge_html(kode, uraian, level)
+                        st.markdown(html_badge, unsafe_allow_html=True)
+                else:
+                    st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
+
+except Exception as e:
+    st.error(f"Terjadi kesalahan saat memuat data: {e}")
