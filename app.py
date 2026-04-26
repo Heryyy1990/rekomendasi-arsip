@@ -396,7 +396,7 @@ def smart_classify(user_input, df, top_n=3):
         top_idx = [h[0] for h in hasil[:top_k]]
         return subset_df.iloc[top_idx].reset_index(drop=True)
 
-    # ── HELPER: Groq menjuri dan memilih N kode terbaik ──
+  # ── HELPER: Groq menjuri dan memilih N kode terbaik ──
     # Groq menerima "inti_dari_llm" (hasil ekstraksi tahap 0) sebagai konteks utama
     def juri_ai(inti, kandidat_df, label_level, pilih_n=1):
         if kandidat_df.empty:
@@ -404,22 +404,20 @@ def smart_classify(user_input, df, top_n=3):
         daftar = ""
         for i, (_, row) in enumerate(kandidat_df.iterrows()):
             daftar += f"[{i+1}] Kode: {row['kode']} | Uraian: {row['uraian'].title()}\n"
-
         if pilih_n == 1:
             instruksi = "Balas HANYA dengan 1 angka saja."
             contoh = "Contoh balasan benar: 3"
         else:
             instruksi = f"Balas HANYA dengan {pilih_n} angka dipisah koma, urut dari paling tepat."
             contoh = "Contoh balasan benar: 2, 5, 1"
-
-       prompt = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
+        prompt = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
 
 Inti urusan surat yang sudah diekstrak AI: "{inti}"
 Uraian surat asli dari user: "{user_input}"
 
 Pilih {pilih_n} nomor dari daftar {label_level} yang PALING TEPAT untuk urusan tersebut:
-{daftar}
 
+{daftar}
 ATURAN MUTLAK: {instruksi}
 {contoh}
 """
