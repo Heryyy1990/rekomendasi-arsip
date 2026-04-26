@@ -104,11 +104,9 @@ def ekstrak_inti_surat(teks_user):
         inti_teks = inti_teks.replace('"', '').replace("'", "")
         return inti_teks
     except Exception as e:
-        # FALLBACK: Jika internet putus atau API bermasalah, aplikasi TIDAK ERROR. 
-        # SIKAP akan otomatis kembali menggunakan teks asli pengguna.
-        print(f"Error LLM: {e}")
+        st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
         return teks_user
-
+        
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
@@ -409,7 +407,7 @@ def smart_classify(user_input, df, top_n=3):
             return hasil_akhir
             
     except Exception as e:
-        print(f"Error Juri LLM: {e}")
+        st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
         
     # Fallback
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
