@@ -333,52 +333,80 @@ def get_hierarchy(kode_target, df):
         hierarchy_list.append(html_string)
     return hierarchy_list
 
-# --- 3. LOGIKA NLP TF-IDF & FUZZY MATCHING (ASLI 100%) ---
-# --- 3. LOGIKA NLP TF-IDF & FUZZY MATCHING (SUDAH DIGABUNG DENGAN GROQ) ---
+# --- 3. LOGIKA AI HYBRID (RERANKING) ---
 def smart_classify(user_input, df, top_n=3):
     # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
     inti_dari_llm = ekstrak_inti_surat(user_input)
-    
-    # Menampilkan apa yang dipikirkan LLM di layar Streamlit
     st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
     
-    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi LLM
+    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
     clean_input = preprocess_text(inti_dari_llm)
     
-    # 3. Proses TF-IDF 
-    vectorizer = TfidfVectorizer(ngram_range=(1, 2))
+    # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
+    vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
     all_docs = df['clean_uraian'].tolist() + [clean_input]
     tfidf_matrix = vectorizer.fit_transform(all_docs)
     
     cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
     
-    # 4. Bagian yang terhapus: Fuzzy Matching & Pembobotan Rumpun (Dikembalikan)
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
-        fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        combined_score = (score * 0.70) + (fuzzy_score * 0.30)
+        # Fuzzy Matching menggunakan partial_ratio agar lebih fleksibel terhadap typo
+        fuzzy_score = fuzz.partial_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
+        combined_score = (score * 0.40) + (fuzzy_score * 0.60) 
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
-    skor_awal = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)
+    # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
+    top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
     
-    if skor_awal:
-        idx_juara_1 = skor_awal[0]['idx']
-        kode_juara_1 = str(df.iloc[idx_juara_1]['kode'])
-        bagian_kode = kode_juara_1.split('.')
-        rumpun_utama = ".".join(bagian_kode[:2]) if len(bagian_kode) >= 2 else bagian_kode[0]
+    # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
+    daftar_kandidat = ""
+    for i, item in enumerate(top_10_kandidat):
+        baris = df.iloc[item['idx']]
+        daftar_kandidat += f"Nomor {i+1} | Kode: {baris['kode']} | Uraian: {baris['uraian'].title()}\n"
+        
+    prompt_juri = f"""
+    Anda adalah Juri Klasifikasi Arsip. Tugas Anda memilih 3 kode paling tepat dari 10 nominasi di bawah ini.
+    
+    Perihal Asli: "{user_input}"
+    Inti Urusan: "{inti_dari_llm}"
+    
+    Daftar Nominasi:
+    {daftar_kandidat}
+    
+    Pilih maksimal 3 Nomor yang paling relevan dengan Urusan Asli. Urutkan dari yang paling tepat!
+    BALAS HANYA DENGAN ANGKA NOMORNYA SAJA (Contoh: 1, 4, 2). Jangan ada kata-kata lain.
+    """
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_juri}],
+            model="llama3-8b-8192", 
+            temperature=0.0, 
+        )
+        balasan_juri = chat_completion.choices[0].message.content.strip()
+        
+        # Mengambil angka saja dari balasan AI
+        angka_pilihan = [int(s) for s in re.findall(r'\d+', balasan_juri)]
         
         hasil_akhir = []
-        for item in skor_awal:
-            idx = item['idx']
-            skor = item['skor']
-            kode_item = str(df.iloc[idx]['kode'])
-            if kode_item.startswith(rumpun_utama) and idx != idx_juara_1:
-                skor = skor * 1.5 
-            hasil_akhir.append((idx, skor))
+        for nomor in angka_pilihan:
+            idx_kandidat = nomor - 1 
+            if 0 <= idx_kandidat < len(top_10_kandidat):
+                # Memberikan skor simulasi agar urutan tampilan di Streamlit konsisten
+                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], 1.0 - (len(hasil_akhir)*0.1)))
+                if len(hasil_akhir) == top_n: break
+                
+        if hasil_akhir:
+            return hasil_akhir
             
-        hasil_akhir = sorted(hasil_akhir, key=lambda x: x[1], reverse=True)
-        return hasil_akhir[:top_n]
-    return []
+    except Exception as e:
+        # Fallback jika terjadi kendala pada API Groq saat proses reranking
+        print(f"Error Juri LLM: {e}")
+        
+    # Jika Juri AI gagal, tampilkan 3 besar berdasarkan hitungan matematis biasa
+    return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
+    
 # --- 4. ANTARMUKA UTAMA ---
 
 st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
