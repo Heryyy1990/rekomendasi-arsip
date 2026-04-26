@@ -359,7 +359,7 @@ def smart_classify(user_input, df, top_n=3):
         ].copy().reset_index(drop=True)
 
     # ── HELPER: TF-IDF + Fuzzy → dua jalur (stem + tanpa stem) ──
-    def skor_dan_ambil(subset_df, query_clean, top_k=5):
+  def skor_dan_ambil(subset_df, top_k=5):
         if subset_df.empty:
             return subset_df.iloc[0:0]
 
