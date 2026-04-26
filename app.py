@@ -38,55 +38,58 @@ def ekstrak_inti_surat(teks_user):
     
     [KASUS KEUANGAN, ANGGARAN & ASET]
     Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    Output: rencana kerja anggaran, dpa
+    Output: <HASIL>rencana kerja anggaran, dpa</HASIL>
     Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
-    Output: pencairan dana, sp2d
+    Output: <HASIL>pencairan dana, sp2d</HASIL>
     Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
-    Output: berita acara serah terima, kendaraan dinas
+    Output: <HASIL>berita acara serah terima, kendaraan dinas</HASIL>
     
     [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
     Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: penetapan angka kredit, jabatan fungsional
+    Output: <HASIL>penetapan angka kredit, jabatan fungsional</HASIL>
     Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    Output: disiplin pegawai, pelanggaran kode etik
+    Output: <HASIL>disiplin pegawai, pelanggaran kode etik</HASIL>
     Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
-    Output: tindak lanjut temuan, laporan hasil pemeriksaan
+    Output: <HASIL>tindak lanjut temuan, laporan hasil pemeriksaan</HASIL>
     Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
-    Output: peraturan bupati, tata naskah dinas
+    Output: <HASIL>peraturan bupati, tata naskah dinas</HASIL>
     
     [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
     Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
-    Output: dana bantuan operasional sekolah, bos
+    Output: <HASIL>dana bantuan operasional sekolah, bos</HASIL>
     Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
-    Output: klaim bpjs kesehatan, pelayanan kesehatan rawat inap
+    Output: <HASIL>klaim bpjs kesehatan, pelayanan kesehatan rawat inap</HASIL>
     Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
-    Output: rencana anggaran biaya, gambar kerja proyek
+    Output: <HASIL>rencana anggaran biaya, gambar kerja proyek</HASIL>
     
     [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
     Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
+    Output: <HASIL>daftar pemilih sementara, daftar penduduk potensial pemilih</HASIL>
     Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
-    Output: pemantauan partai politik, organisasi kemasyarakatan
+    Output: <HASIL>pemantauan partai politik, organisasi kemasyarakatan</HASIL>
     Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
-    Output: penertiban pedagang kaki lima, pembongkaran baliho
+    Output: <HASIL>penertiban pedagang kaki lima, pembongkaran baliho</HASIL>
     
     [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
     Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
+    Output: <HASIL>analisis mengenai dampak lingkungan, amdal, ukl upl</HASIL>
     Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: operasi pencarian pertolongan, sar, korban banjir
+    Output: <HASIL>operasi pencarian pertolongan, sar, korban banjir</HASIL>
     Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
-    Output: sertifikasi keamanan pangan segar asal tumbuhan, psat
+    Output: <HASIL>sertifikasi keamanan pangan segar asal tumbuhan, psat</HASIL>
     
     [KASUS PEMERINTAHAN DESA & UMUM]
     Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
-    Output: dana desa, sengketa pemilihan kepala desa
+    Output: <HASIL>dana desa, sengketa pemilihan kepala desa</HASIL>
     Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: perjalanan dinas
+    Output: <HASIL>perjalanan dinas</HASIL>
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-    Output: jadwal retensi arsip, pemusnahan arsip inaktif
+    Output: <HASIL>jadwal retensi arsip, pemusnahan arsip inaktif</HASIL>
     
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
+    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA.
+    ATURAN MUTLAK: TULIS HASIL AKHIRMU DI DALAM TAG <HASIL> dan </HASIL>.
+    JANGAN ADA TEKS LAIN DI LUAR TAG ITU!
+
     Input: "{teks_user}"
     Output:
     """
@@ -97,9 +100,19 @@ def ekstrak_inti_surat(teks_user):
             model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
             temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
-        # Mengambil balasan dari Groq
-        inti_teks = chat_completion.choices[0].message.content.strip()
+        # Mengambil balasan mentah dari Groq
+        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
+        # PISAU BEDAH PYTHON: Ekstrak paksa isi tag <HASIL>
+        import re
+        match = re.search(r'<HASIL>(.*?)</HASIL>', inti_teks_mentah, re.IGNORECASE | re.DOTALL)
+        if match:
+            inti_teks = match.group(1).strip()
+        else:
+            # Fallback kalau Llama lupa tag
+            baris = [b for b in inti_teks_mentah.split('\n') if b.strip()]
+            inti_teks = baris[-1].replace('**', '').strip()
+            
         # Membersihkan tanda kutip jika LLM iseng menambahkannya
         inti_teks = inti_teks.replace('"', '').replace("'", "")
         return inti_teks
