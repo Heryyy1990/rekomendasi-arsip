@@ -86,10 +86,7 @@ def ekstrak_inti_surat(teks_user):
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
     Output: jadwal retensi arsip, pemusnahan arsip inaktif
     
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA.
-    PENTING: JANGAN BERIKAN PENJELASAN ATAU PROSES BERPIKIR. 
-    HANYA BALAS DENGAN KATA KUNCI SAJA.
-
+    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
     Input: "{teks_user}"
     Output:
     """
@@ -97,17 +94,13 @@ def ekstrak_inti_surat(teks_user):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant", # Model terbaru
-            temperature=0.0, 
+            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
+            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
+        # Mengambil balasan dari Groq
         inti_teks = chat_completion.choices[0].message.content.strip()
         
-        # --- INI PENGAMAN GANDA YANG TADI HILANG ---
-        if "\n" in inti_teks:
-            inti_teks = inti_teks.split("\n")[-1] # Ambil baris terbawah saja kalau dia nulis panjang
-        inti_teks = re.sub(r'(?i)inti substansi|output:|berikut adalah|hasil:|kata kunci:|output', '', inti_teks).strip()
-        # -------------------------------------------
-        
+        # Membersihkan tanda kutip jika LLM iseng menambahkannya
         inti_teks = inti_teks.replace('"', '').replace("'", "")
         return inti_teks
     except Exception as e:
@@ -340,24 +333,31 @@ def get_hierarchy(kode_target, df):
 
 # --- 3. LOGIKA AI HYBRID (RERANKING) ---
 def smart_classify(user_input, df, top_n=3):
+    # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
     inti_dari_llm = ekstrak_inti_surat(user_input)
     st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
     
+    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
     clean_input = preprocess_text(inti_dari_llm)
     
+    # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
     vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
     all_docs = df['clean_uraian'].tolist() + [clean_input]
     tfidf_matrix = vectorizer.fit_transform(all_docs)
+    
     cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
     
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
-        fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        combined_score = (score * 0.80) + (fuzzy_score * 0.20) 
+        # Fuzzy Matching menggunakan partial_ratio agar lebih fleksibel terhadap typo
+        fuzzy_score = fuzz.partial_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
+        combined_score = (score * 0.40) + (fuzzy_score * 0.60) 
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
+    # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
     top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
     
+   # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
     daftar_kandidat = ""
     for i, item in enumerate(top_10_kandidat):
         baris = df.iloc[item['idx']]
@@ -378,26 +378,28 @@ def smart_classify(user_input, df, top_n=3):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt_juri}],
-            model="llama-3.3-70b-versatile", 
+            model="llama-3.3-70b-versatile", # Model raksasa yang sangat teliti dalam menjuri 
             temperature=0.0, 
         )
         balasan_juri = chat_completion.choices[0].message.content.strip()
         
-        # LOGIKA ANTI-JEBOL: Pastikan hanya angka 1-10 yang diambil
+        # LOGIKA ANTI-JEBOL: Ambil semua angka, tapi HANYA simpan angka 1-10 yang unik
         angka_mentah = re.findall(r'\d+', balasan_juri)
         angka_pilihan = []
         for angka in angka_mentah:
             angka_int = int(angka)
+            # Pastikan itu nomor urut nominasi (1-10), BUKAN kode klasifikasi seperti 800 atau 000
             if 1 <= angka_int <= 10:
                 if angka_int not in angka_pilihan:
                     angka_pilihan.append(angka_int)
-            if len(angka_pilihan) == 3: 
+            if len(angka_pilihan) == 3: # Berhenti jika sudah dapat 3 juara
                 break
                 
         hasil_akhir = []
         for nomor in angka_pilihan:
             idx_kandidat = nomor - 1 
             if 0 <= idx_kandidat < len(top_10_kandidat):
+                # Bobot keyakinan simulasi yang menurun (99%, 85%, 70%)
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
                 hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
                 
@@ -406,8 +408,8 @@ def smart_classify(user_input, df, top_n=3):
             
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
-        pass
         
+    # Fallback
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
     
 # --- 4. ANTARMUKA UTAMA ---
