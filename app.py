@@ -8,6 +8,47 @@ from sklearn.metrics.pairwise import cosine_similarity
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 from thefuzz import process, fuzz
+from groq import Groq
+
+# 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
+try:
+    # Membaca dari Streamlit Secrets jika di Cloud
+    api_key = st.secrets["GROQ_API_KEY"]
+except:
+    # Masukkan API Key manual HANYA untuk tes di laptop lokal (Hapus sebelum di-push ke GitHub!)
+    api_key = "MASUKKAN_API_KEY_GROQ_DI_SINI_UNTUK_TES_LOKAL" 
+
+client = Groq(api_key=api_key)
+
+# 2. Fungsi "Otak Ekstraktor"
+def ekstrak_inti_surat(teks_user):
+    # Prompt khusus yang memerintahkan LLM menjadi asisten kearsipan yang kaku
+    prompt = f"""
+    Kamu adalah asisten kearsipan. Tugasmu HANYA mengekstrak maksimal 3 kata kunci paling inti dari uraian dokumen berikut. 
+    Fokus pada subjek atau objek utama (misal: 'perjalanan dinas', 'anggaran', 'cuti'). 
+    Abaikan kata kerja pembuka (misal: 'penyampaian', 'laporan', 'undangan', 'terkait').
+    JANGAN memberikan penjelasan apapun. HANYA balas dengan kata kunci.
+    
+    Teks dokumen: "{teks_user}"
+    """
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama3-8b-8192", # Model teringan dan tercepat dari Meta Llama
+            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
+        )
+        # Mengambil balasan dari Groq
+        inti_teks = chat_completion.choices[0].message.content.strip()
+        
+        # Membersihkan tanda kutip jika LLM iseng menambahkannya
+        inti_teks = inti_teks.replace('"', '').replace("'", "")
+        return inti_teks
+    except Exception as e:
+        # FALLBACK: Jika internet putus atau API bermasalah, aplikasi TIDAK ERROR. 
+        # SIKAP akan otomatis kembali menggunakan teks asli pengguna.
+        print(f"Error LLM: {e}")
+        return teks_user
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
@@ -234,13 +275,25 @@ def get_hierarchy(kode_target, df):
     return hierarchy_list
 
 # --- 3. LOGIKA NLP TF-IDF & FUZZY MATCHING (ASLI 100%) ---
+# --- 3. LOGIKA NLP TF-IDF & FUZZY MATCHING (SUDAH DIGABUNG DENGAN GROQ) ---
 def smart_classify(user_input, df, top_n=3):
-    clean_input = preprocess_text(user_input)
+    # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
+    inti_dari_llm = ekstrak_inti_surat(user_input)
+    
+    # Menampilkan apa yang dipikirkan LLM di layar Streamlit
+    st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
+    
+    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi LLM
+    clean_input = preprocess_text(inti_dari_llm)
+    
+    # 3. Proses TF-IDF 
     vectorizer = TfidfVectorizer(ngram_range=(1, 2))
     all_docs = df['clean_uraian'].tolist() + [clean_input]
     tfidf_matrix = vectorizer.fit_transform(all_docs)
+    
     cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
     
+    # 4. Bagian yang terhapus: Fuzzy Matching & Pembobotan Rumpun (Dikembalikan)
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
         fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
@@ -267,7 +320,6 @@ def smart_classify(user_input, df, top_n=3):
         hasil_akhir = sorted(hasil_akhir, key=lambda x: x[1], reverse=True)
         return hasil_akhir[:top_n]
     return []
-
 # --- 4. ANTARMUKA UTAMA ---
 
 st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
