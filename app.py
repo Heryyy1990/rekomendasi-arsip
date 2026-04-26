@@ -359,23 +359,22 @@ def smart_classify(user_input, df, top_n=3):
     # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
     top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
     
-    # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
+   # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
     daftar_kandidat = ""
     for i, item in enumerate(top_10_kandidat):
         baris = df.iloc[item['idx']]
-        daftar_kandidat += f"Nomor {i+1} | Kode: {baris['kode']} | Uraian: {baris['uraian'].title()}\n"
+        daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Uraian: {baris['uraian'].title()}\n"
         
     prompt_juri = f"""
-    Anda adalah Juri Klasifikasi Arsip. Tugas Anda memilih 3 kode paling tepat dari 10 nominasi di bawah ini.
+    Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
     
-    Perihal Asli: "{user_input}"
-    Inti Urusan: "{inti_dari_llm}"
-    
-    Daftar Nominasi:
+    Daftar Opsi:
     {daftar_kandidat}
     
-    Pilih maksimal 3 Nomor yang paling relevan dengan Urusan Asli. Urutkan dari yang paling tepat!
-    BALAS HANYA DENGAN ANGKA NOMORNYA SAJA (Contoh: 1, 4, 2). Jangan ada kata-kata lain.
+    ATURAN MUTLAK:
+    Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
+    JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
+    Contoh balasan yang benar: 1, 5, 8
     """
     
     try:
@@ -386,25 +385,33 @@ def smart_classify(user_input, df, top_n=3):
         )
         balasan_juri = chat_completion.choices[0].message.content.strip()
         
-        # Mengambil angka saja dari balasan AI
-        angka_pilihan = [int(s) for s in re.findall(r'\d+', balasan_juri)]
-        
+        # LOGIKA ANTI-JEBOL: Ambil semua angka, tapi HANYA simpan angka 1-10 yang unik
+        angka_mentah = re.findall(r'\d+', balasan_juri)
+        angka_pilihan = []
+        for angka in angka_mentah:
+            angka_int = int(angka)
+            # Pastikan itu nomor urut nominasi (1-10), BUKAN kode klasifikasi seperti 800 atau 000
+            if 1 <= angka_int <= 10:
+                if angka_int not in angka_pilihan:
+                    angka_pilihan.append(angka_int)
+            if len(angka_pilihan) == 3: # Berhenti jika sudah dapat 3 juara
+                break
+                
         hasil_akhir = []
         for nomor in angka_pilihan:
             idx_kandidat = nomor - 1 
             if 0 <= idx_kandidat < len(top_10_kandidat):
-                # Memberikan skor simulasi agar urutan tampilan di Streamlit konsisten
-                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], 1.0 - (len(hasil_akhir)*0.1)))
-                if len(hasil_akhir) == top_n: break
+                # Bobot keyakinan simulasi yang menurun (99%, 85%, 70%)
+                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
                 
         if hasil_akhir:
             return hasil_akhir
             
     except Exception as e:
-        # Fallback jika terjadi kendala pada API Groq saat proses reranking
         print(f"Error Juri LLM: {e}")
         
-    # Jika Juri AI gagal, tampilkan 3 besar berdasarkan hitungan matematis biasa
+    # Fallback
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
     
 # --- 4. ANTARMUKA UTAMA ---
