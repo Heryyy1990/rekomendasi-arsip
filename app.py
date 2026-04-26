@@ -364,7 +364,7 @@ def smart_classify(user_input, df, top_n=3):
     for idx, score in enumerate(cosine_sim):
         # Fuzzy Matching menggunakan partial_ratio agar lebih fleksibel terhadap typo
         fuzzy_score = fuzz.partial_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        combined_score = (score * 0.80) + (fuzzy_score * 0.20) 
+        combined_score = (score * 0.75) + (fuzzy_score * 0.25) 
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
     # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
