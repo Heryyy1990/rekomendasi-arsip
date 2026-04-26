@@ -449,8 +449,9 @@ ATURAN MUTLAK: {instruksi}
             st.error(f"🚨 ERROR GROQ (Juri {label_level}): {e}")
             return list(kandidat_df['kode'])[:pilih_n]
 
-    # ════════════════════════════════════════════════════════
-    # TAHAP 1 — PRIMER: Groq pilih TOP 3 dari semua kode primer
+ # ════════════════════════════════════════════════════════
+    # TAHAP 1 — PRIMER: Pilih top 3 rumpun utama (level 0)
+    # Sertakan sampel uraian keturunan agar Groq paham isi rumpun
     # ════════════════════════════════════════════════════════
     df_primer = df[df['kode'].apply(get_level) == 0].copy().reset_index(drop=True)
 
@@ -458,8 +459,66 @@ ATURAN MUTLAK: {instruksi}
         st.warning("Database tidak memiliki data level Primer.")
         return []
 
-    top_primer_kandidat = skor_dan_ambil(df_primer, clean_input, top_k=6)
-    kode_primer_list = juri_ai(inti_dari_llm, top_primer_kandidat, "Primer", pilih_n=3)
+    # Bangun daftar primer DENGAN sampel keturunannya untuk konteks Groq
+    def build_primer_context(kandidat_primer_df):
+        daftar = ""
+        for i, (_, row) in enumerate(kandidat_primer_df.iterrows()):
+            kode_p = row['kode']
+            uraian_p = row['uraian'].title()
+            # Ambil 5 sampel keturunan acak dari rumpun ini
+            keturunan = df[df['kode'].str.startswith(kode_p + ".")]['uraian'].dropna()
+            sampel = keturunan.sample(min(5, len(keturunan)), random_state=42).tolist() if len(keturunan) > 0 else []
+            sampel_str = "; ".join(sampel) if sampel else "tidak ada sub-klasifikasi"
+            daftar += f"[{i+1}] Kode: {kode_p} | Uraian: {uraian_p}\n"
+            daftar += f"      Contoh isi rumpun: {sampel_str}\n\n"
+        return daftar
+
+    # Skor semua primer dulu
+    top_primer = skor_dan_ambil(df_primer, top_k=len(df_primer))  # ambil semua primer
+
+    # Buat prompt khusus primer dengan konteks isi rumpun
+    daftar_primer_konteks = build_primer_context(top_primer)
+
+    prompt_primer = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
+
+Inti urusan surat yang sudah diekstrak AI: "{inti_dari_llm}"
+Uraian surat asli dari user: "{user_input}"
+
+Berikut daftar RUMPUN UTAMA (Primer) beserta contoh isi klasifikasinya:
+
+{daftar_primer_konteks}
+
+Pilih 3 nomor rumpun yang PALING MUNGKIN mengandung klasifikasi untuk urusan tersebut.
+ATURAN MUTLAK: Balas HANYA dengan 3 angka dipisah koma, urut dari paling tepat.
+Contoh balasan benar: 1, 4, 7
+"""
+    try:
+        resp_primer = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_primer}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.0,
+        )
+        balasan_primer = resp_primer.choices[0].message.content.strip()
+        angka_primer = re.findall(r'\d+', balasan_primer)
+        kode_primer_list = []
+        for a in angka_primer:
+            idx = int(a) - 1
+            if 0 <= idx < len(top_primer):
+                kode = top_primer.iloc[idx]['kode']
+                if kode not in kode_primer_list:
+                    kode_primer_list.append(kode)
+            if len(kode_primer_list) == 3:
+                break
+        # Fallback
+        for _, row in top_primer.iterrows():
+            if len(kode_primer_list) == 3:
+                break
+            if row['kode'] not in kode_primer_list:
+                kode_primer_list.append(row['kode'])
+    except Exception as e:
+        st.error(f"🚨 ERROR GROQ (Juri Primer): {e}")
+        kode_primer_list = list(top_primer['kode'])[:3]
+
     st.caption(f"📌 Top 3 Primer: **{', '.join(kode_primer_list)}**")
 
     # ════════════════════════════════════════════════════════
