@@ -338,41 +338,35 @@ def get_hierarchy(kode_target, df):
 
 # --- 3. LOGIKA AI HYBRID (HIERARCHICAL NARROWING - TOP 3 JALUR) ---
 def smart_classify(user_input, df, top_n=3):
-    # TAHAP 0: Ekstrak inti surat via LLM (sudah ada konteks bersih dari Groq)
+
+    # TAHAP 0: Ekstrak inti surat via LLM
     inti_dari_llm = ekstrak_inti_surat(user_input)
     st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
     clean_input = preprocess_text(inti_dari_llm)
+    query_mentah = inti_dari_llm.lower()
 
     # ── HELPER: Hitung level dari jumlah titik ──
-    # "000"       → level 0 (Primer)
-    # "000.2"     → level 1 (Sekunder)
-    # "000.2.3"   → level 2 (Tersier)
-    # "000.2.3.2" → level 3 (Kuartier)
     def get_level(kode):
         return str(kode).count('.')
 
-    # ── HELPER: Ambil anak langsung dari suatu kode induk ──
-    def get_children_df(induk_kode, target_level):
+    # ── HELPER: Ambil SEMUA keturunan dari suatu kode induk ──
+    def get_all_descendants(induk_kode):
         return df[
-            (df['kode'].str.startswith(induk_kode + ".")) &
-            (df['kode'].apply(get_level) == target_level)
+            df['kode'].str.startswith(induk_kode + ".")
         ].copy().reset_index(drop=True)
 
-   
-    # ── HELPER: TF-IDF + Fuzzy → dua jalur (stem + tanpa stem) ──
-  def skor_dan_ambil(subset_df, top_k=5):
+    # ── HELPER: TF-IDF + Fuzzy dua jalur, tidak perlu argumen query ──
+    def skor_dan_ambil(subset_df, top_k=5):
         if subset_df.empty:
             return subset_df.iloc[0:0]
 
-        # Jalur 1: pakai clean_uraian (sudah di-stem) vs query yang sudah di-stem
+        uraian_asli = subset_df['uraian'].str.lower().tolist()
+
         vectorizer1 = TfidfVectorizer(ngram_range=(1, 3))
-        docs1 = subset_df['clean_uraian'].tolist() + [query_clean]
+        docs1 = subset_df['clean_uraian'].tolist() + [clean_input]
         tfidf1 = vectorizer1.fit_transform(docs1)
         cosine1 = cosine_similarity(tfidf1[-1], tfidf1[:-1])[0]
 
-        # Jalur 2: pakai uraian ASLI (lowercase) vs inti mentah dari LLM (tanpa stem)
-        uraian_asli = subset_df['uraian'].str.lower().tolist()
-        query_mentah = inti_dari_llm.lower()  # langsung pakai hasil Groq tanpa stem
         vectorizer2 = TfidfVectorizer(ngram_range=(1, 3))
         docs2 = uraian_asli + [query_mentah]
         tfidf2 = vectorizer2.fit_transform(docs2)
@@ -380,14 +374,11 @@ def smart_classify(user_input, df, top_n=3):
 
         hasil = []
         for i in range(len(subset_df)):
-            # Fuzzy juga dua jalur
-            fuzzy_stem = fuzz.partial_ratio(query_clean, subset_df.iloc[i]['clean_uraian']) / 100
+            fuzzy_stem = fuzz.partial_ratio(clean_input, subset_df.iloc[i]['clean_uraian']) / 100
             fuzzy_asli = fuzz.partial_ratio(query_mentah, uraian_asli[i]) / 100
-
-            # Gabungkan: stem 30% + asli 40% + fuzzy stem 10% + fuzzy asli 20%
             combined = (
-                cosine1[i] * 0.30 +
-                cosine2[i] * 0.40 +
+                cosine1[i] * 0.25 +
+                cosine2[i] * 0.45 +
                 fuzzy_stem  * 0.10 +
                 fuzzy_asli  * 0.20
             )
@@ -397,20 +388,21 @@ def smart_classify(user_input, df, top_n=3):
         top_idx = [h[0] for h in hasil[:top_k]]
         return subset_df.iloc[top_idx].reset_index(drop=True)
 
-  # ── HELPER: Groq menjuri dan memilih N kode terbaik ──
-    # Groq menerima "inti_dari_llm" (hasil ekstraksi tahap 0) sebagai konteks utama
+    # ── HELPER: Groq pilih N kode terbaik dari kandidat ──
     def juri_ai(inti, kandidat_df, label_level, pilih_n=1):
         if kandidat_df.empty:
             return []
         daftar = ""
         for i, (_, row) in enumerate(kandidat_df.iterrows()):
             daftar += f"[{i+1}] Kode: {row['kode']} | Uraian: {row['uraian'].title()}\n"
+
         if pilih_n == 1:
             instruksi = "Balas HANYA dengan 1 angka saja."
             contoh = "Contoh balasan benar: 3"
         else:
             instruksi = f"Balas HANYA dengan {pilih_n} angka dipisah koma, urut dari paling tepat."
             contoh = "Contoh balasan benar: 2, 5, 1"
+
         prompt = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
 
 Inti urusan surat yang sudah diekstrak AI: "{inti}"
@@ -419,6 +411,7 @@ Uraian surat asli dari user: "{user_input}"
 Pilih {pilih_n} nomor dari daftar {label_level} yang PALING TEPAT untuk urusan tersebut:
 
 {daftar}
+
 ATURAN MUTLAK: {instruksi}
 {contoh}
 """
@@ -439,7 +432,6 @@ ATURAN MUTLAK: {instruksi}
                         hasil_kode.append(kode)
                 if len(hasil_kode) == pilih_n:
                     break
-            # Fallback: isi dari baris teratas jika kurang
             for _, row in kandidat_df.iterrows():
                 if len(hasil_kode) == pilih_n:
                     break
@@ -450,9 +442,8 @@ ATURAN MUTLAK: {instruksi}
             st.error(f"🚨 ERROR GROQ (Juri {label_level}): {e}")
             return list(kandidat_df['kode'])[:pilih_n]
 
- # ════════════════════════════════════════════════════════
-    # TAHAP 1 — PRIMER: Pilih top 3 rumpun utama (level 0)
-    # Sertakan sampel uraian keturunan agar Groq paham isi rumpun
+    # ════════════════════════════════════════════════════════
+    # TAHAP 1 — PRIMER: Groq pilih top 3 dengan konteks isi rumpun
     # ════════════════════════════════════════════════════════
     df_primer = df[df['kode'].apply(get_level) == 0].copy().reset_index(drop=True)
 
@@ -460,32 +451,22 @@ ATURAN MUTLAK: {instruksi}
         st.warning("Database tidak memiliki data level Primer.")
         return []
 
-    # Bangun daftar primer DENGAN sampel keturunannya untuk konteks Groq
-    def build_primer_context(kandidat_primer_df):
-        daftar = ""
-        for i, (_, row) in enumerate(kandidat_primer_df.iterrows()):
-            kode_p = row['kode']
-            uraian_p = row['uraian'].title()
-            # Ambil 5 sampel keturunan acak dari rumpun ini
-            keturunan = df[df['kode'].str.startswith(kode_p + ".")]['uraian'].dropna()
-            sampel = keturunan.sample(min(5, len(keturunan)), random_state=42).tolist() if len(keturunan) > 0 else []
-            sampel_str = "; ".join(sampel) if sampel else "tidak ada sub-klasifikasi"
-            daftar += f"[{i+1}] Kode: {kode_p} | Uraian: {uraian_p}\n"
-            daftar += f"      Contoh isi rumpun: {sampel_str}\n\n"
-        return daftar
-
-    # Skor semua primer dulu
-    top_primer = skor_dan_ambil(df_primer, top_k=len(df_primer))  # ambil semua primer
-
-    # Buat prompt khusus primer dengan konteks isi rumpun
-    daftar_primer_konteks = build_primer_context(top_primer)
+    daftar_primer_konteks = ""
+    for i, (_, row) in enumerate(df_primer.iterrows()):
+        kode_p = row['kode']
+        uraian_p = row['uraian'].title()
+        keturunan = df[df['kode'].str.startswith(kode_p + ".")]['uraian'].dropna()
+        sampel = keturunan.sample(min(5, len(keturunan)), random_state=42).tolist() if len(keturunan) > 0 else []
+        sampel_str = "; ".join(sampel) if sampel else "tidak ada sub-klasifikasi"
+        daftar_primer_konteks += f"[{i+1}] Kode: {kode_p} | Uraian: {uraian_p}\n"
+        daftar_primer_konteks += f"      Contoh isi rumpun: {sampel_str}\n\n"
 
     prompt_primer = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
 
 Inti urusan surat yang sudah diekstrak AI: "{inti_dari_llm}"
 Uraian surat asli dari user: "{user_input}"
 
-Berikut daftar RUMPUN UTAMA (Primer) beserta contoh isi klasifikasinya:
+Berikut daftar RUMPUN UTAMA beserta contoh isi klasifikasinya:
 
 {daftar_primer_konteks}
 
@@ -504,61 +485,65 @@ Contoh balasan benar: 1, 4, 7
         kode_primer_list = []
         for a in angka_primer:
             idx = int(a) - 1
-            if 0 <= idx < len(top_primer):
-                kode = top_primer.iloc[idx]['kode']
+            if 0 <= idx < len(df_primer):
+                kode = df_primer.iloc[idx]['kode']
                 if kode not in kode_primer_list:
                     kode_primer_list.append(kode)
             if len(kode_primer_list) == 3:
                 break
-        # Fallback
-        for _, row in top_primer.iterrows():
+        for _, row in df_primer.iterrows():
             if len(kode_primer_list) == 3:
                 break
             if row['kode'] not in kode_primer_list:
                 kode_primer_list.append(row['kode'])
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Juri Primer): {e}")
-        kode_primer_list = list(top_primer['kode'])[:3]
+        kode_primer_list = list(df_primer['kode'])[:3]
 
     st.caption(f"📌 Top 3 Primer: **{', '.join(kode_primer_list)}**")
 
     # ════════════════════════════════════════════════════════
-    # TAHAP 2–4: Untuk setiap primer, telusuri 1 jalur terbaik
+    # TAHAP 2 — Untuk setiap Primer, cari kode final terbaik
     # ════════════════════════════════════════════════════════
     jalur_hasil = []
 
     for kode_primer in kode_primer_list:
-        jejak = [kode_primer]
+        df_semua = get_all_descendants(kode_primer)
 
-        # ── SEKUNDER ──
-        df_sek = get_children_df(kode_primer, target_level=1)
-        if df_sek.empty:
-            jalur_hasil.append({'kode_akhir': kode_primer, 'jejak': jejak})
+        if df_semua.empty:
+            idx = df[df['kode'] == kode_primer].index
+            if not idx.empty:
+                jalur_hasil.append({'kode_akhir': kode_primer, 'jejak': [kode_primer]})
             continue
-        top_sek = skor_dan_ambil(df_sek, clean_input, top_k=5)
-        kode_sek = juri_ai(inti_dari_llm, top_sek, "Sekunder", pilih_n=1)[0]
-        jejak.append(kode_sek)
 
-        # ── TERSIER ──
-        df_ter = get_children_df(kode_sek, target_level=2)
-        if df_ter.empty:
-            jalur_hasil.append({'kode_akhir': kode_sek, 'jejak': jejak})
+        top_keturunan = skor_dan_ambil(df_semua, top_k=8)
+
+        st.caption(f"🔍 Kandidat dalam rumpun {kode_primer}: "
+                   f"{', '.join(top_keturunan['kode'].tolist())}")
+
+        kode_final_list = juri_ai(
+            inti_dari_llm, top_keturunan,
+            f"kode dalam rumpun {kode_primer}", pilih_n=1
+        )
+
+        if not kode_final_list:
             continue
-        top_ter = skor_dan_ambil(df_ter, clean_input, top_k=5)
-        kode_ter = juri_ai(inti_dari_llm, top_ter, "Tersier", pilih_n=1)[0]
-        jejak.append(kode_ter)
 
-        # ── KUARTIER ──
-        df_kua = get_children_df(kode_ter, target_level=3)
-        if df_kua.empty:
-            jalur_hasil.append({'kode_akhir': kode_ter, 'jejak': jejak})
-            continue
-        top_kua = skor_dan_ambil(df_kua, clean_input, top_k=5)
-        kode_kua = juri_ai(inti_dari_llm, top_kua, "Kuartier", pilih_n=1)[0]
-        jejak.append(kode_kua)
-        jalur_hasil.append({'kode_akhir': kode_kua, 'jejak': jejak})
+        kode_final = kode_final_list[0]
 
+        parts = kode_final.split('.')
+        jejak = []
+        for i in range(len(parts)):
+            if i == 0:
+                jejak.append(parts[0])
+            else:
+                jejak.append('.'.join(parts[:i+1]))
+
+        jalur_hasil.append({'kode_akhir': kode_final, 'jejak': jejak})
+
+    # ════════════════════════════════════════════════════════
     # Konversi ke format (df_index, skor_simulasi, jejak)
+    # ════════════════════════════════════════════════════════
     hasil_return = []
     skor_simulasi = [0.99, 0.85, 0.70]
     for i, jalur in enumerate(jalur_hasil):
