@@ -3,4 +3,4 @@ pandas
 scikit-learn
 Sastrawi
 thefuzz
-groq==0.5.0
+groq
