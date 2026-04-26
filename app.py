@@ -22,14 +22,73 @@ client = Groq(api_key=api_key)
 
 # 2. Fungsi "Otak Ekstraktor"
 def ekstrak_inti_surat(teks_user):
-    # Prompt khusus yang memerintahkan LLM menjadi asisten kearsipan yang kaku
+    # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
     prompt = f"""
-    Kamu adalah asisten kearsipan. Tugasmu HANYA mengekstrak maksimal 3 kata kunci paling inti dari uraian dokumen berikut. 
-    Fokus pada subjek atau objek utama (misal: 'perjalanan dinas', 'anggaran', 'cuti'). 
-    Abaikan kata kerja pembuka (misal: 'penyampaian', 'laporan', 'undangan', 'terkait').
-    JANGAN memberikan penjelasan apapun. HANYA balas dengan kata kunci.
+    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
     
-    Teks dokumen: "{teks_user}"
+    GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
+    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
+    2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian, KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang, jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
+    3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya (fasilitatif maupun substantif teknis daerah).
+    4. RESOLUSI JEBAKAN "ARSIP": 
+       - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
+       - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
+
+    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+    
+    [KASUS KEUANGAN, ANGGARAN & ASET]
+    Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
+    Output: rencana kerja anggaran, dpa
+    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
+    Output: pencairan dana, sp2d
+    Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
+    Output: berita acara serah terima, kendaraan dinas
+    
+    [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
+    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
+    Output: penetapan angka kredit, jabatan fungsional
+    Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
+    Output: disiplin pegawai, pelanggaran kode etik
+    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
+    Output: tindak lanjut temuan, laporan hasil pemeriksaan
+    Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
+    Output: peraturan bupati, tata naskah dinas
+    
+    [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
+    Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
+    Output: dana bantuan operasional sekolah, bos
+    Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
+    Output: klaim bpjs kesehatan, pelayanan kesehatan rawat inap
+    Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
+    Output: rencana anggaran biaya, gambar kerja proyek
+    
+    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
+    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
+    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
+    Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
+    Output: pemantauan partai politik, organisasi kemasyarakatan
+    Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
+    Output: penertiban pedagang kaki lima, pembongkaran baliho
+    
+    [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
+    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
+    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
+    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
+    Output: operasi pencarian pertolongan, sar, korban banjir
+    Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
+    Output: sertifikasi keamanan pangan segar asal tumbuhan, psat
+    
+    [KASUS PEMERINTAHAN DESA & UMUM]
+    Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
+    Output: dana desa, sengketa pemilihan kepala desa
+    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
+    Output: perjalanan dinas
+    Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
+    Output: jadwal retensi arsip, pemusnahan arsip inaktif
+    
+    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
+    Input: "{teks_user}"
+    Output:
     """
     
     try:
