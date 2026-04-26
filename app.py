@@ -94,7 +94,7 @@ def ekstrak_inti_surat(teks_user):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama3-8b-8192", # Model teringan dan tercepat dari Meta Llama
+            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
             temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
         # Mengambil balasan dari Groq
@@ -378,7 +378,7 @@ def smart_classify(user_input, df, top_n=3):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt_juri}],
-            model="llama3-8b-8192", 
+            model="llama-3.3-70b-versatile", # Model raksasa yang sangat teliti dalam menjuri 
             temperature=0.0, 
         )
         balasan_juri = chat_completion.choices[0].message.content.strip()
