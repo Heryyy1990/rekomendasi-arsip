@@ -38,58 +38,55 @@ def ekstrak_inti_surat(teks_user):
     
     [KASUS KEUANGAN, ANGGARAN & ASET]
     Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    Output: <HASIL>rencana kerja anggaran, dpa</HASIL>
+    Output: rencana kerja anggaran, dpa
     Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
-    Output: <HASIL>pencairan dana, sp2d</HASIL>
+    Output: pencairan dana, sp2d
     Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
-    Output: <HASIL>berita acara serah terima, kendaraan dinas</HASIL>
+    Output: berita acara serah terima, kendaraan dinas
     
     [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
     Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: <HASIL>penetapan angka kredit, jabatan fungsional</HASIL>
+    Output: penetapan angka kredit, jabatan fungsional
     Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    Output: <HASIL>disiplin pegawai, pelanggaran kode etik</HASIL>
+    Output: disiplin pegawai, pelanggaran kode etik
     Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
-    Output: <HASIL>tindak lanjut temuan, laporan hasil pemeriksaan</HASIL>
+    Output: tindak lanjut temuan, laporan hasil pemeriksaan
     Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
-    Output: <HASIL>peraturan bupati, tata naskah dinas</HASIL>
+    Output: peraturan bupati, tata naskah dinas
     
     [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
     Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
-    Output: <HASIL>dana bantuan operasional sekolah, bos</HASIL>
+    Output: dana bantuan operasional sekolah, bos
     Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
-    Output: <HASIL>klaim bpjs kesehatan, pelayanan kesehatan rawat inap</HASIL>
+    Output: klaim bpjs kesehatan, pelayanan kesehatan rawat inap
     Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
-    Output: <HASIL>rencana anggaran biaya, gambar kerja proyek</HASIL>
+    Output: rencana anggaran biaya, gambar kerja proyek
     
     [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
     Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: <HASIL>daftar pemilih sementara, daftar penduduk potensial pemilih</HASIL>
+    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
     Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
-    Output: <HASIL>pemantauan partai politik, organisasi kemasyarakatan</HASIL>
+    Output: pemantauan partai politik, organisasi kemasyarakatan
     Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
-    Output: <HASIL>penertiban pedagang kaki lima, pembongkaran baliho</HASIL>
+    Output: penertiban pedagang kaki lima, pembongkaran baliho
     
     [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
     Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: <HASIL>analisis mengenai dampak lingkungan, amdal, ukl upl</HASIL>
+    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
     Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: <HASIL>operasi pencarian pertolongan, sar, korban banjir</HASIL>
+    Output: operasi pencarian pertolongan, sar, korban banjir
     Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
-    Output: <HASIL>sertifikasi keamanan pangan segar asal tumbuhan, psat</HASIL>
+    Output: sertifikasi keamanan pangan segar asal tumbuhan, psat
     
     [KASUS PEMERINTAHAN DESA & UMUM]
     Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
-    Output: <HASIL>dana desa, sengketa pemilihan kepala desa</HASIL>
+    Output: dana desa, sengketa pemilihan kepala desa
     Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: <HASIL>perjalanan dinas</HASIL>
+    Output: perjalanan dinas
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-    Output: <HASIL>jadwal retensi arsip, pemusnahan arsip inaktif</HASIL>
+    Output: jadwal retensi arsip, pemusnahan arsip inaktif
     
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA.
-    ATURAN MUTLAK: TULIS HASIL AKHIRMU DI DALAM TAG <HASIL> dan </HASIL>.
-    JANGAN ADA TEKS LAIN DI LUAR TAG ITU!
-
+    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
     Input: "{teks_user}"
     Output:
     """
@@ -100,19 +97,9 @@ def ekstrak_inti_surat(teks_user):
             model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
             temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
-        # Mengambil balasan mentah dari Groq
-        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
+        # Mengambil balasan dari Groq
+        inti_teks = chat_completion.choices[0].message.content.strip()
         
-        # PISAU BEDAH PYTHON: Ekstrak paksa isi tag <HASIL>
-        import re
-        match = re.search(r'<HASIL>(.*?)</HASIL>', inti_teks_mentah, re.IGNORECASE | re.DOTALL)
-        if match:
-            inti_teks = match.group(1).strip()
-        else:
-            # Fallback kalau Llama lupa tag
-            baris = [b for b in inti_teks_mentah.split('\n') if b.strip()]
-            inti_teks = baris[-1].replace('**', '').strip()
-            
         # Membersihkan tanda kutip jika LLM iseng menambahkannya
         inti_teks = inti_teks.replace('"', '').replace("'", "")
         return inti_teks
@@ -364,7 +351,7 @@ def smart_classify(user_input, df, top_n=3):
     for idx, score in enumerate(cosine_sim):
         # Fuzzy Matching menggunakan partial_ratio agar lebih fleksibel terhadap typo
         fuzzy_score = fuzz.partial_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        combined_score = (score * 0.70) + (fuzzy_score * 0.30) 
+        combined_score = (score * 0.40) + (fuzzy_score * 0.60) 
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
     # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
