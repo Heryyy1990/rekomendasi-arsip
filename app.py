@@ -86,7 +86,10 @@ def ekstrak_inti_surat(teks_user):
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
     Output: jadwal retensi arsip, pemusnahan arsip inaktif
     
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
+    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA.
+    PENTING: JANGAN BERIKAN PENJELASAN ATAU PROSES BERPIKIR. 
+    HANYA BALAS DENGAN KATA KUNCI SAJA.
+
     Input: "{teks_user}"
     Output:
     """
@@ -373,6 +376,7 @@ def smart_classify(user_input, df, top_n=3):
     Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
     JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
     Contoh balasan yang benar: 1, 5, 8
+    PENTING: JANGAN MENULIS KATA-KATA APAPUN SELAIN ANGKA.
     """
     
     try:
