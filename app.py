@@ -97,12 +97,17 @@ def ekstrak_inti_surat(teks_user):
             model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
             temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
-        # Mengambil balasan dari Groq
-        inti_teks = chat_completion.choices[0].message.content.strip()
+       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
+        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
-        # Membersihkan tanda kutip jika LLM iseng menambahkannya
-        inti_teks = inti_teks.replace('"', '').replace("'", "")
-        return inti_teks
+        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
+        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
+        daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
+        inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
+        
+        # Membersihkan tanda kutip
+        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
+        return inti_teks_bersih
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
         return teks_user
