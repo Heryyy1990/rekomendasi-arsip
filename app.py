@@ -353,7 +353,7 @@ def smart_classify(user_input, df, top_n=3):
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
         fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        combined_score = (score * 0.40) + (fuzzy_score * 0.60) 
+        combined_score = (score * 0.80) + (fuzzy_score * 0.20) 
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
     top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
