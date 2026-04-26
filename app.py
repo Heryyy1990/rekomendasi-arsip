@@ -336,86 +336,160 @@ def get_hierarchy(kode_target, df):
         hierarchy_list.append(html_string)
     return hierarchy_list
 
-# --- 3. LOGIKA AI HYBRID (RERANKING) ---
+# --- 3. LOGIKA AI HYBRID (HIERARCHICAL NARROWING - TOP 3 JALUR) ---
 def smart_classify(user_input, df, top_n=3):
-    # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
+    # TAHAP 0: Ekstrak inti surat via LLM (sudah ada konteks bersih dari Groq)
     inti_dari_llm = ekstrak_inti_surat(user_input)
     st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
-    
-    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
     clean_input = preprocess_text(inti_dari_llm)
-    
-    # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
-    vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
-    all_docs = df['clean_uraian'].tolist() + [clean_input]
-    tfidf_matrix = vectorizer.fit_transform(all_docs)
-    
-    cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
-    
-    skor_awal = []
-    for idx, score in enumerate(cosine_sim):
-        # Fuzzy Matching menggunakan partial_ratio agar lebih fleksibel terhadap typo
-        fuzzy_score = fuzz.partial_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        combined_score = (score * 0.40) + (fuzzy_score * 0.60) 
-        skor_awal.append({'idx': idx, 'skor': combined_score})
-        
-    # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
-    top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
-    
-   # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
-    daftar_kandidat = ""
-    for i, item in enumerate(top_10_kandidat):
-        baris = df.iloc[item['idx']]
-        daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Uraian: {baris['uraian'].title()}\n"
-        
-    prompt_juri = f"""
-    Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
-    
-    Daftar Opsi:
-    {daftar_kandidat}
-    
-    ATURAN MUTLAK:
-    Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
-    JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
-    Contoh balasan yang benar: 1, 5, 8
-    """
-    
-    try:
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt_juri}],
-            model="llama-3.3-70b-versatile", # Model raksasa yang sangat teliti dalam menjuri 
-            temperature=0.0, 
-        )
-        balasan_juri = chat_completion.choices[0].message.content.strip()
-        
-        # LOGIKA ANTI-JEBOL: Ambil semua angka, tapi HANYA simpan angka 1-10 yang unik
-        angka_mentah = re.findall(r'\d+', balasan_juri)
-        angka_pilihan = []
-        for angka in angka_mentah:
-            angka_int = int(angka)
-            # Pastikan itu nomor urut nominasi (1-10), BUKAN kode klasifikasi seperti 800 atau 000
-            if 1 <= angka_int <= 10:
-                if angka_int not in angka_pilihan:
-                    angka_pilihan.append(angka_int)
-            if len(angka_pilihan) == 3: # Berhenti jika sudah dapat 3 juara
-                break
-                
-        hasil_akhir = []
-        for nomor in angka_pilihan:
-            idx_kandidat = nomor - 1 
-            if 0 <= idx_kandidat < len(top_10_kandidat):
-                # Bobot keyakinan simulasi yang menurun (99%, 85%, 70%)
-                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
-                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
-                
-        if hasil_akhir:
-            return hasil_akhir
-            
-    except Exception as e:
-        st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
-        
-    # Fallback
-    return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
+
+    # ── HELPER: Hitung level dari jumlah titik ──
+    # "000"       → level 0 (Primer)
+    # "000.2"     → level 1 (Sekunder)
+    # "000.2.3"   → level 2 (Tersier)
+    # "000.2.3.2" → level 3 (Kuartier)
+    def get_level(kode):
+        return str(kode).count('.')
+
+    # ── HELPER: Ambil anak langsung dari suatu kode induk ──
+    def get_children_df(induk_kode, target_level):
+        return df[
+            (df['kode'].str.startswith(induk_kode + ".")) &
+            (df['kode'].apply(get_level) == target_level)
+        ].copy().reset_index(drop=True)
+
+    # ── HELPER: TF-IDF + Fuzzy → kembalikan top_k baris terbaik ──
+    def skor_dan_ambil(subset_df, query, top_k=5):
+        if subset_df.empty:
+            return subset_df.iloc[0:0]
+        vectorizer = TfidfVectorizer(ngram_range=(1, 3))
+        docs = subset_df['clean_uraian'].tolist() + [query]
+        tfidf_matrix = vectorizer.fit_transform(docs)
+        cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
+        hasil = []
+        for i, score in enumerate(cosine_sim):
+            fuzzy_score = fuzz.partial_ratio(query, subset_df.iloc[i]['clean_uraian']) / 100
+            combined = (score * 0.40) + (fuzzy_score * 0.60)
+            hasil.append((i, combined))
+        hasil.sort(key=lambda x: x[1], reverse=True)
+        top_idx = [h[0] for h in hasil[:top_k]]
+        return subset_df.iloc[top_idx].reset_index(drop=True)
+
+    # ── HELPER: Groq menjuri dan memilih N kode terbaik ──
+    # Groq menerima "inti_dari_llm" (hasil ekstraksi tahap 0) sebagai konteks utama
+    def juri_ai(inti, kandidat_df, label_level, pilih_n=1):
+        if kandidat_df.empty:
+            return []
+        daftar = ""
+        for i, (_, row) in enumerate(kandidat_df.iterrows()):
+            daftar += f"[{i+1}] Kode: {row['kode']} | Uraian: {row['uraian'].title()}\n"
+
+        if pilih_n == 1:
+            instruksi = "Balas HANYA dengan 1 angka saja."
+            contoh = "Contoh balasan benar: 3"
+        else:
+            instruksi = f"Balas HANYA dengan {pilih_n} angka dipisah koma, urut dari paling tepat."
+            contoh = "Contoh balasan benar: 2, 5, 1"
+
+        prompt = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
+Inti urusan surat (sudah diekstrak oleh AI): "{inti}"
+Pilih {pilih_n} nomor dari daftar {label_level} yang PALING TEPAT untuk urusan tersebut:
+
+{daftar}
+
+ATURAN MUTLAK: {instruksi}
+{contoh}
+"""
+        try:
+            resp = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+                temperature=0.0,
+            )
+            balasan = resp.choices[0].message.content.strip()
+            angka_mentah = re.findall(r'\d+', balasan)
+            hasil_kode = []
+            for a in angka_mentah:
+                idx = int(a) - 1
+                if 0 <= idx < len(kandidat_df):
+                    kode = kandidat_df.iloc[idx]['kode']
+                    if kode not in hasil_kode:
+                        hasil_kode.append(kode)
+                if len(hasil_kode) == pilih_n:
+                    break
+            # Fallback: isi dari baris teratas jika kurang
+            for _, row in kandidat_df.iterrows():
+                if len(hasil_kode) == pilih_n:
+                    break
+                if row['kode'] not in hasil_kode:
+                    hasil_kode.append(row['kode'])
+            return hasil_kode
+        except Exception as e:
+            st.error(f"🚨 ERROR GROQ (Juri {label_level}): {e}")
+            return list(kandidat_df['kode'])[:pilih_n]
+
+    # ════════════════════════════════════════════════════════
+    # TAHAP 1 — PRIMER: Groq pilih TOP 3 dari semua kode primer
+    # ════════════════════════════════════════════════════════
+    df_primer = df[df['kode'].apply(get_level) == 0].copy().reset_index(drop=True)
+
+    if df_primer.empty:
+        st.warning("Database tidak memiliki data level Primer.")
+        return []
+
+    top_primer_kandidat = skor_dan_ambil(df_primer, clean_input, top_k=6)
+    kode_primer_list = juri_ai(inti_dari_llm, top_primer_kandidat, "Primer", pilih_n=3)
+    st.caption(f"📌 Top 3 Primer: **{', '.join(kode_primer_list)}**")
+
+    # ════════════════════════════════════════════════════════
+    # TAHAP 2–4: Untuk setiap primer, telusuri 1 jalur terbaik
+    # ════════════════════════════════════════════════════════
+    jalur_hasil = []
+
+    for kode_primer in kode_primer_list:
+        jejak = [kode_primer]
+
+        # ── SEKUNDER ──
+        df_sek = get_children_df(kode_primer, target_level=1)
+        if df_sek.empty:
+            jalur_hasil.append({'kode_akhir': kode_primer, 'jejak': jejak})
+            continue
+        top_sek = skor_dan_ambil(df_sek, clean_input, top_k=5)
+        kode_sek = juri_ai(inti_dari_llm, top_sek, "Sekunder", pilih_n=1)[0]
+        jejak.append(kode_sek)
+
+        # ── TERSIER ──
+        df_ter = get_children_df(kode_sek, target_level=2)
+        if df_ter.empty:
+            jalur_hasil.append({'kode_akhir': kode_sek, 'jejak': jejak})
+            continue
+        top_ter = skor_dan_ambil(df_ter, clean_input, top_k=5)
+        kode_ter = juri_ai(inti_dari_llm, top_ter, "Tersier", pilih_n=1)[0]
+        jejak.append(kode_ter)
+
+        # ── KUARTIER ──
+        df_kua = get_children_df(kode_ter, target_level=3)
+        if df_kua.empty:
+            jalur_hasil.append({'kode_akhir': kode_ter, 'jejak': jejak})
+            continue
+        top_kua = skor_dan_ambil(df_kua, clean_input, top_k=5)
+        kode_kua = juri_ai(inti_dari_llm, top_kua, "Kuartier", pilih_n=1)[0]
+        jejak.append(kode_kua)
+        jalur_hasil.append({'kode_akhir': kode_kua, 'jejak': jejak})
+
+    # Konversi ke format (df_index, skor_simulasi, jejak)
+    hasil_return = []
+    skor_simulasi = [0.99, 0.85, 0.70]
+    for i, jalur in enumerate(jalur_hasil):
+        idx_match = df[df['kode'] == jalur['kode_akhir']].index
+        if not idx_match.empty:
+            hasil_return.append((
+                idx_match[0],
+                skor_simulasi[i] if i < len(skor_simulasi) else 0.60,
+                jalur['jejak']
+            ))
+
+    return hasil_return
     
 # --- 4. ANTARMUKA UTAMA ---
 
@@ -451,35 +525,58 @@ try:
                 results = smart_classify(user_input, df)
                 
                 if results:
-                    st.success("Analisis selesai! Berikut adalah rekomendasi kode untuk dokumen Anda:")
-                    pilihan_feedback = [] 
-                    
-                    for i, (idx, score) in enumerate(results):
+                    st.success("✅ Analisis selesai! Berikut 3 jalur klasifikasi terbaik untuk dokumen Anda:")
+                    pilihan_feedback = []
+                    medal = ["🥇", "🥈", "🥉"]
+
+                    for i, (idx, score, jejak) in enumerate(results):
                         res = df.iloc[idx]
                         pilihan_feedback.append(f"{res['kode']} - {res['uraian'].title()}")
-                        
-                        with st.expander(f"🏅 Rekomendasi #{i+1}: Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                            st.markdown(f"**Uraian Akhir:** {res['uraian'].title()}")
-                            st.markdown("**Struktur Hierarki:**")
+
+                        with st.expander(
+                            f"{medal[i]} Jalur #{i+1}: Kode {res['kode']} — {res['uraian'].title()} (Keyakinan: {score:.1%})",
+                            expanded=(i == 0)
+                        ):
+                            # Jejak hierarki yang dilalui AI level per level
+                            st.markdown("**🗺️ Jejak Hierarki yang Dipilih AI:**")
+                            label_level = ["Primer", "Sekunder", "Tersier", "Kuartier"]
+                            warna = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
+                            for j, kode_jejak in enumerate(jejak):
+                                match = df[df['kode'] == kode_jejak]
+                                uraian_jejak = match.iloc[0]['uraian'].title() if not match.empty else "—"
+                                level_label = label_level[j] if j < len(label_level) else f"Level {j}"
+                                warna_bg = warna[j] if j < len(warna) else "#424242"
+                                indent = j * 24
+                                arrow = "└─ " if j > 0 else ""
+                                st.markdown(
+                                    f"<div style='margin-left:{indent}px; margin-bottom:6px;'>"
+                                    f"<span style='background:{warna_bg}; color:#fff; padding:5px 10px; "
+                                    f"border-radius:5px; font-size:0.9em; display:inline-block;'>"
+                                    f"{arrow}<strong>{kode_jejak}</strong> &nbsp;|&nbsp; {uraian_jejak} "
+                                    f"<i style='opacity:0.8;'>({level_label})</i></span></div>",
+                                    unsafe_allow_html=True
+                                )
+
+                            st.markdown("**📋 Struktur Hierarki Lengkap:**")
                             hierarki = get_hierarchy(res['kode'], df)
                             for h in hierarki:
                                 st.markdown(h, unsafe_allow_html=True)
-                    
+
                     st.divider()
-                    
                     st.markdown("#### 💡 Bantu SIKAP Menjadi Lebih Pintar")
-                    st.write("Dari rekomendasi di atas, mana kode yang paling tepat menurut Anda?")
-                    
+                    st.write("Dari 3 jalur di atas, mana kode yang paling tepat menurut Anda?")
+
                     with st.form("feedback_form"):
                         jawaban_benar = st.radio("Pilih kode yang benar:", pilihan_feedback)
                         submit_feedback = st.form_submit_button("Kirim Masukan")
-                        
+
                         if submit_feedback:
                             waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                             data_feedback = f"{waktu_sekarang} | Input: {user_input} | Terpilih: {jawaban_benar}\n"
                             with open("feedback_ai_log.txt", "a", encoding="utf-8") as f:
                                 f.write(data_feedback)
-                            st.success(f"Terima kasih! Pilihan Anda telah disimpan untuk evaluasi AI ke depannya.")
+                            st.success("Terima kasih! Pilihan Anda telah disimpan untuk evaluasi AI ke depannya.")
+
                 else:
                     st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
 
