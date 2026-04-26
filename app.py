@@ -358,19 +358,40 @@ def smart_classify(user_input, df, top_n=3):
             (df['kode'].apply(get_level) == target_level)
         ].copy().reset_index(drop=True)
 
-    # ── HELPER: TF-IDF + Fuzzy → kembalikan top_k baris terbaik ──
-    def skor_dan_ambil(subset_df, query, top_k=5):
+    # ── HELPER: TF-IDF + Fuzzy → dua jalur (stem + tanpa stem) ──
+    def skor_dan_ambil(subset_df, query_clean, top_k=5):
         if subset_df.empty:
             return subset_df.iloc[0:0]
-        vectorizer = TfidfVectorizer(ngram_range=(1, 3))
-        docs = subset_df['clean_uraian'].tolist() + [query]
-        tfidf_matrix = vectorizer.fit_transform(docs)
-        cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
+
+        # Jalur 1: pakai clean_uraian (sudah di-stem) vs query yang sudah di-stem
+        vectorizer1 = TfidfVectorizer(ngram_range=(1, 3))
+        docs1 = subset_df['clean_uraian'].tolist() + [query_clean]
+        tfidf1 = vectorizer1.fit_transform(docs1)
+        cosine1 = cosine_similarity(tfidf1[-1], tfidf1[:-1])[0]
+
+        # Jalur 2: pakai uraian ASLI (lowercase) vs inti mentah dari LLM (tanpa stem)
+        uraian_asli = subset_df['uraian'].str.lower().tolist()
+        query_mentah = inti_dari_llm.lower()  # langsung pakai hasil Groq tanpa stem
+        vectorizer2 = TfidfVectorizer(ngram_range=(1, 3))
+        docs2 = uraian_asli + [query_mentah]
+        tfidf2 = vectorizer2.fit_transform(docs2)
+        cosine2 = cosine_similarity(tfidf2[-1], tfidf2[:-1])[0]
+
         hasil = []
-        for i, score in enumerate(cosine_sim):
-            fuzzy_score = fuzz.partial_ratio(query, subset_df.iloc[i]['clean_uraian']) / 100
-            combined = (score * 0.40) + (fuzzy_score * 0.60)
+        for i in range(len(subset_df)):
+            # Fuzzy juga dua jalur
+            fuzzy_stem = fuzz.partial_ratio(query_clean, subset_df.iloc[i]['clean_uraian']) / 100
+            fuzzy_asli = fuzz.partial_ratio(query_mentah, uraian_asli[i]) / 100
+
+            # Gabungkan: stem 30% + asli 40% + fuzzy stem 10% + fuzzy asli 20%
+            combined = (
+                cosine1[i] * 0.30 +
+                cosine2[i] * 0.40 +
+                fuzzy_stem  * 0.10 +
+                fuzzy_asli  * 0.20
+            )
             hasil.append((i, combined))
+
         hasil.sort(key=lambda x: x[1], reverse=True)
         top_idx = [h[0] for h in hasil[:top_k]]
         return subset_df.iloc[top_idx].reset_index(drop=True)
@@ -391,10 +412,12 @@ def smart_classify(user_input, df, top_n=3):
             instruksi = f"Balas HANYA dengan {pilih_n} angka dipisah koma, urut dari paling tepat."
             contoh = "Contoh balasan benar: 2, 5, 1"
 
-        prompt = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
-Inti urusan surat (sudah diekstrak oleh AI): "{inti}"
-Pilih {pilih_n} nomor dari daftar {label_level} yang PALING TEPAT untuk urusan tersebut:
+       prompt = f"""Anda adalah ahli kearsipan pemerintah daerah Indonesia.
 
+Inti urusan surat yang sudah diekstrak AI: "{inti}"
+Uraian surat asli dari user: "{user_input}"
+
+Pilih {pilih_n} nomor dari daftar {label_level} yang PALING TEPAT untuk urusan tersebut:
 {daftar}
 
 ATURAN MUTLAK: {instruksi}
