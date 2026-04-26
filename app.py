@@ -86,7 +86,10 @@ def ekstrak_inti_surat(teks_user):
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
     Output: jadwal retensi arsip, pemusnahan arsip inaktif
     
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
+    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA.
+    PENTING: JANGAN BERIKAN PENJELASAN ATAU PROSES BERPIKIR. 
+    HANYA BALAS DENGAN KATA KUNCI SAJA.
+
     Input: "{teks_user}"
     Output:
     """
