@@ -349,7 +349,7 @@ def preprocess_text(text):
     text = stemmer.stem(text)
     return text
 
-# --- 1. MEMUAT DATABASE (ASLI 100%) ---
+# --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
 @st.cache_data
 def load_data():
     try:
@@ -370,7 +370,42 @@ def load_data():
     
     df['uraian'] = df['uraian'].astype(str).str.replace(r';$', '', regex=True).str.strip().fillna("")
     df['kode'] = df['kode'].astype(str).str.strip().fillna("000")
-    df['clean_uraian'] = df['uraian'].apply(preprocess_text)
+
+    # --- LOGIKA BARU: MEMBANGUN JALUR HIERARKI BREADCRUMBS ---
+    kode_dict = dict(zip(df['kode'], df['uraian']))
+    
+    def bangun_hierarki(kode):
+        jalur = []
+        curr = str(kode).strip()
+        
+        while curr:
+            if curr in kode_dict:
+                # Masukkan di awal agar urutannya: Rumpun > Induk > Anak
+                jalur.insert(0, kode_dict[curr]) 
+                
+            # Lacak Bapak/Induknya menggunakan logika standar arsip
+            if '.' in curr:
+                curr = curr.rsplit('.', 1)[0]
+            else:
+                if len(curr) == 3 and curr.endswith('00'):
+                    break 
+                elif len(curr) > 3:
+                    curr = curr[:-1]
+                elif len(curr) == 3:
+                    if curr.endswith('0'): curr = curr[0] + '00'
+                    else: curr = curr[0:2] + '0'
+                else:
+                    break
+                    
+        # Gabungkan menjadi satu kalimat utuh
+        return " > ".join(jalur)
+    
+    # Kolom baru ini yang akan menjadi "Mata" bagi AI
+    df['uraian_lengkap'] = df['kode'].apply(bangun_hierarki)
+    
+    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal jalur hierarki secara penuh
+    df['clean_uraian'] = df['uraian_lengkap'].apply(preprocess_text)
+    
     return df
 
 # --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
@@ -428,20 +463,22 @@ def smart_classify(user_input, df, top_n=3):
     # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
     top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
     
-   # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
+ # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
     daftar_kandidat = ""
     for i, item in enumerate(top_10_kandidat):
         baris = df.iloc[item['idx']]
-        daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Uraian: {baris['uraian'].title()}\n"
+        # PERUBAHAN: AI SEKARANG MELIHAT JALUR LENGKAP (Konteks), BUKAN CUMA UJUNGNYA
+        daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Konteks Hierarki: {baris['uraian_lengkap'].title()}\n"
         
     prompt_juri = f"""
     Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
     
-    Daftar Opsi:
+    Daftar Opsi (Baca dengan teliti jalur konteks hierarkinya dari kiri ke kanan):
     {daftar_kandidat}
     
     ATURAN MUTLAK:
     Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
+    Pilih opsi yang konteks hierarkinya paling spesifik dan relevan dengan urusan.
     JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
     Contoh balasan yang benar: 1, 5, 8
     """
