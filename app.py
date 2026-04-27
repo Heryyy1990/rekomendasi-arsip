@@ -86,429 +86,112 @@ except:
 
 client = Groq(api_key=api_key)
 
-# 2. Fungsi "Otak Ekstraktor" (Dengan Fitur Jalur Tol / Bypass)
-def ekstrak_inti_surat(teks_user):
-    teks_lower = str(teks_user).lower()
-    
-    # ========================================================
-    # 🚨 JALUR TOL (RULE-BASED ROUTING)
-    # Jika Python menemukan kata ini, langsung berikan nomenklatur
-    # resminya tanpa perlu bertanya dan membuang kuota Groq!
-    # ========================================================
-    if "pinjam" in teks_lower and "barang" in teks_lower:
-        return "barang milik daerah"
-    elif "sertifikat" in teks_lower and "tanah" in teks_lower:
-        return "pertanahan"
-    elif "perpustakaan" in teks_lower:
-        # Mencegah perpustakaan masuk ke urusan tanah/bangunan
-        return "perpustakaan"
-    elif "cuti" in teks_lower:
-        return "cuti pegawai"
-    # Anda bisa menambahkan elif lain di sini untuk kasus yang sering error
-    # ========================================================
-
-    # Jika tidak lewat jalur tol, baru kita bangunkan Groq
-    prompt = f"""
-    Anda adalah Arsiparis Ahli Utama di Pemerintahan Daerah. Tugas Anda mengekstrak perihal surat dan MENERJEMAHKANNYA menjadi "Nomenklatur Kearsipan Resmi" (HANYA 1 FRASA).
-    Anda adalah Arsiparis Ahli Utama di Pemerintahan Daerah. Tugas Anda adalah mengekstrak inti substansi dari perihal surat untuk keperluan klasifikasi arsip.
-
-    Perihal Surat: "{teks_user}"
-
-    Lakukan analisis mandiri langkah demi langkah:
-    1. Tentukan apa "Tindakan Administratif" dari surat ini (misal: permohonan, penyampaian, penerbitan, dll). Tindakan ini biasanya bisa diabaikan.
-    2. Tentukan apa "Objek Utama / Urusan Asli" yang sedang diselesaikan dalam surat ini (misal: sertifikat tanah, pencairan dana, disiplin pegawai).
-    3. Tentukan apakah ada "Keterangan Tujuan / Peruntukan / Lokasi" (misal: untuk pembangunan perpustakaan, di desa X, untuk proyek Y). Ingat, tujuan/peruntukan bukanlah urusan utama kearsipan, jadi harus diabaikan.
-    
-    Setelah Anda menganalisis ketiga poin di atas, simpulkan HANYA "Objek Utama / Urusan Asli"-nya saja ke dalam 1 atau 2 frasa singkat yang padat.
-
-    Tuliskan analisis Anda, lalu WAJIB akhiri dengan kesimpulan di dalam format [INTI: kesimpulanmu].
-
-    Contoh output yang diharapkan:
-    Analisis:
-    1. Tindakan: Permohonan penerbitan
-    2. Objek Utama: Sertifikat tanah
-    3. Tujuan/Keterangan: Pembangunan perpustakaan umum (abaikan)
-    Maka urusan aslinya adalah sertifikat tanah.
-    [INTI: sertifikat tanah]
-    """
-    
-    try:
-        # KITA GANTI KE MODEL 70B AGAR DIA BENAR-BENAR BISA BERPIKIR LOGIS
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile", 
-            temperature=0.0, 
-        )
-        
-        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
-        
-        # PISAU BEDAH PYTHON: Mengambil harta karun dari brankas, membuang analisisnya
-        import re
-        pencarian = re.search(r'\[INTI:\s*(.*?)\]', inti_teks_mentah, re.IGNORECASE)
-        
-        if pencarian:
-            inti_teks_bersih = pencarian.group(1).strip()
-        else:
-            # Fallback jika terjadi error format
-            inti_teks_bersih = teks_user
-        
-        # Pembersihan karakter aneh
-        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "").replace('.', '').strip()
-        
-        return inti_teks_bersih
-    except Exception as e:
-        st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
-        return teks_user
-        
-# --- KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
-
-# --- UI & CSS CUSTOM ---
-st.markdown("""
-    <style>
-    .sikap-title {
-        font-size: 4.5rem; 
-        font-weight: 900; 
-        text-align: center;
-        margin-bottom: -15px; 
-        letter-spacing: 3px;
-        background: linear-gradient(45deg, #00BFA5, #0288D1);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .sikap-subtitle {
-        font-size: 1.3rem; 
-        text-align: center; 
-        font-weight: 600;
-        margin-bottom: 40px;
-        letter-spacing: 1px;
-        /* --- KEJUTAN WARNA: Gradasi Sunset (Oranye ke Pink) --- */
-        background: linear-gradient(45deg, #FF512F, #DD2476);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .streamlit-expanderHeader {
-        font-weight: bold;
-        color: #0288D1;
-    }
-    /* PEMBUNUH IKON PANAH BIRU BAWAAN BROWSER */
-    details > summary {
-        list-style: none !important;
-        outline: none !important;
-    }
-    details > summary::-webkit-details-marker {
-        display: none !important; 
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- INISIALISASI SESSION STATE ---
-if 'search_history' not in st.session_state:
-    st.session_state.search_history = []
-
-# --- INISIALISASI NLP (Sastrawi) ---
-@st.cache_resource
-def init_nlp():
-    # Mesin stemmer dimatikan agar tidak merusak imbuhan kata
-    remover = StopWordRemoverFactory().create_stop_word_remover()
-    return remover
-
-remover = init_nlp()
-
-# --- KAMUS JARGON & SINGKATAN BIROKRASI (ASLI 100%) ---
-kamus_birokrasi = {
-    "apbd": "anggaran pendapatan dan belanja daerah",
-    "apbn": "anggaran pendapatan dan belanja negara",
-    "tapd": "tim anggaran pemerintah daerah",
-    "dpa": "dokumen pelaksanaan anggaran",
-    "rka": "rencana kerja anggaran",
-    "skpd": "satuan kerja perangkat daerah",
-    "ppkd": "pejabat pengelola keuangan daerah",
-    "ppa": "prioritas plafon anggaran",
-    "spp": "surat permintaan pembayaran",
-    "spm": "surat perintah membayar",
-    "sp2d": "surat perintah pencairan dana",
-    "up": "uang persediaan",
-    "gu": "ganti uang",
-    "tu": "tambah uang",
-    "ls": "langsung",
-    "bud": "bendahara umum daerah",
-    "bku": "buku kas umum",
-    "sakd": "sistem akuntansi keuangan daerah",
-    "phln": "pinjaman hibah luar negeri",
-    "bumd": "badan usaha milik daerah",
-    "blud": "badan layanan umum daerah",
-    "dau": "dana alokasi umum",
-    "dak": "dana alokasi khusus",
-    "dbh": "dana bagi hasil",
-    "asn": "aparatur sipil negara",
-    "pns": "pegawai negeri sipil",
-    "cpns": "calon pegawai negeri sipil",
-    "pppk": "pegawai pemerintah dengan perjanjian kerja",
-    "p3k": "pegawai pemerintah dengan perjanjian kerja",
-    "nip": "nomor induk pegawai",
-    "bkn": "badan kepegawaian negara",
-    "skp": "sasaran kinerja pegawai", 
-    "duk": "daftar urut kepangkatan",
-    "karpeg": "kartu pegawai",
-    "kpe": "kartu pegawai elektronik",
-    "karis": "kartu istri",
-    "karsu": "kartu suami",
-    "lp2p": "laporan pajak penghasilan pribadi",
-    "kp4": "keterangan penerimaan pembayaran penghasilan pegawai",
-    "baperjakat": "badan pertimbangan jabatan dan pangkat",
-    "bpjs": "badan penyelenggara jaminan sosial",
-    "diklat": "pendidikan dan pelatihan",
-    "bimtek": "bimbingan teknis",
-    "lhp": "laporan hasil pemeriksaan",
-    "lha": "laporan hasil audit",
-    "lhpo": "laporan hasil pemeriksaan operasional",
-    "lhe": "laporan hasil evaluasi",
-    "lhai": "laporan hasil audit investigasi",
-    "tpk": "tindak pidana korupsi",
-    "gcg": "good corporate governance",
-    "perda": "peraturan daerah",
-    "perbup": "peraturan bupati",
-    "perwali": "peraturan wali kota",
-    "mou": "memorandum of understanding nota kesepakatan",
-    "sop": "standar operasional prosedur",
-    "haki": "hak atas kekayaan intelektual",
-    "dprd": "dewan perwakilan rakyat daerah",
-    "musrenbang": "musyawarah perencanaan pembangunan",
-    "lkpj": "laporan keterangan pertanggungjawaban",
-    "lppd": "laporan penyelenggaraan pemerintahan daerah",
-    "bmd": "barang milik daerah",
-    "kak": "kerangka acuan kerja",
-    "sppd": "surat perintah perjalanan dinas",
-    "spt": "surat perintah tugas",
-    "nodin": "nota dinas",
-    "bap": "berita acara pemeriksaan",
-    "bast": "berita acara serah terima",
-    "kpu": "komisi pemilihan umum",
-    "kpud": "komisi pemilihan umum daerah",
-    "dp4": "daftar penduduk potensial pemilih",
-    "dps": "daftar pemilih sementara",
-    "dpt": "daftar pemilih tetap",
-    "panwasda": "panitia pengawas daerah",
-    "ppk": "panitia pemilihan kecamatan",
-    "pps": "panitia pemungutan suara",
-    "kpps": "kelompok penyelenggara pemungutan suara",
-    "ormas": "organisasi kemasyarakatan",
-    "lsm": "lembaga swadaya masyarakat",
-    "parpol": "partai politik",
-    "anri": "arsip nasional republik indonesia",
-    "jra": "jadwal retensi arsip",
-    "sikn": "sistem informasi kearsipan nasional",
-    "jikn": "jaringan informasi kearsipan nasional",
-    "spam": "sistem penyediaan air minum",
-    "psat": "pangan segar asal tumbuhan",
-    "bumdes": "badan usaha milik desa",
-    "bos": "bantuan operasional sekolah",
-    "paud": "pendidikan anak usia dini",
-    "rtrw": "rencana tata ruang wilayah",
-    "rdtr": "rencana detail tata ruang",
-    "rtbl": "rencana tata bangunan dan lingkungan",
-    "amdal": "analisis mengenai dampak lingkungan",
-    "ukl": "upaya pengelolaan lingkungan",
-    "upl": "upaya pemantauan lingkungan",
-    "b3": "bahan berbahaya dan beracun",
-    "sar": "search and rescue pencarian dan pertolongan"
-}
-
-# --- FUNGSI PENERJEMAH SINGKATAN ---
-def terjemahkan_singkatan(text):
-    kata_kata = str(text).lower().split()
-    kata_terjemahan = [kamus_birokrasi.get(kata, kata) for kata in kata_kata]
-    return " ".join(kata_terjemahan)
-
-# --- FUNGSI PEMBERSIH UTAMA ---
-def preprocess_text(text):
-    text = str(text).lower()
-    text = terjemahkan_singkatan(text)
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    text = remover.remove(text)
-    # Baris stemmer.stem dihapus dari sini agar kata "pinjaman" tidak dipaksa jadi "pinjam"
-    return text
-
-# --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
-@st.cache_data
-def load_data():
-    try:
-        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str)
-    except:
-        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str)
-    
-    if len(df.columns) == 1:
-        col_name = df.columns[0]
-        df[['kode', 'uraian']] = df[col_name].str.split(r'[,;]', n=1, expand=True)
-        df = df.drop(columns=[col_name])
-        
-    if len(df.columns) >= 2:
-        kolom_baru = list(df.columns)
-        kolom_baru[0] = 'kode'
-        kolom_baru[1] = 'uraian'
-        df.columns = kolom_baru
-    
-    df['uraian'] = df['uraian'].astype(str).str.replace(r';$', '', regex=True).str.strip().fillna("")
-    df['kode'] = df['kode'].astype(str).str.strip().fillna("000")
-
-    # --- LOGIKA BARU: MEMBANGUN JALUR HIERARKI BREADCRUMBS ---
-    kode_dict = dict(zip(df['kode'], df['uraian']))
-    
-    def bangun_hierarki(kode):
-        jalur = []
-        curr = str(kode).strip()
-        
-        while curr:
-            if curr in kode_dict:
-                # Masukkan di awal agar urutannya: Rumpun > Induk > Anak
-                jalur.insert(0, kode_dict[curr]) 
-                
-            # Lacak Bapak/Induknya menggunakan logika standar arsip
-            if '.' in curr:
-                curr = curr.rsplit('.', 1)[0]
-            else:
-                if len(curr) == 3 and curr.endswith('00'):
-                    break 
-                elif len(curr) > 3:
-                    curr = curr[:-1]
-                elif len(curr) == 3:
-                    if curr.endswith('0'): curr = curr[0] + '00'
-                    else: curr = curr[0:2] + '0'
-                else:
-                    break
-                    
-        # Gabungkan menjadi satu kalimat utuh
-        return " > ".join(jalur)
-    
-    # Kolom baru ini yang akan menjadi "Mata" bagi AI
-    df['uraian_lengkap'] = df['kode'].apply(bangun_hierarki)
-    
-    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal jalur hierarki secara penuh
-    df['clean_uraian'] = df['uraian_lengkap'].apply(preprocess_text)
-    
-    return df
-
-# --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
-def get_badge_html(kode, uraian, level):
-    levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
-    label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
-    
-    warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C"]
-    warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
-    
-    indent = level * 30 
-    
-    return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
-           f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);'>" \
-           f"<strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
-           f"</span></div>"
-
-# --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
-def get_hierarchy(kode_target, df):
-    parts = str(kode_target).split('.')
-    hierarchy_list = []
-    current_code = ""
-
-    for i, part in enumerate(parts):
-        current_code = (current_code + "." + part) if current_code else part
-        match = df[df['kode'] == current_code]
-        uraian = match.iloc[0]['uraian'].title() if not match.empty else "Detail Klasifikasi"
-        html_string = get_badge_html(current_code, uraian, i)
-        hierarchy_list.append(html_string)
-    return hierarchy_list
-
-# --- 3. LOGIKA AI HYBRID (RERANKING) ---
+# =====================================================================
+# MESIN UTAMA SIKAP (FULL-AI DUAL AGENT ARCHITECTURE)
+# Bebas Sastrawi, Bebas TF-IDF. 100% Nalar Murni Groq.
+# =====================================================================
 def smart_classify(user_input, df, top_n=3):
-    # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
-    inti_dari_llm = ekstrak_inti_surat(user_input)
-    st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
+    import streamlit as st
+    import re
     
-    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
-    clean_input = preprocess_text(inti_dari_llm)
+    st.info("🧠 SIKAP sedang membedah makna surat Anda dan mencocokkannya dengan buku klasifikasi...")
     
-   # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
-    vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
-    all_docs = df['clean_uraian'].tolist() + [clean_input]
-    tfidf_matrix = vectorizer.fit_transform(all_docs)
+    # ==========================================
+    # TAHAP 1: GROQ SEBAGAI RESEPSIONIS (Mencari Lorong Rumpun)
+    # ==========================================
+    prompt_rumpun = f"""
+    Tugas: Tentukan 2 Rumpun Utama dari klasifikasi arsip yang paling relevan untuk surat ini.
+    Perihal Surat: "{user_input}"
     
-    cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
-    
-    skor_awal = []
-    for idx, score in enumerate(cosine_sim):
-        # GANTI partial_ratio MENJADI token_set_ratio
-        fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        
-        # --- TAMBAHAN: DEPTH BONUS (BOBOT KEDALAMAN) ---
-        kode_item = str(df.iloc[idx]['kode'])
-        jumlah_titik = kode_item.count('.')
-        depth_bonus = jumlah_titik * 0.05 
-        
-        # Ubah porsi bobotnya: Berikan kekuatan lebih besar pada TF-IDF (Score)
-        combined_score = (score * 0.70) + (fuzzy_score * 0.30) + depth_bonus 
-        
-        skor_awal.append({'idx': idx, 'skor': combined_score})
-        
-    # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
-    top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
-    
- # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
-    daftar_kandidat = ""
-    for i, item in enumerate(top_10_kandidat):
-        baris = df.iloc[item['idx']]
-        # PERUBAHAN: AI SEKARANG MELIHAT JALUR LENGKAP (Konteks), BUKAN CUMA UJUNGNYA
-        daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Konteks Hierarki: {baris['uraian_lengkap'].title()}\n"
-        
-    prompt_juri = f"""
-    Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
-    
-    Daftar Opsi (Baca dengan teliti jalur konteks hierarkinya):
-    {daftar_kandidat}
+    Panduan Rumpun ANRI Nasional:
+    000: Umum (Aset, Barang Milik Daerah, Perpustakaan, Perjalanan Dinas, TTE, Ketatausahaan)
+    100: Pemerintahan & Hukum (Sengketa, Desa, Satpol PP)
+    200: Politik (Pemilu, Parpol)
+    300: Keamanan & Ketertiban
+    400: Kesejahteraan Rakyat (Pendidikan, BOS, Kesehatan, BPJS)
+    500: Perekonomian (Pertanahan, Sertifikat Tanah, Pertanian, Tambang, Koperasi)
+    600: Pekerjaan Umum (Infrastruktur, Jembatan, Tata Ruang)
+    700: Pengawasan (Inspektorat, LHP BPK, Audit)
+    800: Kepegawaian (ASN, Cuti, Disiplin, Angka Kredit)
+    900: Keuangan (Anggaran, DPA, RKA, SP2D, Gaji, Aset Keuangan)
     
     ATURAN MUTLAK:
-    1. Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
-    2. JIKA ADA BEBERAPA KODE DARI RUMPUN YANG SAMA, KAMU WAJIB MEMILIH KODE TURUNAN YANG PALING DALAM/SPESIFIK. Haram hukumnya memilih kode induk jika ada kode anaknya yang lebih detail dan relevan.
-    3. JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
-    Contoh balasan yang benar: 1, 5, 8
+    Balas HANYA dengan 2 angka ratusannya saja, pisahkan dengan koma.
+    Contoh balasan: 000, 500
     """
     
     try:
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt_juri}],
-            model="llama-3.3-70b-versatile", # Model raksasa yang sangat teliti dalam menjuri 
-            temperature=0.0, 
+        chat_1 = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_rumpun}],
+            model="llama-3.1-8b-instant", 
+            temperature=0.0,
         )
-        balasan_juri = chat_completion.choices[0].message.content.strip()
+        balasan_rumpun = chat_1.choices[0].message.content.strip()
         
-        # LOGIKA ANTI-JEBOL: Ambil semua angka, tapi HANYA simpan angka 1-10 yang unik
-        angka_mentah = re.findall(r'\d+', balasan_juri)
-        angka_pilihan = []
-        for angka in angka_mentah:
-            angka_int = int(angka)
-            # Pastikan itu nomor urut nominasi (1-10), BUKAN kode klasifikasi seperti 800 atau 000
-            if 1 <= angka_int <= 10:
-                if angka_int not in angka_pilihan:
-                    angka_pilihan.append(angka_int)
-            if len(angka_pilihan) == 3: # Berhenti jika sudah dapat 3 juara
+        # Ambil angka ratusannya saja 
+        angka_ditemukan = re.findall(r'\d{3}', balasan_rumpun)
+        awalan_valid = [angka[0] for angka in angka_ditemukan][:2] 
+        
+        if not awalan_valid:
+            awalan_valid = ['0', '1', '8'] # Fallback aman
+            
+        # Potong database agar API Groq tidak meledak (hanya sisakan lorong yang relevan)
+        df_filter = df[df['kode'].str.startswith(tuple(awalan_valid))]
+        
+        katalog_teks = ""
+        for _, row in df_filter.iterrows():
+            katalog_teks += f"[{row['kode']}] {row['uraian_lengkap']}\n"
+            
+        # ==========================================
+        # TAHAP 2: GROQ SEBAGAI DETEKTIF (Mencari Kode Spesifik)
+        # ==========================================
+        prompt_detektif = f"""
+        Anda adalah Arsiparis Ahli Utama Pemerintahan Daerah.
+        
+        PERIHAL SURAT ASLI:
+        "{user_input}"
+        
+        TUGAS ANDA:
+        1. Baca [KATALOG KODE] di bawah ini.
+        2. Cari urusan asli surat tersebut dan cocokkan secara langsung dengan katalog.
+        3. Pilih 3 kode yang secara hierarki PALING SPESIFIK. WAJIB memilih anak turunan terdalam, dilarang keras memilih induknya saja jika ada anaknya.
+        
+        ATURAN MUTLAK BALASAN (WAJIB GUNAKAN FORMAT INI, JANGAN ADA TEKS LAIN):
+        1|KODE_1
+        2|KODE_2
+        3|KODE_3
+        
+        [KATALOG KODE TERSISA]
+        {katalog_teks}
+        """
+        
+        chat_2 = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_detektif}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.0,
+        )
+        
+        balasan_akhir = chat_2.choices[0].message.content.strip()
+        
+        hasil_akhir = []
+        for baris in balasan_akhir.split('\n'):
+            parts = baris.split('|')
+            if len(parts) >= 2:
+                kode_ai = parts[1].strip()
+                kode_ai = re.sub(r'[^\d\.]', '', kode_ai)
+                
+                idx_match = df.index[df['kode'] == kode_ai].tolist()
+                if idx_match:
+                    skor = 0.99 - (len(hasil_akhir) * 0.14) 
+                    hasil_akhir.append((idx_match[0], skor))
+            if len(hasil_akhir) == top_n:
                 break
                 
-        hasil_akhir = []
-        for nomor in angka_pilihan:
-            idx_kandidat = nomor - 1 
-            if 0 <= idx_kandidat < len(top_10_kandidat):
-                # Bobot keyakinan simulasi yang menurun (99%, 85%, 70%)
-                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
-                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
-                
-        if hasil_akhir:
-            return hasil_akhir
-            
-    except Exception as e:
-        st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
+        return hasil_akhir
         
-    # Fallback
-    return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
+    except Exception as e:
+        st.error(f"🚨 API GROQ MENOLAK PERMINTAAN: {e}")
+        return []
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
