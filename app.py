@@ -189,11 +189,11 @@ if 'search_history' not in st.session_state:
 # --- INISIALISASI NLP (Sastrawi) ---
 @st.cache_resource
 def init_nlp():
-    stemmer = StemmerFactory().create_stemmer()
+    # Mesin stemmer dimatikan agar tidak merusak imbuhan kata
     remover = StopWordRemoverFactory().create_stop_word_remover()
-    return stemmer, remover
+    return remover
 
-stemmer, remover = init_nlp()
+remover = init_nlp()
 
 # --- KAMUS JARGON & SINGKATAN BIROKRASI (ASLI 100%) ---
 kamus_birokrasi = {
@@ -307,7 +307,7 @@ def preprocess_text(text):
     text = terjemahkan_singkatan(text)
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
     text = remover.remove(text)
-    text = stemmer.stem(text)
+    # Baris stemmer.stem dihapus dari sini agar kata "pinjaman" tidak dipaksa jadi "pinjam"
     return text
 
 # --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
