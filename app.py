@@ -84,7 +84,7 @@ except:
 
 client = Groq(api_key=api_key)
 
-# 2. Fungsi "Otak Ekstraktor" (SUDAH DIUPGRADE: Ekstrak Inti + Tebak Primer)
+# 2. Fungsi "Otak Ekstraktor" (SUDAH DIPERBAIKI: Otak Bedah Dikembalikan)
 def ekstrak_inti_surat_dan_primer(teks_user):
     katalog_primer = """
     000: UMUM (Ketatausahaan, Perjalanan Dinas, SPPD, Pengadaan Barang, Perpustakaan, Kearsipan, Tata Laksana, Perencanaan)
@@ -100,18 +100,35 @@ def ekstrak_inti_surat_dan_primer(teks_user):
     """
 
     prompt = f"""
-    Anda adalah Sistem AI Ahli Kearsipan Daerah. Analisis surat ini dan berikan:
-    1. "Inti Substansi" (Tepat 1 frasa/kalimat pendek).
-    2. 3 tebakan "Kode Primer" (Ratusan) yang paling mungkin berdasarkan katalog.
+    Anda adalah Sistem AI Ahli Kearsipan Daerah. Tugas Anda menganalisis perihal surat.
+    
+    GUNAKAN LOGIKA BERPIKIR BERIKUT:
+    1. HAPUS KATA PENGANTAR: Buang kata seperti permohonan, penyampaian, penerbitan, dll.
+    2. HAPUS ENTITAS/LOKASI: Buang nama tempat, instansi, atau bangunan (seperti perpustakaan, rumah sakit) jika itu sekadar lokasi/tujuan.
+    3. FOKUS 1 INTI UTAMA: Anda HANYA BOLEH menghasilkan TEPAT SATU (1) inti substansi. DILARANG MEMBERIKAN 2 INTI. Jika ada urusan aset tanah dan bangunan, fokus mutlak pada status hukum tanahnya (contoh: Sertifikat Tanah).
     
     KATALOG PRIMER:
     {katalog_primer}
     
-    ATURAN MUTLAK FORMAT BALASAN (HANYA BALAS 2 BARIS INI TANPA BASA-BASI):
-    INTI: [isi dengan 1 frasa inti surat]
-    PRIMER: [isi dengan 3 digit ratusan yang dipisah koma]
+    BANK DATA CONTOH (TIRU POLA INI 100%):
+    Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
+    INTI: rencana kerja anggaran
+    PRIMER: 900, 000, 700
     
+    Input: "Permohonan penerbitan sertifikat tanah untuk pembangunan perpustakaan umum"
+    INTI: sertifikat tanah
+    PRIMER: 100, 000, 400
+    
+    Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
+    INTI: pelanggaran kode etik
+    PRIMER: 800, 700, 000
+    
+    SEKARANG, KERJAKAN SURAT INI:
     Input: "{teks_user}"
+    
+    ATURAN BALASAN (HANYA BALAS 2 BARIS INI TANPA BASA-BASI):
+    INTI: [tepat 1 frasa inti surat]
+    PRIMER: [3 digit ratusan dipisah koma]
     """
     
     try:
