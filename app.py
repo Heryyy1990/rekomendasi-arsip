@@ -528,7 +528,7 @@ def halaman_utama():
             st.write("Masukkan perihal atau deskripsi surat, biarkan kecerdasan buatan mencari kode klasifikasi yang paling tepat untuk Anda.")
             user_input = st.text_input("📝 Perihal Surat / Dokumen:", placeholder="Contoh: permohonan cuti tahunan pegawai atau undangan rapat tapd...", key="input_ai")
 
-           if user_input:
+            if user_input:
                 if user_input not in st.session_state.search_history:
                     st.session_state.search_history.append(user_input)
                     # Simpan ke CSV secara permanen
