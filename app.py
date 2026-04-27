@@ -169,13 +169,17 @@ def ekstrak_inti_surat(teks_user):
        # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
-        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
-        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
-        daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
-        inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
+       # PISAU BEDAH PYTHON TERBARU: Mengambil teks hanya setelah tanda titik dua (:)
+        if ":" in inti_teks_mentah:
+            # rsplit(":", 1) memotong teks berdasarkan tanda ":" yang paling TERAKHIR
+            inti_teks_bersih = inti_teks_mentah.rsplit(":", 1)[-1].replace('**', '').strip()
+        else:
+            # Cadangan jika AI kebetulan tidak memakai tanda titik dua
+            daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
+            inti_teks_bersih = daftar_baris[-1].replace('**', '').strip() if daftar_baris else inti_teks_mentah
         
-        # Membersihkan tanda kutip
-        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
+        # Membersihkan tanda kutip, dan titik di akhir kalimat
+        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "").replace('.', '').strip()
         return inti_teks_bersih
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
