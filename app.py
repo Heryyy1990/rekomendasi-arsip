@@ -133,33 +133,24 @@ def smart_classify(user_input, df, top_n=3):
     import streamlit as st
     import re
     
-    st.info("🧠 SIKAP sedang membedah makna surat Anda dan mencocokkannya dengan buku klasifikasi...")
+    st.info("🧠 SIKAP sedang menyaring database agar muat dalam memori AI...")
     
     # ==========================================
-    # TAHAP 1: GROQ SEBAGAI RESEPSIONIS (Mencari Lorong Rumpun)
+    # TAHAP 1: RESEPSIONIS (Mencari Sub-Rumpun Sangat Spesifik)
     # ==========================================
     prompt_rumpun = f"""
-    Tugas: Tentukan 2 Rumpun Utama dari klasifikasi arsip yang paling relevan untuk surat ini.
+    Tugas: Tentukan 3 KODE SUB-RUMPUN (2 digit awal) yang paling relevan untuk surat ini.
     Perihal Surat: "{user_input}"
     
-    Panduan Rumpun ANRI Nasional:
-    000: Umum (Aset, Barang Milik Daerah, Perpustakaan, Perjalanan Dinas, TTE, Ketatausahaan)
-    100: Pemerintahan & Hukum (Sengketa, Desa, Satpol PP)
-    200: Politik (Pemilu, Parpol)
-    300: Keamanan & Ketertiban
-    400: Kesejahteraan Rakyat (Pendidikan, BOS, Kesehatan, BPJS)
-    500: Perekonomian (Pertanahan, Sertifikat Tanah, Pertanian, Tambang, Koperasi)
-    600: Pekerjaan Umum (Infrastruktur, Jembatan, Tata Ruang)
-    700: Pengawasan (Inspektorat, LHP BPK, Audit)
-    800: Kepegawaian (ASN, Cuti, Disiplin, Angka Kredit)
-    900: Keuangan (Anggaran, DPA, RKA, SP2D, Gaji, Aset Keuangan)
+    Contoh Sub-Rumpun:
+    00.1 (Organisasi), 00.2 (Perlengkapan/Aset), 50.1 (Pertanian), 50.17 (Pertanahan), 80.1 (Pengadaan Pegawai), 90.1 (Anggaran).
     
-    ATURAN MUTLAK:
-    Balas HANYA dengan 2 angka ratusannya saja, pisahkan dengan koma.
-    Contoh balasan: 000, 500
+    ATURAN: Balas HANYA dengan 3 kode sub-rumpun (2-3 digit depan), pisahkan dengan koma.
+    Contoh balasan: 000.2, 500.1, 800.1
     """
     
     try:
+        # Gunakan model 8B yang cepat dan murah untuk screening awal
         chat_1 = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt_rumpun}],
             model="llama-3.1-8b-instant", 
@@ -167,43 +158,41 @@ def smart_classify(user_input, df, top_n=3):
         )
         balasan_rumpun = chat_1.choices[0].message.content.strip()
         
-        # Ambil angka ratusannya saja 
-        angka_ditemukan = re.findall(r'\d{3}', balasan_rumpun)
-        awalan_valid = [angka[0] for angka in angka_ditemukan][:2] 
+        # Ambil kode-kode angka yang disebutkan AI
+        sub_kandidat = re.findall(r'\d{3}(?:\.\d+)?', balasan_rumpun)
         
-        if not awalan_valid:
-            awalan_valid = ['0', '1', '8'] # Fallback aman
+        if not sub_kandidat:
+            # Fallback jika AI bingung
+            df_filter = df.head(50)
+        else:
+            # Filter database berdasarkan kode yang disebutkan (hanya ambil 50 baris pertama agar tidak kena limit)
+            df_filter = df[df['kode'].str.startswith(tuple(sub_kandidat))].head(50)
             
-        # Potong database agar API Groq tidak meledak (hanya sisakan lorong yang relevan)
-        df_filter = df[df['kode'].str.startswith(tuple(awalan_valid))]
-        
+            # Jika hasil filter terlalu sedikit, tambahkan rumpun besarnya
+            if len(df_filter) < 10:
+                rumpun_besar = [c[0] for c in sub_kandidat]
+                df_filter = df[df['kode'].str.startswith(tuple(rumpun_besar))].head(50)
+
+        # Ubah dataframe yang sudah disaring menjadi teks untuk Agent 2
         katalog_teks = ""
         for _, row in df_filter.iterrows():
             katalog_teks += f"[{row['kode']}] {row['uraian_lengkap']}\n"
             
         # ==========================================
-        # TAHAP 2: GROQ SEBAGAI DETEKTIF (Mencari Kode Spesifik)
+        # TAHAP 2: DETEKTIF PROFESOR (70B) - Kapasitas Terbatas
         # ==========================================
         prompt_detektif = f"""
-        Anda adalah Arsiparis Ahli Utama Pemerintahan Daerah.
+        Anda adalah Arsiparis Ahli. Cocokkan surat dengan KATALOG di bawah.
         
-        PERIHAL SURAT ASLI:
-        "{user_input}"
+        SURAT: "{user_input}"
         
-        TUGAS ANDA:
-        1. Baca [KATALOG KODE] di bawah ini.
-        2. Cari urusan asli surat tersebut dan cocokkan secara langsung dengan katalog.
-        3. Pilih 3 kode yang secara hierarki PALING SPESIFIK. WAJIB memilih anak turunan terdalam, dilarang keras memilih induknya saja jika ada anaknya.
+        ATURAN: Balas HANYA dengan format: 1|KODE_1, 2|KODE_2, 3|KODE_3.
         
-        ATURAN MUTLAK BALASAN (WAJIB GUNAKAN FORMAT INI, JANGAN ADA TEKS LAIN):
-        1|KODE_1
-        2|KODE_2
-        3|KODE_3
-        
-        [KATALOG KODE TERSISA]
+        KATALOG:
         {katalog_teks}
         """
         
+        # Sekarang model 70B hanya menerima 50 baris, pasti muat di limit 12.000 token!
         chat_2 = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt_detektif}],
             model="llama-3.3-70b-versatile",
@@ -216,9 +205,7 @@ def smart_classify(user_input, df, top_n=3):
         for baris in balasan_akhir.split('\n'):
             parts = baris.split('|')
             if len(parts) >= 2:
-                kode_ai = parts[1].strip()
-                kode_ai = re.sub(r'[^\d\.]', '', kode_ai)
-                
+                kode_ai = re.sub(r'[^\d\.]', '', parts[1].strip())
                 idx_match = df.index[df['kode'] == kode_ai].tolist()
                 if idx_match:
                     skor = 0.99 - (len(hasil_akhir) * 0.14) 
@@ -229,8 +216,12 @@ def smart_classify(user_input, df, top_n=3):
         return hasil_akhir
         
     except Exception as e:
-        st.error(f"🚨 API GROQ MENOLAK PERMINTAAN: {e}")
-        return []
+        # Jika masih error limit, kita gunakan pencarian teks sederhana sebagai cadangan terakhir
+        st.warning("⚠️ Server Groq sangat sibuk. Menggunakan pencarian teks cadangan...")
+        # Simple string matching sebagai cadangan darurat
+        df['score'] = df['uraian_lengkap'].apply(lambda x: 1.0 if user_input.lower() in x.lower() else 0.0)
+        top_fallback = df.sort_values('score', ascending=False).head(top_n)
+        return [(idx, 0.5) for idx in top_fallback.index]
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
