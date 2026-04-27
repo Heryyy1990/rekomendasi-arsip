@@ -84,7 +84,7 @@ except:
 
 client = Groq(api_key=api_key)
 
-# 2. Fungsi "Otak Ekstraktor" (SUDAH DIPERBAIKI: Otak Bedah Dikembalikan)
+# --- 2. FUNGSI "OTAK EKSTRAKTOR" (DENGAN PISAU BEDAH & KATALOG PRIMER) ---
 def ekstrak_inti_surat_dan_primer(teks_user):
     katalog_primer = """
     000: UMUM (Ketatausahaan, Perjalanan Dinas, SPPD, Pengadaan Barang, Perpustakaan, Kearsipan, Tata Laksana, Perencanaan)
@@ -100,28 +100,28 @@ def ekstrak_inti_surat_dan_primer(teks_user):
     """
 
     prompt = f"""
-    Anda adalah Sistem AI Ahli Kearsipan Daerah. Tugas Anda menganalisis perihal surat.
+    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat.
     
-    GUNAKAN LOGIKA BERPIKIR BERIKUT:
-    1. HAPUS KATA PENGANTAR: Buang kata seperti permohonan, penyampaian, penerbitan, dll.
-    2. HAPUS ENTITAS/LOKASI: Buang nama tempat, instansi, atau bangunan (seperti perpustakaan, rumah sakit) jika itu sekadar lokasi/tujuan.
-    3. FOKUS 1 INTI UTAMA: Anda HANYA BOLEH menghasilkan TEPAT SATU (1) inti substansi. DILARANG MEMBERIKAN 2 INTI. Jika ada urusan aset tanah dan bangunan, fokus mutlak pada status hukum tanahnya (contoh: Sertifikat Tanah).
-    
+    GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
+    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, penerbitan, dll).
+    2. HAPUS ENTITAS & LOKASI: Buang nama instansi, nama tempat, dan bangunan (seperti perpustakaan, rumah sakit, dll) jika itu sekadar lokasi/tujuan.
+    3. FOKUS 1 INTI UTAMA: Anda HANYA BOLEH menghasilkan TEPAT SATU (1) inti substansi. DILARANG MEMBERIKAN 2 INTI. Jika ada urusan aset tanah/bangunan, fokus mutlak pada status hukumnya.
+
     KATALOG PRIMER:
     {katalog_primer}
     
-    BANK DATA CONTOH (TIRU POLA INI 100%):
-    Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    INTI: rencana kerja anggaran
+    BANK DATA CONTOH (WAJIB DITIRU 100%):
+    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
+    INTI: pencairan dana sp2d
     PRIMER: 900, 000, 700
+    
+    Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
+    INTI: berita acara serah terima kendaraan dinas
+    PRIMER: 000, 900, 700
     
     Input: "Permohonan penerbitan sertifikat tanah untuk pembangunan perpustakaan umum"
     INTI: sertifikat tanah
     PRIMER: 100, 000, 400
-    
-    Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    INTI: pelanggaran kode etik
-    PRIMER: 800, 700, 000
     
     SEKARANG, KERJAKAN SURAT INI:
     Input: "{teks_user}"
@@ -158,6 +158,100 @@ def ekstrak_inti_surat_dan_primer(teks_user):
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
         return teks_user, ['000', '100', '200', '300', '400', '500', '600', '700', '800', '900']
+
+
+# --- 3. LOGIKA AI HYBRID (PRE-FILTERING + TF-IDF MURNI ANDA) ---
+def smart_classify(user_input, df, top_n=3):
+    # 1. Ekstrak Inti & Filter Rumpun
+    inti_dari_llm, tebakan_primer = ekstrak_inti_surat_dan_primer(user_input)
+    st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
+    st.caption(f"🎯 Fokus pencarian pada rumpun primer: {', '.join(tebakan_primer)}")
+    
+    clean_input = preprocess_text(inti_dari_llm)
+    
+    # 2. Pre-filtering Brilian: Hanya ambil baris sesuai tebakan ratusan Groq
+    awalan_primer = tuple([p[0] for p in tebakan_primer])
+    df_filtered = df[df['kode'].astype(str).str.startswith(awalan_primer)].copy()
+    
+    if df_filtered.empty:
+        df_filtered = df.copy()
+        
+    df_filtered = df_filtered.reset_index(drop=False)
+    
+    # 3. TF-IDF & Fuzzy Matching (Murni, aman, dan langsung mencari di data yang sudah difilter)
+    vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
+    all_docs = df_filtered['clean_uraian'].tolist() + [clean_input]
+    tfidf_matrix = vectorizer.fit_transform(all_docs)
+    
+    cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
+    
+    skor_awal = []
+    for idx, score in enumerate(cosine_sim):
+        fuzzy_score = fuzz.token_set_ratio(clean_input, df_filtered.iloc[idx]['clean_uraian']) / 100
+        
+        kode_item = str(df_filtered.iloc[idx]['kode'])
+        jumlah_titik = kode_item.count('.')
+        depth_bonus = jumlah_titik * 0.05 
+        
+        combined_score = (score * 0.70) + (fuzzy_score * 0.30) + depth_bonus 
+        
+        # Simpan index asli dari dataframe utama (df)
+        idx_asli = df_filtered.iloc[idx]['index']
+        skor_awal.append({'idx': idx_asli, 'skor': combined_score})
+        
+    # Ambil 10 besar nominasi
+    top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
+    
+    # 4. FASE JURI AI (Llama-3 memilih 3 terbaik)
+    daftar_kandidat = ""
+    for i, item in enumerate(top_10_kandidat):
+        baris = df.iloc[item['idx']]
+        daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Konteks Hierarki: {baris['uraian_lengkap'].title()}\n"
+        
+    prompt_juri = f"""
+    Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
+    
+    Daftar Opsi (Baca dengan teliti jalur konteks hierarkinya):
+    {daftar_kandidat}
+    
+    ATURAN MUTLAK:
+    1. Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
+    2. JIKA ADA BEBERAPA KODE DARI RUMPUN YANG SAMA, KAMU WAJIB MEMILIH KODE TURUNAN YANG PALING DALAM/SPESIFIK. Haram hukumnya memilih kode induk jika ada kode anaknya yang lebih detail dan relevan.
+    3. JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
+    """
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_juri}],
+            model="llama-3.3-70b-versatile", 
+            temperature=0.0, 
+        )
+        balasan_juri = chat_completion.choices[0].message.content.strip()
+        
+        angka_mentah = re.findall(r'\d+', balasan_juri)
+        angka_pilihan = []
+        for angka in angka_mentah:
+            angka_int = int(angka)
+            if 1 <= angka_int <= 10:
+                if angka_int not in angka_pilihan:
+                    angka_pilihan.append(angka_int)
+            if len(angka_pilihan) == 3: 
+                break
+                
+        hasil_akhir = []
+        for nomor in angka_pilihan:
+            idx_kandidat = nomor - 1 
+            if 0 <= idx_kandidat < len(top_10_kandidat):
+                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
+                
+        if hasil_akhir:
+            return hasil_akhir
+            
+    except Exception as e:
+        st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
+        
+    return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
         
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
