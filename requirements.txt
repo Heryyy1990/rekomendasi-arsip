@@ -1,6 +1,9 @@
 streamlit
 pandas
 scikit-learn
-Sastrawi
+PySastrawi
 thefuzz
+python-Levenshtein
 groq
+sentence-transformers
+numpy
