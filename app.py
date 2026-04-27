@@ -446,7 +446,7 @@ def smart_classify(user_input, df, top_n=3):
     # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
     clean_input = preprocess_text(inti_dari_llm)
     
-    # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
+   # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
     vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
     all_docs = df['clean_uraian'].tolist() + [clean_input]
     tfidf_matrix = vectorizer.fit_transform(all_docs)
@@ -455,9 +455,20 @@ def smart_classify(user_input, df, top_n=3):
     
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
-        # Fuzzy Matching menggunakan partial_ratio agar lebih fleksibel terhadap typo
         fuzzy_score = fuzz.partial_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        combined_score = (score * 0.40) + (fuzzy_score * 0.60) 
+        
+        # --- TAMBAHAN: DEPTH BONUS (BOBOT KEDALAMAN) ---
+        kode_item = str(df.iloc[idx]['kode'])
+        # Menghitung jumlah titik untuk mengetahui level hierarki (Induk=0, Anak=1, Cucu=2, dst)
+        jumlah_titik = kode_item.count('.')
+        
+        # Berikan bonus matematis 5% (0.05) untuk setiap level ke bawah
+        # Ini MEMAKSA mesin mengangkat kode turunan yang spesifik ke dalam Top 10
+        depth_bonus = jumlah_titik * 0.05 
+        
+        # Gabungkan skor (TF-IDF + Fuzzy + Depth Bonus)
+        combined_score = (score * 0.35) + (fuzzy_score * 0.55) + depth_bonus 
+        
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
     # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
@@ -473,13 +484,13 @@ def smart_classify(user_input, df, top_n=3):
     prompt_juri = f"""
     Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
     
-    Daftar Opsi (Baca dengan teliti jalur konteks hierarkinya dari kiri ke kanan):
+    Daftar Opsi (Baca dengan teliti jalur konteks hierarkinya):
     {daftar_kandidat}
     
     ATURAN MUTLAK:
-    Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
-    Pilih opsi yang konteks hierarkinya paling spesifik dan relevan dengan urusan.
-    JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
+    1. Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
+    2. JIKA ADA BEBERAPA KODE DARI RUMPUN YANG SAMA, KAMU WAJIB MEMILIH KODE TURUNAN YANG PALING DALAM/SPESIFIK. Haram hukumnya memilih kode induk jika ada kode anaknya yang lebih detail dan relevan.
+    3. JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
     Contoh balasan yang benar: 1, 5, 8
     """
     
