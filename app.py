@@ -450,35 +450,131 @@ def get_hierarchy(kode_target, df):
         hierarchy_list.append(html_string)
     return hierarchy_list
 
-# ↓↓↓ FUNGSI BARU 1: NAVIGATOR RUMPUN ↓↓↓
-def navigasi_rumpun(inti_surat, daftar_rumpun):
-    daftar_opsi = "\n".join([f"{k}: {v}" for k, v in daftar_rumpun.items()])
+def bangun_konteks_rumpun(df):
+    """
+    Baca isi database sendiri untuk membuat deskripsi kaya tiap rumpun.
+    LLM tidak perlu 'nebak' lagi — dia dikasih contoh nyata dari dalam DB.
+    """
+    konteks = {}
+    for i in range(10):
+        kode_rumpun = f"{i}00"
+        baris_rumpun = df[df['kode'] == kode_rumpun]
+        if baris_rumpun.empty:
+            continue
+        
+        nama_rumpun = baris_rumpun.iloc[0]['uraian'].title()
+        digit_awal = str(i)
+        
+        # Ambil kode anak langsung (sekunder, tanpa titik)
+        anak = df[
+            (df['kode'].str.startswith(digit_awal)) &
+            (df['kode'] != kode_rumpun) &
+            (~df['kode'].str.contains(r'\.', regex=True)) &
+            (df['kode'].str.len() <= 3)
+        ]['uraian'].head(6).tolist()
+        
+        contoh_str = ", ".join(anak) if anak else "—"
+        konteks[kode_rumpun] = f"{nama_rumpun} | Berisi: {contoh_str}"
     
-    prompt = f"""Anda adalah sistem klasifikasi arsip pemerintah daerah Indonesia.
-Berdasarkan urusan berikut: "{inti_surat}"
+    return konteks
 
-Pilih 2-3 kode RUMPUN yang paling relevan:
+
+def navigasi_rumpun(inti_surat, df):
+    """
+    Level 1 Corong: Pilih 2-3 rumpun dari 10 pilihan.
+    Konteks dibangun DINAMIS dari database, bukan hardcoded.
+    """
+    daftar_rumpun = bangun_konteks_rumpun(df)
+    daftar_opsi = "\n".join([f"  {k}: {v}" for k, v in daftar_rumpun.items()])
+    
+    prompt = f"""Anda ahli kearsipan pemerintah Indonesia. Tugas: tentukan RUMPUN arsip.
+
+URUSAN yang dicari: "{inti_surat}"
+
+DAFTAR RUMPUN TERSEDIA:
 {daftar_opsi}
 
-ATURAN KERAS: Balas HANYA kode rumpun 3 digit dipisah koma. Contoh: 800, 600
-Tanpa penjelasan, tanpa teks lain."""
+CARA BERPIKIR:
+- Baca "Berisi:" di tiap rumpun untuk memahami isinya
+- Pilih rumpun yang topiknya paling dekat dengan urusan di atas
+- Boleh pilih 2 rumpun jika urusan lintas bidang
+
+BALAS HANYA dengan kode 3 digit dipisah koma. Contoh: 200, 800
+Dilarang keras menulis teks lain."""
 
     try:
         response = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
             model="llama-3.1-8b-instant",
             temperature=0.0,
+            max_tokens=20,
         )
         balasan = response.choices[0].message.content.strip()
         kode_ditemukan = re.findall(r'\b[0-9]{3}\b', balasan)
         kode_valid = [k for k in kode_ditemukan if k in daftar_rumpun]
-        
-        # Kalau LLM tidak mengembalikan kode valid, ambil 3 rumpun pertama sebagai fallback
         return kode_valid if kode_valid else list(daftar_rumpun.keys())[:3]
     except Exception as e:
-        st.warning(f"Navigator gagal, pakai semua rumpun: {e}")
-        return list(daftar_rumpun.keys())
+        st.warning(f"Navigator Rumpun gagal: {e}")
+        return list(bangun_konteks_rumpun(df).keys())[:3]
 
+
+def navigasi_subkategori(inti_surat, df_rumpun):
+    """
+    Level 2 Corong: Setelah dapat rumpun, persempit ke sub-kategori.
+    LLM memilih dari ~20-40 opsi, bukan 300.
+    """
+    # Ambil hanya kode sekunder (tanpa titik)
+    kode_sekunder = df_rumpun[
+        (~df_rumpun['kode'].str.contains(r'\.', regex=True)) &
+        (df_rumpun['kode'].str.len() > 1)
+    ].copy()
+    
+    if len(kode_sekunder) <= 5:
+        return df_rumpun
+    
+    daftar_opsi = ""
+    for _, row in kode_sekunder.iterrows():
+        daftar_opsi += f"  [{row['kode']}] {row['uraian'].title()}\n"
+    
+    prompt = f"""Anda ahli kearsipan pemerintah Indonesia.
+
+URUSAN: "{inti_surat}"
+
+PILIH 2-3 sub-kategori arsip yang paling relevan:
+{daftar_opsi}
+
+BALAS HANYA dengan kode-kode yang dipilih, dipisah koma.
+Contoh: 210, 230
+Dilarang menulis teks lain."""
+
+    try:
+        response = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.1-8b-instant",
+            temperature=0.0,
+            max_tokens=30,
+        )
+        balasan = response.choices[0].message.content.strip()
+        kode_disebut = re.findall(r'\b\d+\b', balasan)
+        kode_valid = [k for k in kode_disebut if k in df_rumpun['kode'].values]
+        
+        if not kode_valid:
+            return df_rumpun
+        
+        mask = df_rumpun['kode'].apply(
+            lambda k: any(
+                str(k).startswith(str(sub)[0] if len(str(sub)) == 1
+                    else str(sub)[:2] if len(str(sub)) == 2
+                    else str(sub))
+                for sub in kode_valid
+            )
+        )
+        df_tersaring = df_rumpun[mask]
+        return df_tersaring if len(df_tersaring) >= 5 else df_rumpun
+        
+    except Exception as e:
+        st.warning(f"Navigator Sub-Kategori gagal: {e}")
+        return df_rumpun
 
 # ↓↓↓ FUNGSI BARU 2: SEMANTIC SEARCH (GANTI TF-IDF) ↓↓↓
 def semantic_search(inti_surat, df_subset, top_n=15):
@@ -510,59 +606,60 @@ def semantic_search(inti_surat, df_subset, top_n=15):
 # --- 3. LOGIKA AI HYBRID (RERANKING) ---
 def smart_classify(user_input, df, top_n=3):
 
-    # ── FASE 1: Ekstraksi Inti (tidak berubah) ──
+    # ══ FASE 1: Ekstraksi Inti ══════════════════════════════════════
     inti_dari_llm = ekstrak_inti_surat(user_input)
-    st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
+    st.info(f"🧠 Inti surat: **{inti_dari_llm}**")
 
-    # ── FASE 1.5: Navigasi ke Rumpun yang Relevan (BARU) ──
-    daftar_rumpun = {}
-    for i in range(10):
-        kode_rumpun = f"{i}00"
-        baris_rumpun = df[df['kode'] == kode_rumpun]
-        if not baris_rumpun.empty:
-            daftar_rumpun[kode_rumpun] = baris_rumpun.iloc[0]['uraian'].title()
+    # ══ FASE 2: Navigasi Rumpun (Level 1 Corong) ═══════════════════
+    with st.spinner("📂 Level 1 — Menentukan bidang klasifikasi..."):
+        rumpun_terpilih = navigasi_rumpun(inti_dari_llm, df)
 
-    with st.spinner("🗺️ Menentukan area klasifikasi yang relevan..."):
-        rumpun_terpilih = navigasi_rumpun(inti_dari_llm, daftar_rumpun)
-
-    nama_rumpun = [daftar_rumpun.get(r, r) for r in rumpun_terpilih]
-    st.info(f"📂 Menyaring ke rumpun: **{', '.join(nama_rumpun)}**")
-
-    # ── FASE 2: Filter Database ke Rumpun Terpilih (BARU) ──
-    mask = df['kode'].apply(
-        lambda k: any(str(k).startswith(r[0]) for r in rumpun_terpilih)
+    mask_rumpun = df['kode'].apply(
+        lambda k: any(str(k).startswith(str(r)[0]) for r in rumpun_terpilih)
     )
-    df_filtered = df[mask].copy()
+    df_level1 = df[mask_rumpun].copy()
 
-    # Safety net: kalau hasil filter terlalu sedikit, pakai semua data
-    if len(df_filtered) < 20:
-        st.warning("⚠️ Area terlalu sempit, memperluas ke seluruh database...")
-        df_filtered = df.copy()
+    if len(df_level1) < 10:
+        df_level1 = df.copy()
 
-    st.caption(f"🔍 Mencari di {len(df_filtered)} dari {len(df)} entri klasifikasi")
+    nama_rumpun = []
+    for r in rumpun_terpilih:
+        baris = df[df['kode'] == r]
+        if not baris.empty:
+            nama_rumpun.append(f"{r} ({baris.iloc[0]['uraian'].title()})")
+    st.info(f"📁 Bidang terpilih: **{', '.join(nama_rumpun)}** — {len(df_level1)} entri")
 
-    # ── FASE 3: Semantic Search (GANTI TF-IDF + FUZZY) ──
-    with st.spinner("🔎 Mencocokkan makna..."):
-        top_kandidat = semantic_search(inti_dari_llm, df_filtered, top_n=15)
+    # ══ FASE 3: Navigasi Sub-Kategori (Level 2 Corong) ═════════════
+    with st.spinner("🗂️ Level 2 — Mempersempit ke sub-kategori..."):
+        df_level2 = navigasi_subkategori(inti_dari_llm, df_level1)
 
-    # ── FASE 4: Juri AI (tidak banyak berubah) ──
+    st.caption(f"🔍 Dipersempit ke {len(df_level2)} entri untuk pencarian mendalam")
+
+    # ══ FASE 4: Semantic Search (ruang sudah kecil) ═════════════════
+    with st.spinner("🔎 Level 3 — Mencocokkan makna..."):
+        top_kandidat = semantic_search(inti_dari_llm, df_level2, top_n=15)
+
+    # ══ FASE 5: Juri AI ════════════════════════════════════════════
     daftar_kandidat_str = ""
     for i, (idx, skor) in enumerate(top_kandidat):
         baris = df.loc[idx]
-        daftar_kandidat_str += f"[{i+1}] Kode: {baris['kode']} | Konteks: {baris['uraian_lengkap'].title()}\n"
+        daftar_kandidat_str += f"[{i+1}] Kode: {baris['kode']} | {baris['uraian_lengkap'].title()}\n"
 
-    prompt_juri = f"""
-Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
+    prompt_juri = f"""Anda ahli kearsipan pemerintah daerah Indonesia.
 
-Daftar Opsi (baca jalur konteks hierarkinya dengan teliti):
+URUSAN SURAT: "{inti_dari_llm}"
+
+KANDIDAT KODE KLASIFIKASI:
 {daftar_kandidat_str}
 
-ATURAN MUTLAK:
-1. Balas HANYA dengan 3 angka (antara 1 sampai {len(top_kandidat)}) dipisah koma.
-2. Jika ada kode dari rumpun yang sama, pilih yang paling dalam/spesifik.
-3. Jangan tulis kodenya. Jangan ada teks lain selain 3 angka.
-Contoh benar: 1, 5, 8
-"""
+TUGAS: Pilih 3 kode yang PALING TEPAT.
+
+ATURAN:
+1. Balas HANYA 3 angka urutan dipisah koma (contoh: 2, 7, 11)
+2. Angka harus antara 1 sampai {len(top_kandidat)}
+3. Pilih kode yang PALING SPESIFIK/DALAM jika ada pilihan sekode
+4. Baca konteks hierarki dengan teliti sebelum memilih
+5. DILARANG menulis teks lain selain 3 angka"""
 
     try:
         response = client.chat.completions.create(
@@ -594,7 +691,6 @@ Contoh benar: 1, 5, 8
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Juri AI): {e}")
 
-    # Fallback: top 3 dari semantic search
     return [(idx, skor) for idx, skor in top_kandidat[:top_n]]
     
 # --- 4. ANTARMUKA UTAMA ---
@@ -603,7 +699,12 @@ def halaman_utama():
     st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
 
     try:
-        df = load_data()
+       df = load_data()
+
+        if st.checkbox("🔍 Lihat konteks rumpun yang dibaca sistem"):
+            konteks = bangun_konteks_rumpun(df)
+            for k, v in konteks.items():
+                st.write(f"**{k}**: {v}")
         
         with st.sidebar:
             # --- TAMBAHAN: INFO USER & TOMBOL LOGOUT ---
