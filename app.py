@@ -2,13 +2,14 @@ import streamlit as st
 import pandas as pd
 import re
 import os
-import numpy as np                                          
+import torch
 from datetime import datetime
-from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer       
+from sentence_transformers import SentenceTransformer, util
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+from thefuzz import process, fuzz
 from groq import Groq
+
 
 # --- INISIALISASI SESSION STATE LOGIN & HISTORY ---
 if 'logged_in' not in st.session_state:
@@ -75,114 +76,71 @@ def halaman_login():
                 else:
                     st.error("Username atau Password salah!")
 
-# 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
+# 1. Menarik API Key dengan aman
 try:
-    # Membaca dari Streamlit Secrets jika di Cloud
     api_key = st.secrets["GROQ_API_KEY"]
 except:
-    # Masukkan API Key manual HANYA untuk tes di laptop lokal (Hapus sebelum di-push ke GitHub!)
     api_key = "MASUKKAN_API_KEY_GROQ_DI_SINI_UNTUK_TES_LOKAL" 
 
 client = Groq(api_key=api_key)
 
-# 2. Fungsi "Otak Ekstraktor"
-def ekstrak_inti_surat(teks_user):
-    # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
-    prompt = f"""
-    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
-    
-    GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
-    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
-    2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian, KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang, jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
-    3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya (fasilitatif maupun substantif teknis daerah).
-    4. RESOLUSI JEBAKAN "ARSIP": 
-       - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
-       - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
-    5. RESOLUSI JEBAKAN ASET/BANGUNAN:
-       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
-       - JANGAN jadikan NAMA BANGUNAN/PROYEK (seperti Perpustakaan, Puskesmas, Sekolah, Jembatan) sebagai inti substansi.
-    6. SERTAKAN BIDANG URUSAN: Pastikan output mengandung kata yang menunjukkan
-       BIDANG urusan, bukan hanya nama kegiatan.
-       SALAH: "sosialisasi" / "rapat" / "bimtek"
-       BENAR: "sosialisasi anggaran daerah" / "bimtek kearsipan" / "rapat koordinasi kepegawaian"
+# 2. Fungsi "Otak Ekstraktor" (SUDAH DIUPGRADE: Ekstrak Inti + Tebak Primer)
+def ekstrak_inti_surat_dan_primer(teks_user):
+    katalog_primer = """
+    000: UMUM (Ketatausahaan, Perjalanan Dinas, SPPD, Pengadaan Barang, Perpustakaan, Kearsipan, Tata Laksana, Perencanaan)
+    100: PEMERINTAHAN (Otonomi Daerah, Hukum, Peraturan, Politik, Desa, Kelurahan, Pertanahan, Agraria)
+    200: POLITIK (Kepartaian, Pemilu, Pilkada, Kampanye, Ormas, LSM)
+    300: KEAMANAN (Kepolisian, TNI, Satpol PP, Ketertiban Umum, Bencana Alam, SAR)
+    400: KESEJAHTERAAN RAKYAT (Agama, Pendidikan, Sekolah, Kesehatan, Rumah Sakit, Sosial, Bantuan)
+    500: PEREKONOMIAN (Perdagangan, Pertanian, Peternakan, Koperasi, UKM, Perikanan, Industri)
+    600: PEKERJAAN UMUM (Infrastruktur, Jembatan, Jalan, Tata Ruang, Lingkungan Hidup, Sumber Daya Air)
+    700: PENGAWASAN (Audit, LHP, Temuan BPK, Inspektorat, Pemeriksaan, Hukuman Disiplin)
+    800: KEPEGAWAIAN (CPNS, PPPK, ASN, Cuti, Mutasi, Pensiun, Diklat, Kinerja, Angka Kredit)
+    900: KEUANGAN (APBD, RKA, DPA, SP2D, Pajak Daerah, Retribusi, Aset, Barang Milik Daerah)
+    """
 
-    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+    prompt = f"""
+    Anda adalah Sistem AI Ahli Kearsipan Daerah. Analisis surat ini dan berikan:
+    1. "Inti Substansi" (Tepat 1 frasa/kalimat pendek).
+    2. 3 tebakan "Kode Primer" (Ratusan) yang paling mungkin berdasarkan katalog.
     
-    [KASUS KEUANGAN, ANGGARAN & ASET]
-    Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    Output: rencana kerja anggaran, dpa
-    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
-    Output: pencairan dana, sp2d
-    Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
-    Output: berita acara serah terima, kendaraan dinas
+    KATALOG PRIMER:
+    {katalog_primer}
     
-    [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
-    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: penetapan angka kredit, jabatan fungsional
-    Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    Output: disiplin pegawai, pelanggaran kode etik
-    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
-    Output: tindak lanjut temuan, laporan hasil pemeriksaan
-    Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
-    Output: peraturan bupati, tata naskah dinas
+    ATURAN MUTLAK FORMAT BALASAN (HANYA BALAS 2 BARIS INI TANPA BASA-BASI):
+    INTI: [isi dengan 1 frasa inti surat]
+    PRIMER: [isi dengan 3 digit ratusan yang dipisah koma]
     
-    [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
-    Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
-    Output: dana bantuan operasional sekolah, bos
-    Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
-    Output: klaim bpjs kesehatan, pelayanan kesehatan rawat inap
-    Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
-    Output: rencana anggaran biaya, gambar kerja proyek
-    
-    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
-    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
-    Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
-    Output: pemantauan partai politik, organisasi kemasyarakatan
-    Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
-    Output: penertiban pedagang kaki lima, pembongkaran baliho
-    
-    [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
-    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
-    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: operasi pencarian pertolongan, sar, korban banjir
-    Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
-    Output: sertifikasi keamanan pangan segar asal tumbuhan, psat
-    
-    [KASUS PEMERINTAHAN DESA & UMUM]
-    Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
-    Output: dana desa, sengketa pemilihan kepala desa
-    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: perjalanan dinas
-    Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-    Output: jadwal retensi arsip, pemusnahan arsip inaktif
-    
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
     Input: "{teks_user}"
-    Output:
     """
     
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
-            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
+            model="llama-3.1-8b-instant", 
+            temperature=0.0, 
         )
-       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
-        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
+        balasan = chat_completion.choices[0].message.content.strip()
         
-        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
-        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
-        daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
-        inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
+        inti_surat = teks_user
+        primer_list = ['000', '100', '800'] # Fallback
         
-        # Membersihkan tanda kutip
-        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
-        return inti_teks_bersih
+        for baris in balasan.split('\n'):
+            if baris.startswith('INTI:'):
+                inti_surat = baris.replace('INTI:', '').strip()
+                inti_surat = inti_surat.replace('"', '').replace("'", "")
+            elif baris.startswith('PRIMER:'):
+                angka_mentah = baris.replace('PRIMER:', '').strip()
+                primer_list = re.findall(r'\b\d00\b', angka_mentah)
+                
+        if not primer_list:
+            primer_list = ['000', '100', '200', '300', '400', '500', '600', '700', '800', '900']
+            
+        return inti_surat, primer_list[:3]
+
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
-        return teks_user
+        return teks_user, ['000', '100', '200', '300', '400', '500', '600', '700', '800', '900']
         
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
@@ -231,24 +189,17 @@ st.markdown("""
 if 'search_history' not in st.session_state:
     st.session_state.search_history = []
 
-# --- INISIALISASI NLP (Sastrawi) ---
+# --- INISIALISASI NLP (Sastrawi) & SENTENCE TRANSFORMERS (AI LOKAL) ---
 @st.cache_resource
 def init_nlp():
     stemmer = StemmerFactory().create_stemmer()
     remover = StopWordRemoverFactory().create_stop_word_remover()
-    return stemmer, remover
+    embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    return stemmer, remover, embedder
 
-stemmer, remover = init_nlp()
+stemmer, remover, embedder = init_nlp()
 
-@st.cache_resource
-def load_embedding_model():
-    # Model ini paham Bahasa Indonesia, ukuran ~120MB
-    # Di-download otomatis saat pertama kali jalan, lalu di-cache
-    return SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-
-embedding_model = load_embedding_model()
-
-# --- KAMUS JARGON & SINGKATAN BIROKRASI (ASLI 100%) ---
+# --- KAMUS JARGON & SINGKATAN BIROKRASI (ASLI 100% TIDAK ADA YANG DIBUANG) ---
 kamus_birokrasi = {
     "apbd": "anggaran pendapatan dan belanja daerah",
     "apbn": "anggaran pendapatan dan belanja negara",
@@ -363,13 +314,13 @@ def preprocess_text(text):
     text = stemmer.stem(text)
     return text
 
-# --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
+# --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI & EMBEDDINGS) ---
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
+        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str)
     except:
-        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
+        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str)
     
     if len(df.columns) == 1:
         col_name = df.columns[0]
@@ -383,16 +334,19 @@ def load_data():
         df.columns = kolom_baru
     
     df['uraian'] = df['uraian'].astype(str).str.replace(r';$', '', regex=True).str.strip().fillna("")
-    df['kode'] = df['kode'].astype(str).str.strip().str.lstrip('\ufeff').fillna("000")
+    df['kode'] = df['kode'].astype(str).str.strip().fillna("000")
 
+    # --- LOGIKA BARU: MEMBANGUN JALUR HIERARKI BREADCRUMBS ---
     kode_dict = dict(zip(df['kode'], df['uraian']))
     
     def bangun_hierarki(kode):
         jalur = []
         curr = str(kode).strip()
+        
         while curr:
             if curr in kode_dict:
-                jalur.insert(0, kode_dict[curr])
+                jalur.insert(0, kode_dict[curr]) 
+                
             if '.' in curr:
                 curr = curr.rsplit('.', 1)[0]
             else:
@@ -405,23 +359,14 @@ def load_data():
                     else: curr = curr[0:2] + '0'
                 else:
                     break
+                    
         return " > ".join(jalur)
     
     df['uraian_lengkap'] = df['kode'].apply(bangun_hierarki)
-
+    df['clean_uraian'] = df['uraian_lengkap'].apply(preprocess_text)
     
-    # ↓↓↓ BAGIAN BARU: HITUNG EMBEDDING UNTUK SELURUH DATABASE ↓↓↓
-    teks_untuk_embed = df['uraian_lengkap'].tolist()
-    
-    embeddings = embedding_model.encode(
-        teks_untuk_embed,
-        show_progress_bar=False,
-        batch_size=64
-    )
-    
-    # Simpan embedding sebagai list of numpy array di kolom baru
-    df['embedding'] = list(embeddings)
-    # ↑↑↑ SELESAI ↑↑↑
+    # --- TAMBAHAN BARU: MEMBANGUN Vektor Semantik (Sekali Saja Saat Load) ---
+    df['embeddings'] = df['clean_uraian'].apply(lambda x: embedder.encode(x))
     
     return df
 
@@ -454,241 +399,96 @@ def get_hierarchy(kode_target, df):
         hierarchy_list.append(html_string)
     return hierarchy_list
 
-def bangun_konteks_rumpun(df):
-    konteks = {}
-    for i in range(10):
-        kode_rumpun = f"{i}00"
-        baris_rumpun = df[df['kode'] == kode_rumpun]
-        if baris_rumpun.empty:
-            continue
-        
-        nama_rumpun = baris_rumpun.iloc[0]['uraian'].title()
-        
-        # Cari kode sekunder langsung: polanya "000.1", "000.2", dst
-        # Regex: diawali kode rumpun + titik + angka, tanpa titik lagi setelahnya
-        pola = rf'^{re.escape(kode_rumpun)}\.\d+$'
-        anak = df[
-            df['kode'].str.match(pola, na=False)
-        ]['uraian'].head(8).tolist()
-        
-        contoh_str = ", ".join(anak) if anak else "—"
-        konteks[kode_rumpun] = f"{nama_rumpun} | Berisi: {contoh_str}"
-    
-    return konteks
-
-
-def navigasi_rumpun(inti_surat, df):
-    """
-    Level 1 Corong: Pilih 2-3 rumpun dari 10 pilihan.
-    Konteks dibangun DINAMIS dari database, bukan hardcoded.
-    """
-    daftar_rumpun = bangun_konteks_rumpun(df)
-    daftar_opsi = "\n".join([f"  {k}: {v}" for k, v in daftar_rumpun.items()])
-    
-    prompt = f"""Anda ahli kearsipan pemerintah Indonesia. Tugas: tentukan RUMPUN arsip.
-
-URUSAN yang dicari: "{inti_surat}"
-
-DAFTAR RUMPUN TERSEDIA:
-{daftar_opsi}
-
-CARA BERPIKIR:
-- Baca "Berisi:" di tiap rumpun untuk memahami isinya
-- Pilih rumpun yang topiknya paling dekat dengan urusan di atas
-- Boleh pilih 2 rumpun jika urusan lintas bidang
-
-BALAS HANYA dengan kode 3 digit dipisah koma. Contoh: 200, 800
-Dilarang keras menulis teks lain."""
-
-    try:
-        response = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant",
-            temperature=0.0,
-            max_tokens=20,
-        )
-        balasan = response.choices[0].message.content.strip()
-        kode_ditemukan = re.findall(r'\b[0-9]{3}\b', balasan)
-        kode_valid = [k for k in kode_ditemukan if k in daftar_rumpun]
-        return kode_valid if kode_valid else list(daftar_rumpun.keys())[:3]
-    except Exception as e:
-        st.warning(f"Navigator Rumpun gagal: {e}")
-        return list(bangun_konteks_rumpun(df).keys())[:3]
-
-
-def navigasi_subkategori(inti_surat, df_rumpun):
-    """
-    Level 2 Corong: Setelah dapat rumpun, persempit ke sub-kategori.
-    LLM memilih dari ~20-40 opsi, bukan 300.
-    """
-   # Ambil kode yang punya TEPAT SATU titik = level sekunder langsung
-    kode_sekunder = df_rumpun[
-        df_rumpun['kode'].str.count(r'\.') == 1
-    ].copy()
-    
-    if len(kode_sekunder) <= 5:
-        return df_rumpun
-    
-    daftar_opsi = ""
-    for _, row in kode_sekunder.iterrows():
-        daftar_opsi += f"  [{row['kode']}] {row['uraian'].title()}\n"
-    
-    prompt = f"""Anda ahli kearsipan pemerintah Indonesia.
-
-URUSAN: "{inti_surat}"
-
-PILIH 2-3 sub-kategori arsip yang paling relevan:
-{daftar_opsi}
-
-BALAS HANYA dengan kode-kode yang dipilih, dipisah koma.
-Contoh: 210, 230
-Dilarang menulis teks lain."""
-
-    try:
-        response = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant",
-            temperature=0.0,
-            max_tokens=30,
-        )
-        balasan = response.choices[0].message.content.strip()
-        kode_disebut = re.findall(r'\b\d+\b', balasan)
-        kode_valid = [k for k in kode_disebut if k in df_rumpun['kode'].values]
-        
-        if not kode_valid:
-            return df_rumpun
-        
-        mask = df_rumpun['kode'].apply(
-            lambda k: any(
-                str(k).startswith(str(sub)[0] if len(str(sub)) == 1
-                    else str(sub)[:2] if len(str(sub)) == 2
-                    else str(sub))
-                for sub in kode_valid
-            )
-        )
-        df_tersaring = df_rumpun[mask]
-        return df_tersaring if len(df_tersaring) >= 5 else df_rumpun
-        
-    except Exception as e:
-        st.warning(f"Navigator Sub-Kategori gagal: {e}")
-        return df_rumpun
-
-# ↓↓↓ FUNGSI BARU 2: SEMANTIC SEARCH (GANTI TF-IDF) ↓↓↓
-def semantic_search(inti_surat, df_subset, top_n=15):
-    # Encode kalimat query menjadi vektor angka
-    query_embedding = embedding_model.encode([inti_surat])
-    
-    # Susun semua embedding dari baris yang sudah difilter menjadi matrix
-    db_embeddings = np.vstack(df_subset['embedding'].values)
-    
-    # Hitung kemiripan makna (bukan kemiripan karakter)
-    similarities = cosine_similarity(query_embedding, db_embeddings)[0]
-    
-    # Bonus untuk kode yang lebih dalam/spesifik
-    depth_bonuses = df_subset['kode'].apply(
-        lambda k: str(k).count('.') * 0.04
-    ).values
-    
-    final_scores = similarities + depth_bonuses
-    
-    # Ambil index top N dengan skor tertinggi
-    top_indices = np.argsort(final_scores)[::-1][:top_n]
-    
-    # Kembalikan index ASLI dari df (bukan index lokal df_subset)
-    return [
-        (df_subset.index[i], float(final_scores[i]))
-        for i in top_indices
-    ]
-
-# --- 3. LOGIKA AI HYBRID (RERANKING) ---
+# --- 3. LOGIKA AI HYBRID (RERANKING) YANG SUDAH DIUPGRADE SEMANTIK & FILTER ---
 def smart_classify(user_input, df, top_n=3):
-
-    # ══ FASE 1: Ekstraksi Inti ══════════════════════════════════════
-    inti_dari_llm = ekstrak_inti_surat(user_input)
-    st.info(f"🧠 Inti surat: **{inti_dari_llm}**")
-
-    # ══ FASE 2: Navigasi Rumpun (Level 1 Corong) ═══════════════════
-    with st.spinner("📂 Level 1 — Menentukan bidang klasifikasi..."):
-        rumpun_terpilih = navigasi_rumpun(inti_dari_llm, df)
-
-    mask_rumpun = df['kode'].apply(
-        lambda k: any(str(k).startswith(str(r)[0]) for r in rumpun_terpilih)
-    )
-    df_level1 = df[mask_rumpun].copy()
-
-    if len(df_level1) < 10:
-        df_level1 = df.copy()
-
-    nama_rumpun = []
-    for r in rumpun_terpilih:
-        baris = df[df['kode'] == r]
-        if not baris.empty:
-            nama_rumpun.append(f"{r} ({baris.iloc[0]['uraian'].title()})")
-    st.info(f"📁 Bidang terpilih: **{', '.join(nama_rumpun)}** — {len(df_level1)} entri")
-
-    # ══ FASE 3: Navigasi Sub-Kategori (Level 2 Corong) ═════════════
-    with st.spinner("🗂️ Level 2 — Mempersempit ke sub-kategori..."):
-        df_level2 = navigasi_subkategori(inti_dari_llm, df_level1)
-
-    st.caption(f"🔍 Dipersempit ke {len(df_level2)} entri untuk pencarian mendalam")
-
-    # ══ FASE 4: Semantic Search (ruang sudah kecil) ═════════════════
-    with st.spinner("🔎 Level 3 — Mencocokkan makna..."):
-        top_kandidat = semantic_search(inti_dari_llm, df_level2, top_n=15)
-
-    # ══ FASE 5: Juri AI ════════════════════════════════════════════
-    daftar_kandidat_str = ""
-    for i, (idx, skor) in enumerate(top_kandidat):
-        baris = df.loc[idx]
-        daftar_kandidat_str += f"[{i+1}] Kode: {baris['kode']} | {baris['uraian_lengkap'].title()}\n"
-
-    prompt_juri = f"""Anda ahli kearsipan pemerintah daerah Indonesia.
-
-URUSAN SURAT: "{inti_dari_llm}"
-
-KANDIDAT KODE KLASIFIKASI:
-{daftar_kandidat_str}
-
-TUGAS: Pilih 3 kode yang PALING TEPAT.
-
-ATURAN:
-1. Balas HANYA 3 angka urutan dipisah koma (contoh: 2, 7, 11)
-2. Angka harus antara 1 sampai {len(top_kandidat)}
-3. Pilih kode yang PALING SPESIFIK/DALAM jika ada pilihan sekode
-4. Baca konteks hierarki dengan teliti sebelum memilih
-5. DILARANG menulis teks lain selain 3 angka"""
-
+    # 1. Ekstrak Inti & Filter Rumpun
+    inti_dari_llm, tebakan_primer = ekstrak_inti_surat_dan_primer(user_input)
+    st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
+    st.caption(f"🎯 Fokus pencarian pada rumpun primer: {', '.join(tebakan_primer)}")
+    
+    clean_input = preprocess_text(inti_dari_llm)
+    
+    # Pre-filtering: Hanya ambil baris sesuai tebakan ratusan Groq
+    awalan_primer = tuple([p[0] for p in tebakan_primer])
+    df_filtered = df[df['kode'].astype(str).str.startswith(awalan_primer)].copy()
+    
+    if df_filtered.empty:
+        df_filtered = df.copy()
+        
+    df_filtered = df_filtered.reset_index(drop=False)
+    
+    # 2 & 3. FASE PENCARIAN SEMANTIK (Pengganti TF-IDF & Fuzzy)
+    query_embedding = embedder.encode(clean_input)
+    doc_embeddings = list(df_filtered['embeddings'])
+    
+    cos_scores = util.cos_sim(query_embedding, doc_embeddings)[0]
+    top_results = torch.topk(cos_scores, k=min(10, len(df_filtered)))
+    
+    top_10_kandidat = []
+    for score, idx in zip(top_results[0], top_results[1]):
+        row_asli = df_filtered.iloc[idx.item()]
+        idx_asli = row_asli['index'] # Index di dataframe utama (df)
+        kode_item = str(row_asli['kode'])
+        
+        jumlah_titik = kode_item.count('.')
+        depth_bonus = jumlah_titik * 0.05 
+        final_score = score.item() + depth_bonus
+        
+        top_10_kandidat.append({'idx': idx_asli, 'skor': final_score})
+        
+    top_10_kandidat = sorted(top_10_kandidat, key=lambda x: x['skor'], reverse=True)
+    
+    # 4. FASE JURI AI (Llama-3 memilih 3 terbaik)
+    daftar_kandidat = ""
+    for i, item in enumerate(top_10_kandidat):
+        baris = df.iloc[item['idx']]
+        daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Konteks Hierarki: {baris['uraian_lengkap'].title()}\n"
+        
+    prompt_juri = f"""
+    Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
+    
+    Daftar Opsi (Baca dengan teliti jalur konteks hierarkinya):
+    {daftar_kandidat}
+    
+    ATURAN MUTLAK:
+    1. Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
+    2. JIKA ADA BEBERAPA KODE DARI RUMPUN YANG SAMA, KAMU WAJIB MEMILIH KODE TURUNAN YANG PALING DALAM/SPESIFIK. Haram hukumnya memilih kode induk jika ada kode anaknya yang lebih detail dan relevan.
+    3. JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
+    Contoh balasan yang benar: 1, 5, 8
+    """
+    
     try:
-        response = client.chat.completions.create(
+        chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt_juri}],
-            model="llama-3.3-70b-versatile",
-            temperature=0.0,
+            model="llama-3.3-70b-versatile", 
+            temperature=0.0, 
         )
-        balasan_juri = response.choices[0].message.content.strip()
-
+        balasan_juri = chat_completion.choices[0].message.content.strip()
+        
         angka_mentah = re.findall(r'\d+', balasan_juri)
         angka_pilihan = []
         for angka in angka_mentah:
-            n = int(angka)
-            if 1 <= n <= len(top_kandidat) and n not in angka_pilihan:
-                angka_pilihan.append(n)
-            if len(angka_pilihan) == 3:
+            angka_int = int(angka)
+            if 1 <= angka_int <= 10:
+                if angka_int not in angka_pilihan:
+                    angka_pilihan.append(angka_int)
+            if len(angka_pilihan) == 3: 
                 break
-
+                
         hasil_akhir = []
         for nomor in angka_pilihan:
-            idx_kandidat = nomor - 1
-            if 0 <= idx_kandidat < len(top_kandidat):
+            idx_kandidat = nomor - 1 
+            if 0 <= idx_kandidat < len(top_10_kandidat):
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
-                hasil_akhir.append((top_kandidat[idx_kandidat][0], skor_simulasi))
-
+                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
+                
         if hasil_akhir:
             return hasil_akhir
-
+            
     except Exception as e:
-        st.error(f"🚨 ERROR GROQ (Juri AI): {e}")
-
-    return [(idx, skor) for idx, skor in top_kandidat[:top_n]]
+        st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
+        
+    return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
@@ -697,12 +497,7 @@ def halaman_utama():
 
     try:
         df = load_data()
-
-        if st.checkbox("🔍 Lihat konteks rumpun yang dibaca sistem"):
-            konteks = bangun_konteks_rumpun(df)
-            for k, v in konteks.items():
-                st.write(f"**{k}**: {v}")
-
+        
         with st.sidebar:
             # --- TAMBAHAN: INFO USER & TOMBOL LOGOUT ---
             st.success(f"Masuk sebagai:\n**{st.session_state['nama']}**")
@@ -754,7 +549,7 @@ def halaman_utama():
                         pilihan_feedback = [] 
                         
                         for i, (idx, score) in enumerate(results):
-                            res = df.loc[idx]
+                            res = df.iloc[idx]
                             pilihan_feedback.append(f"{res['kode']} - {res['uraian'].title()}")
                             
                             with st.expander(f"🏅 Rekomendasi #{i+1}: Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
@@ -887,7 +682,6 @@ def halaman_utama():
 
 # --- 5. PENGATUR HALAMAN (ROUTER) ---
 if not st.session_state.get('logged_in', False):
-    # Memanggil fungsi halaman_login() yang harusnya sudah Anda letakkan di bagian atas file
     halaman_login()
 else:
     halaman_utama()
