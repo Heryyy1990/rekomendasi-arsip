@@ -86,6 +86,45 @@ except:
 
 client = Groq(api_key=api_key)
 
+
+# --- 1. MEMUAT DATABASE (VERSI BERSIH UNTUK FULL AI) ---
+@st.cache_data
+def load_data():
+    try:
+        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str)
+    except:
+        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str)
+    
+    if len(df.columns) == 1:
+        col_name = df.columns[0]
+        df[['kode', 'uraian']] = df[col_name].str.split(r'[,;]', n=1, expand=True)
+        df = df.drop(columns=[col_name])
+        
+    df['uraian'] = df['uraian'].astype(str).str.replace(r';$', '', regex=True).str.strip().fillna("")
+    df['kode'] = df['kode'].astype(str).str.strip().fillna("000")
+
+    # Membangun Jalur Hierarki untuk dibaca Groq
+    kode_dict = dict(zip(df['kode'], df['uraian']))
+    def bangun_hierarki(kode):
+        jalur = []
+        curr = str(kode).strip()
+        while curr:
+            if curr in kode_dict:
+                jalur.insert(0, kode_dict[curr]) 
+            if '.' in curr:
+                curr = curr.rsplit('.', 1)[0]
+            else:
+                if len(curr) == 3 and curr.endswith('00'): break 
+                elif len(curr) > 3: curr = curr[:-1]
+                elif len(curr) == 3:
+                    if curr.endswith('0'): curr = curr[0] + '00'
+                    else: curr = curr[0:2] + '0'
+                else: break
+        return " > ".join(jalur)
+    
+    df['uraian_lengkap'] = df['kode'].apply(bangun_hierarki)
+    return df
+
 # =====================================================================
 # MESIN UTAMA SIKAP (FULL-AI DUAL AGENT ARCHITECTURE)
 # Bebas Sastrawi, Bebas TF-IDF. 100% Nalar Murni Groq.
