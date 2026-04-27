@@ -222,6 +222,41 @@ def smart_classify(user_input, df, top_n=3):
         df['score'] = df['uraian_lengkap'].apply(lambda x: 1.0 if user_input.lower() in x.lower() else 0.0)
         top_fallback = df.sort_values('score', ascending=False).head(top_n)
         return [(idx, 0.5) for idx in top_fallback.index]
+
+# =====================================================================
+# FUNGSI TAMPILAN (UI HELPERS) - UNTUK MEMBUAT BADGE WARNA-WARNI
+# =====================================================================
+
+def get_badge_html(kode, uraian, level):
+    levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
+    label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
+    
+    # Warna-warna khas kearsipan (Merah, Biru, Hijau, Oranye)
+    warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C"]
+    warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
+    
+    indent = level * 30 
+    
+    return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
+           f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);'>" \
+           f"<strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
+           f"</span></div>"
+
+def get_hierarchy(kode_target, df):
+    # Fungsi ini memecah kode (misal 500.17.1) menjadi folder-folder pembentuknya
+    parts = str(kode_target).split('.')
+    hierarchy_list = []
+    current_code = ""
+
+    for i, part in enumerate(parts):
+        current_code = (current_code + "." + part) if current_code else part
+        match = df[df['kode'] == current_code]
+        uraian = match.iloc[0]['uraian'].title() if not match.empty else "Detail Klasifikasi"
+        html_string = get_badge_html(current_code, uraian, i)
+        hierarchy_list.append(html_string)
+    return hierarchy_list
+
+# =====================================================================
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
