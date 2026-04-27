@@ -86,109 +86,54 @@ except:
 
 client = Groq(api_key=api_key)
 
-# 2. Fungsi "Otak Ekstraktor"
+# 2. Fungsi "Otak Ekstraktor" (Versi Chain-of-Thought / Berpikir Mandiri)
 def ekstrak_inti_surat(teks_user):
-    # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
     prompt = f"""
-    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
-    
-    GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
-    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
-    2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian, KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang, jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
-    3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya (fasilitatif maupun substantif teknis daerah).
-    4. RESOLUSI JEBAKAN "ARSIP": 
-       - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
-       - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
-    5. RESOLUSI JEBAKAN ASET/BANGUNAN:
-       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
-       - JANGAN jadikan NAMA BANGUNAN/PROYEK (seperti Perpustakaan, Puskesmas, Sekolah, Jembatan) sebagai inti substansi.
+    Anda adalah Arsiparis Ahli Utama di Pemerintahan Daerah. Tugas Anda adalah mengekstrak inti substansi dari perihal surat untuk keperluan klasifikasi arsip.
 
-    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+    Perihal Surat: "{teks_user}"
+
+    Lakukan analisis mandiri langkah demi langkah:
+    1. Tentukan apa "Tindakan Administratif" dari surat ini (misal: permohonan, penyampaian, penerbitan, dll). Tindakan ini biasanya bisa diabaikan.
+    2. Tentukan apa "Objek Utama / Urusan Asli" yang sedang diselesaikan dalam surat ini (misal: sertifikat tanah, pencairan dana, disiplin pegawai).
+    3. Tentukan apakah ada "Keterangan Tujuan / Peruntukan / Lokasi" (misal: untuk pembangunan perpustakaan, di desa X, untuk proyek Y). Ingat, tujuan/peruntukan bukanlah urusan utama kearsipan, jadi harus diabaikan.
     
-    [KASUS KEUANGAN, ANGGARAN & ASET]
-    Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    Output: [INTI: rencana kerja anggaran, dpa]
-    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
-    Output: [INTI: pencairan dana, sp2d]
-    Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
-    Output: [INTI: berita acara serah terima, kendaraan dinas]
-    
-    [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
-    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: [INTI: penetapan angka kredit, jabatan fungsional]
-    Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    Output: [INTI: disiplin pegawai, pelanggaran kode etik]
-    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
-    Output: [INTI: tindak lanjut temuan, laporan hasil pemeriksaan]
-    Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
-    Output: [INTI: peraturan bupati, tata naskah dinas]
-    
-    [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
-    Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
-    Output: [INTI: dana bantuan operasional sekolah, bos]
-    Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
-    Output: [INTI: klaim bpjs kesehatan, pelayanan kesehatan rawat inap]
-    Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
-    Output: [INTI: rencana anggaran biaya, gambar kerja proyek]
-    
-    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
-    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: [INTI: daftar pemilih sementara, daftar penduduk potensial pemilih]
-    Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
-    Output: [INTI: pemantauan partai politik, organisasi kemasyarakatan]
-    Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
-    Output: [INTI: penertiban pedagang kaki lima, pembongkaran baliho]
-    
-    [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
-    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: [INTI: analisis mengenai dampak lingkungan, amdal, ukl upl]
-    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: [INTI: operasi pencarian pertolongan, sar, korban banjir]
-    Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
-    Output: [INTI: sertifikasi keamanan pangan segar asal tumbuhan, psat]
-    
-    [KASUS PEMERINTAHAN DESA & UMUM]
-    Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
-    Output: [INTI: dana desa, sengketa pemilihan kepala desa]
-    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: [INTI: perjalanan dinas]
-    Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-    Output: [INTI: jadwal retensi arsip, pemusnahan arsip inaktif]
-    
-    ATURAN MUTLAK OUTPUT:
-    Kamu WAJIB mengurung hasil akhirmu di dalam tanda kurung siku dengan format [INTI: (jawabanmu)].
-    DILARANG KERAS menulis kalimat pengantar apapun seperti "Jadi, outputnya adalah...".
-    
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
-    Input: "{teks_user}"
-    Output:
+    Setelah Anda menganalisis ketiga poin di atas, simpulkan HANYA "Objek Utama / Urusan Asli"-nya saja ke dalam 1 atau 2 frasa singkat yang padat.
+
+    Tuliskan analisis Anda, lalu WAJIB akhiri dengan kesimpulan di dalam format [INTI: kesimpulanmu].
+
+    Contoh output yang diharapkan:
+    Analisis:
+    1. Tindakan: Permohonan penerbitan
+    2. Objek Utama: Sertifikat tanah
+    3. Tujuan/Keterangan: Pembangunan perpustakaan umum (abaikan)
+    Maka urusan aslinya adalah sertifikat tanah.
+    [INTI: sertifikat tanah]
     """
     
     try:
+        # KITA GANTI KE MODEL 70B AGAR DIA BENAR-BENAR BISA BERPIKIR LOGIS
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
-            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
+            model="llama-3.3-70b-versatile", 
+            temperature=0.0, 
         )
-        # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
+        
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
-        # PISAU BEDAH PYTHON TERBARU: Sistem Brankas (Regex)
+        # PISAU BEDAH PYTHON: Mengambil harta karun dari brankas, membuang analisisnya
         import re
         pencarian = re.search(r'\[INTI:\s*(.*?)\]', inti_teks_mentah, re.IGNORECASE)
         
         if pencarian:
             inti_teks_bersih = pencarian.group(1).strip()
         else:
-            # Cadangan jika AI kebetulan lupa memakai tanda kurung siku
-            if ":" in inti_teks_mentah:
-                inti_teks_bersih = inti_teks_mentah.rsplit(":", 1)[-1].replace('**', '').strip()
-            else:
-                daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
-                inti_teks_bersih = daftar_baris[-1].replace('**', '').strip() if daftar_baris else inti_teks_mentah
+            # Fallback jika terjadi error format
+            inti_teks_bersih = teks_user
         
-        # Membersihkan tanda kutip, dan titik di akhir kalimat
+        # Pembersihan karakter aneh
         inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "").replace('.', '').strip()
+        
         return inti_teks_bersih
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
