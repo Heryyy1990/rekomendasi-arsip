@@ -366,7 +366,7 @@ def preprocess_text(text):
 # --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
 @st.cache_data
 def load_data():
-     try:
+    try:
         df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
     except:
         df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
