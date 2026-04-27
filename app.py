@@ -10,6 +10,50 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 from thefuzz import process, fuzz
 from groq import Groq
 
+
+# --- INISIALISASI SESSION STATE LOGIN & HISTORY ---
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+if 'role' not in st.session_state:
+    st.session_state['role'] = None
+if 'nama' not in st.session_state:
+    st.session_state['nama'] = ""
+if 'search_history' not in st.session_state:
+    st.session_state.search_history = []
+
+# --- FUNGSI VALIDASI LOGIN (BACA DARI PENGGUNA.CSV) ---
+def validasi_login(user, pwd):
+    try:
+        df_user = pd.read_csv('pengguna.csv', sep=',') # Pastikan Anda sudah membuat file pengguna.csv
+        user_data = df_user[(df_user['username'] == user) & (df_user['password'] == pwd)]
+        if not user_data.empty:
+            return True, user_data.iloc[0]['role'], user_data.iloc[0]['nama_lengkap']
+    except Exception as e:
+        st.error(f"File pengguna.csv tidak ditemukan atau format salah: {e}")
+    return False, None, None
+
+# --- HALAMAN LOGIN ---
+def halaman_login():
+    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sikap-subtitle'>Silakan Masuk untuk Melanjutkan</div>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.form("form_login"):
+            user_input = st.text_input("Username")
+            pwd_input = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Masuk", use_container_width=True)
+            
+            if submit:
+                is_valid, role, nama = validasi_login(user_input, pwd_input)
+                if is_valid:
+                    st.session_state['logged_in'] = True
+                    st.session_state['role'] = role
+                    st.session_state['nama'] = nama
+                    st.rerun()
+                else:
+                    st.error("Username atau Password salah!")
+
 # 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
 try:
     # Membaca dari Streamlit Secrets jika di Cloud
@@ -418,157 +462,191 @@ def smart_classify(user_input, df, top_n=3):
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
     
 # --- 4. ANTARMUKA UTAMA ---
+def halaman_utama():
+    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
 
-st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
-st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
-
-try:
-    df = load_data()
-    
-    with st.sidebar:
-        st.header("🕒 Riwayat Pencarian")
-        if st.session_state.search_history:
-            for riwayat in reversed(st.session_state.search_history[-10:]):
-                st.caption(f"• {riwayat}")
-            if st.button("Hapus Riwayat", use_container_width=True):
-                st.session_state.search_history = []
+    try:
+        df = load_data()
+        
+        with st.sidebar:
+            # --- TAMBAHAN: INFO USER & TOMBOL LOGOUT ---
+            st.success(f"Masuk sebagai:\n**{st.session_state['nama']}**")
+            if st.button("Keluar", use_container_width=True):
+                st.session_state['logged_in'] = False
+                st.session_state['role'] = None
+                st.session_state['nama'] = ""
                 st.rerun()
+            st.divider()
+            # -------------------------------------------
+
+            st.header("🕒 Riwayat Pencarian")
+            if st.session_state.search_history:
+                for riwayat in reversed(st.session_state.search_history[-10:]):
+                    st.caption(f"• {riwayat}")
+                if st.button("Hapus Riwayat", use_container_width=True):
+                    st.session_state.search_history = []
+                    st.rerun()
+            else:
+                st.info("Belum ada pencarian.")
+
+        # --- TAMBAHAN: LOGIKA TAB ADMIN ---
+        if st.session_state.get('role') == 'admin':
+            tab_ai, tab_katalog, tab_admin = st.tabs(["🤖 Pencarian AI (Cerdas)", "📂 Jelajah Kode Klasifikasi (Manual)", "⚙️ Panel Admin"])
         else:
-            st.info("Belum ada pencarian.")
+            tab_ai, tab_katalog = st.tabs(["🤖 Pencarian AI (Cerdas)", "📂 Jelajah Kode Klasifikasi (Manual)"])
 
-    tab_ai, tab_katalog = st.tabs(["🤖 Pencarian AI (Cerdas)", "📂 Jelajah Kode Klasifikasi (Manual)"])
+        # ================= TAB 1: PENCARIAN AI =================
+        with tab_ai:
+            st.write("Masukkan perihal atau deskripsi surat, biarkan kecerdasan buatan mencari kode klasifikasi yang paling tepat untuk Anda.")
+            user_input = st.text_input("📝 Perihal Surat / Dokumen:", placeholder="Contoh: permohonan cuti tahunan pegawai atau undangan rapat tapd...", key="input_ai")
 
-    # ================= TAB 1: PENCARIAN AI =================
-    with tab_ai:
-        st.write("Masukkan perihal atau deskripsi surat, biarkan kecerdasan buatan mencari kode klasifikasi yang paling tepat untuk Anda.")
-        user_input = st.text_input("📝 Perihal Surat / Dokumen:", placeholder="Contoh: permohonan cuti tahunan pegawai atau undangan rapat tapd...", key="input_ai")
+            if user_input:
+                if user_input not in st.session_state.search_history:
+                    st.session_state.search_history.append(user_input)
 
-        if user_input:
-            if user_input not in st.session_state.search_history:
-                st.session_state.search_history.append(user_input)
-
-            with st.spinner('Menganalisis bahasa dan mencari kecocokan...'):
-                results = smart_classify(user_input, df)
-                
-                if results:
-                    st.success("Analisis selesai! Berikut adalah rekomendasi kode untuk dokumen Anda:")
-                    pilihan_feedback = [] 
+                with st.spinner('Menganalisis bahasa dan mencari kecocokan...'):
+                    results = smart_classify(user_input, df)
                     
-                    for i, (idx, score) in enumerate(results):
-                        res = df.iloc[idx]
-                        pilihan_feedback.append(f"{res['kode']} - {res['uraian'].title()}")
+                    if results:
+                        st.success("Analisis selesai! Berikut adalah rekomendasi kode untuk dokumen Anda:")
+                        pilihan_feedback = [] 
                         
-                        with st.expander(f"🏅 Rekomendasi #{i+1}: Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                            st.markdown(f"**Uraian Akhir:** {res['uraian'].title()}")
-                            st.markdown("**Struktur Hierarki:**")
-                            hierarki = get_hierarchy(res['kode'], df)
-                            for h in hierarki:
-                                st.markdown(h, unsafe_allow_html=True)
-                    
-                    st.divider()
-                    
-                    st.markdown("#### 💡 Bantu SIKAP Menjadi Lebih Pintar")
-                    st.write("Dari rekomendasi di atas, mana kode yang paling tepat menurut Anda?")
-                    
-                    with st.form("feedback_form"):
-                        jawaban_benar = st.radio("Pilih kode yang benar:", pilihan_feedback)
-                        submit_feedback = st.form_submit_button("Kirim Masukan")
+                        for i, (idx, score) in enumerate(results):
+                            res = df.iloc[idx]
+                            pilihan_feedback.append(f"{res['kode']} - {res['uraian'].title()}")
+                            
+                            with st.expander(f"🏅 Rekomendasi #{i+1}: Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
+                                st.markdown(f"**Uraian Akhir:** {res['uraian'].title()}")
+                                st.markdown("**Struktur Hierarki:**")
+                                hierarki = get_hierarchy(res['kode'], df)
+                                for h in hierarki:
+                                    st.markdown(h, unsafe_allow_html=True)
                         
-                        if submit_feedback:
-                            waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            data_feedback = f"{waktu_sekarang} | Input: {user_input} | Terpilih: {jawaban_benar}\n"
-                            with open("feedback_ai_log.txt", "a", encoding="utf-8") as f:
-                                f.write(data_feedback)
-                            st.success(f"Terima kasih! Pilihan Anda telah disimpan untuk evaluasi AI ke depannya.")
-                else:
-                    st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
+                        st.divider()
+                        
+                        st.markdown("#### 💡 Bantu SIKAP Menjadi Lebih Pintar")
+                        st.write("Dari rekomendasi di atas, mana kode yang paling tepat menurut Anda?")
+                        
+                        with st.form("feedback_form"):
+                            jawaban_benar = st.radio("Pilih kode yang benar:", pilihan_feedback)
+                            submit_feedback = st.form_submit_button("Kirim Masukan")
+                            
+                            if submit_feedback:
+                                waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                data_feedback = f"{waktu_sekarang} | Input: {user_input} | Terpilih: {jawaban_benar}\n"
+                                with open("feedback_ai_log.txt", "a", encoding="utf-8") as f:
+                                    f.write(data_feedback)
+                                st.success(f"Terima kasih! Pilihan Anda telah disimpan untuk evaluasi AI ke depannya.")
+                    else:
+                        st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
 
-    # ================= TAB 2: JELAJAH KODE (ROLLBACK DENGAN FIX NATURAL SORTING) =================
-    with tab_katalog:
-        st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka isinya):")
-        
-        daftar_primer = [f"{i}00" for i in range(10)]
-        
-        for p in daftar_primer:
-            cek_df = df[df['kode'] == p]
-            uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
+        # ================= TAB 2: JELAJAH KODE =================
+        with tab_katalog:
+            st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka isinya):")
             
-            with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
+            daftar_primer = [f"{i}00" for i in range(10)]
+            
+            for p in daftar_primer:
+                cek_df = df[df['kode'] == p]
+                uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
                 
-                hasil_filter = df[df['kode'].str.startswith(p)]
-                
-                if not hasil_filter.empty:
-                    hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
+                with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
                     
-                    nodes = {}
-                    for _, row in hasil_filter.iterrows():
-                        k = str(row['kode']).strip()
-                        u = str(row['uraian']).title()
-                        nodes[k] = {'uraian': u, 'children': []}
+                    hasil_filter = df[df['kode'].str.startswith(p)]
+                    
+                    if not hasil_filter.empty:
+                        hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
                         
-                    for k in nodes:
-                        if k == p: continue 
-                        curr = k
-                        parent = None
-                        while True:
-                            if '.' in curr:
-                                curr = curr.rsplit('.', 1)[0]
-                            else:
-                                if len(curr) == 3 and curr.endswith('00'):
+                        nodes = {}
+                        for _, row in hasil_filter.iterrows():
+                            k = str(row['kode']).strip()
+                            u = str(row['uraian']).title()
+                            nodes[k] = {'uraian': u, 'children': []}
+                            
+                        for k in nodes:
+                            if k == p: continue 
+                            curr = k
+                            parent = None
+                            while True:
+                                if '.' in curr:
+                                    curr = curr.rsplit('.', 1)[0]
+                                else:
+                                    if len(curr) == 3 and curr.endswith('00'):
+                                        parent = curr
+                                        break
+                                    elif len(curr) > 3:
+                                        curr = curr[:-1]
+                                    elif len(curr) == 3:
+                                        if curr.endswith('0'): curr = curr[0] + '00'
+                                        else: curr = curr[0:2] + '0'
+                                    else:
+                                        break
+                                if curr in nodes:
                                     parent = curr
                                     break
-                                elif len(curr) > 3:
-                                    curr = curr[:-1]
-                                elif len(curr) == 3:
-                                    if curr.endswith('0'): curr = curr[0] + '00'
-                                    else: curr = curr[0:2] + '0'
-                                else:
-                                    break
-                            if curr in nodes:
-                                parent = curr
-                                break
-                        
-                        if not parent or parent not in nodes:
-                            parent = p
-                        
-                        if parent in nodes and parent != k:
-                            nodes[parent]['children'].append(k)
                             
-                    def render_tree(k):
-                        node = nodes[k]
-                        u = node['uraian']
-                        children = node['children']
+                            if not parent or parent not in nodes:
+                                parent = p
+                            
+                            if parent in nodes and parent != k:
+                                nodes[parent]['children'].append(k)
+                                
+                        def render_tree(k):
+                            node = nodes[k]
+                            u = node['uraian']
+                            children = node['children']
+                            
+                            children.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+                            
+                            titik_count = str(k).count('.')
+                            actual_level = titik_count if titik_count < 4 else 3
+                            
+                            warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
+                            warna_bg = warna_level[actual_level]
+                            
+                            levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
+                            label = levels_name[actual_level]
+                            
+                            html = ""
+                            if children:
+                                html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
+                                for c in children:
+                                    html += render_tree(c)
+                                html += '</div></details>'
+                            else:
+                                html += f'<div style="margin-bottom: 8px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></div>'
+                            return html
+                            
+                        if p in nodes:
+                            full_html = ""
+                            sorted_children = sorted(nodes[p]['children'], key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+                            for child_kode in sorted_children:
+                                full_html += render_tree(child_kode)
+                            st.markdown(full_html, unsafe_allow_html=True)
                         
-                        children.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
-                        
-                        titik_count = str(k).count('.')
-                        actual_level = titik_count if titik_count < 4 else 3
-                        
-                        warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
-                        warna_bg = warna_level[actual_level]
-                        
-                        levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
-                        label = levels_name[actual_level]
-                        
-                        html = ""
-                        if children:
-                            html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
-                            for c in children:
-                                html += render_tree(c)
-                            html += '</div></details>'
-                        else:
-                            html += f'<div style="margin-bottom: 8px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></div>'
-                        return html
-                        
-                    if p in nodes:
-                        full_html = ""
-                        sorted_children = sorted(nodes[p]['children'], key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
-                        for child_kode in sorted_children:
-                            full_html += render_tree(child_kode)
-                        st.markdown(full_html, unsafe_allow_html=True)
-                    
-                else:
-                    st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
+                    else:
+                        st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
 
-except Exception as e:
-    st.error(f"Terjadi kesalahan saat memuat data: {e}")
+        # ================= TAB 3: PANEL ADMIN (BARU) =================
+        if st.session_state.get('role') == 'admin':
+            with tab_admin:
+                st.header("⚙️ Panel Kontrol Administrator")
+                st.write("Selamat datang di halaman khusus Admin.")
+                
+                st.subheader("Daftar Pengguna")
+                try:
+                    df_user = pd.read_csv('pengguna.csv')
+                    st.dataframe(df_user, use_container_width=True)
+                except:
+                    st.warning("File pengguna.csv belum dibuat atau tidak ditemukan.")
+
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat memuat data: {e}")
+
+# --- 5. PENGATUR HALAMAN (ROUTER) ---
+if not st.session_state.get('logged_in', False):
+    # Memanggil fungsi halaman_login() yang harusnya sudah Anda letakkan di bagian atas file
+    halaman_login()
+else:
+    halaman_utama()
