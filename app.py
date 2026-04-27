@@ -86,100 +86,81 @@ except:
 
 client = Groq(api_key=api_key)
 
-# 2. Fungsi "Otak Ekstraktor"
-def ekstrak_inti_surat(teks_user):
-    # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
+# --- 2. FUNGSI "OTAK EKSTRAKTOR" (MURNI BERDASARKAN CSV SIKAP) ---
+def ekstrak_inti_surat_dan_primer(teks_user):
+    # KATALOG INI DISUSUN 100% BERDASARKAN DATA CSV ANDA
+    katalog_primer = """
+    000: UMUM (Ketatausahaan, Perlengkapan, Pengadaan, Perpustakaan, Kearsipan, Persandian, Perencanaan Pembangunan, Organisasi, Penelitian)
+    100: PEMERINTAHAN (Otonomi, Pemerintahan Umum, Hukum, Peraturan)
+    200: POLITIK (Kesbangpol, Pemilu)
+    300: KEAMANAN DAN KETERTIBAN (Satpol PP, Bencana, SAR)
+    400: KESEJAHTERAAN RAKYAT (Daerah Tertinggal, Pemberdayaan Perempuan/Anak, Pendidikan, Olahraga, Pemuda, Kebudayaan, Kesehatan, Agama, Sosial, Pemberdayaan Desa, Dukcapil, KB, Humas)
+    500: PEREKONOMIAN (Pangan, Perdagangan, Koperasi/UKM, Kelautan/Perikanan, Pertanian, Peternakan, Perkebunan, Perindustrian, Energi/ESDM, Perhubungan, Kominfo, Pariwisata, Statistik, Ketenagakerjaan, Penanaman Modal, Pertanahan/Sertifikat Tanah, Transmigrasi)
+    600: PEKERJAAN UMUM DAN KETENAGAKERJAAN (Pekerjaan Umum, Perumahan Rakyat, Tata Kota, Lingkungan Hidup)
+    700: PENGAWASAN (Pengawasan Internal, LHP, Audit)
+    800: KEPEGAWAIAN (SDM, ASN, Mutasi, Diklat)
+    900: KEUANGAN (Keuangan Daerah, APBD, Anggaran, Pajak Daerah)
+    """
+
     prompt = f"""
-    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
+    Anda adalah Arsiparis Ahli. Tugas Anda membedah perihal surat.
     
     GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
-    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
-    2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian, KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang, jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
-    3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya (fasilitatif maupun substantif teknis daerah).
-    4. RESOLUSI JEBAKAN "ARSIP": 
-       - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
-       - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
-    5. RESOLUSI JEBAKAN ASET/BANGUNAN:
-       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
-       - JANGAN jadikan NAMA BANGUNAN/PROYEK (seperti Perpustakaan, Puskesmas, Sekolah, Jembatan) sebagai inti substansi.
+    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, penerbitan).
+    2. HAPUS ENTITAS/LOKASI: Buang nama instansi, nama tempat, dan bangunan (contoh: perpustakaan, rumah sakit, puskesmas) jika itu sekadar lokasi/tujuan.
+    3. FOKUS 1 INTI UTAMA: Anda HANYA BOLEH menghasilkan TEPAT SATU (1) inti substansi. Jika ada urusan aset tanah/bangunan, fokus mutlak pada status hukumnya (Sertifikat Tanah).
 
-    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+    KATALOG PRIMER:
+    {katalog_primer}
     
-    [KASUS KEUANGAN, ANGGARAN & ASET]
+    BANK DATA CONTOH (WAJIB DITIRU 100%):
+    Input: "Permohonan penerbitan sertifikat tanah untuk pembangunan perpustakaan umum"
+    INTI: sertifikat tanah
+    PRIMER: 500
+    
     Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    Output: rencana kerja anggaran, dpa
-    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
-    Output: pencairan dana, sp2d
-    Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
-    Output: berita acara serah terima, kendaraan dinas
+    INTI: rencana kerja anggaran dpa
+    PRIMER: 900
     
-    [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
-    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: penetapan angka kredit, jabatan fungsional
-    Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    Output: disiplin pegawai, pelanggaran kode etik
-    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
-    Output: tindak lanjut temuan, laporan hasil pemeriksaan
-    Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
-    Output: peraturan bupati, tata naskah dinas
-    
-    [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
     Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
-    Output: dana bantuan operasional sekolah, bos
-    Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
-    Output: klaim bpjs kesehatan, pelayanan kesehatan rawat inap
-    Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
-    Output: rencana anggaran biaya, gambar kerja proyek
+    INTI: dana bantuan operasional sekolah bos
+    PRIMER: 400, 900
     
-    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
-    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
-    Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
-    Output: pemantauan partai politik, organisasi kemasyarakatan
-    Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
-    Output: penertiban pedagang kaki lima, pembongkaran baliho
-    
-    [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
-    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
-    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: operasi pencarian pertolongan, sar, korban banjir
-    Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
-    Output: sertifikasi keamanan pangan segar asal tumbuhan, psat
-    
-    [KASUS PEMERINTAHAN DESA & UMUM]
-    Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
-    Output: dana desa, sengketa pemilihan kepala desa
-    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: perjalanan dinas
-    Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-    Output: jadwal retensi arsip, pemusnahan arsip inaktif
-    
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
+    SEKARANG, KERJAKAN SURAT INI:
     Input: "{teks_user}"
-    Output:
+    
+    ATURAN BALASAN (HANYA BALAS 2 BARIS INI TANPA BASA-BASI):
+    INTI: [tepat 1 frasa inti surat]
+    PRIMER: [1 atau maksimal 3 digit ratusan dipisah koma, pilih yang paling akurat]
     """
     
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
-            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
+            model="llama-3.1-8b-instant", 
+            temperature=0.0, 
         )
-       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
-        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
+        balasan = chat_completion.choices[0].message.content.strip()
         
-        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
-        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
-        daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
-        inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
+        inti_surat = teks_user
+        primer_list = []
         
-        # Membersihkan tanda kutip
-        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
-        return inti_teks_bersih
+        for baris in balasan.split('\n'):
+            if baris.startswith('INTI:'):
+                inti_surat = baris.replace('INTI:', '').strip()
+                inti_surat = inti_surat.replace('"', '').replace("'", "")
+            elif baris.startswith('PRIMER:'):
+                angka_mentah = baris.replace('PRIMER:', '').strip()
+                primer_list = re.findall(r'\b\d00\b', angka_mentah)
+                
+        if not primer_list:
+            primer_list = ['000', '100', '200', '300', '400', '500', '600', '700', '800', '900']
+            
+        return inti_surat, primer_list
+
     except Exception as e:
-        st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
-        return teks_user
+        st.error(f"🚨 ERROR GROQ: {e}")
+        return teks_user, ['000', '100', '200', '300', '400', '500', '600', '700', '800', '900']
         
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
