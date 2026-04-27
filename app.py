@@ -99,6 +99,9 @@ def ekstrak_inti_surat(teks_user):
     4. RESOLUSI JEBAKAN "ARSIP": 
        - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
        - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
+    5. RESOLUSI JEBAKAN ASET/BANGUNAN:
+       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
+       - JANGAN jadikan NAMA BANGUNAN/PROYEK (seperti Perpustakaan, Puskesmas, Sekolah, Jembatan) sebagai inti substansi.
 
     BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
     
@@ -455,19 +458,16 @@ def smart_classify(user_input, df, top_n=3):
     
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
-        fuzzy_score = fuzz.partial_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
+        # GANTI partial_ratio MENJADI token_set_ratio
+        fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
         
         # --- TAMBAHAN: DEPTH BONUS (BOBOT KEDALAMAN) ---
         kode_item = str(df.iloc[idx]['kode'])
-        # Menghitung jumlah titik untuk mengetahui level hierarki (Induk=0, Anak=1, Cucu=2, dst)
         jumlah_titik = kode_item.count('.')
-        
-        # Berikan bonus matematis 5% (0.05) untuk setiap level ke bawah
-        # Ini MEMAKSA mesin mengangkat kode turunan yang spesifik ke dalam Top 10
         depth_bonus = jumlah_titik * 0.05 
         
-        # Gabungkan skor (TF-IDF + Fuzzy + Depth Bonus)
-        combined_score = (score * 0.35) + (fuzzy_score * 0.55) + depth_bonus 
+        # Ubah porsi bobotnya: Berikan kekuatan lebih besar pada TF-IDF (Score)
+        combined_score = (score * 0.70) + (fuzzy_score * 0.30) + depth_bonus 
         
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
