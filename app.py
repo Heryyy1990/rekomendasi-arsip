@@ -107,53 +107,57 @@ def ekstrak_inti_surat(teks_user):
     
     [KASUS KEUANGAN, ANGGARAN & ASET]
     Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    Output: rencana kerja anggaran, dpa
+    Output: [INTI: rencana kerja anggaran, dpa]
     Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
-    Output: pencairan dana, sp2d
+    Output: [INTI: pencairan dana, sp2d]
     Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
-    Output: berita acara serah terima, kendaraan dinas
+    Output: [INTI: berita acara serah terima, kendaraan dinas]
     
     [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
     Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: penetapan angka kredit, jabatan fungsional
+    Output: [INTI: penetapan angka kredit, jabatan fungsional]
     Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    Output: disiplin pegawai, pelanggaran kode etik
+    Output: [INTI: disiplin pegawai, pelanggaran kode etik]
     Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
-    Output: tindak lanjut temuan, laporan hasil pemeriksaan
+    Output: [INTI: tindak lanjut temuan, laporan hasil pemeriksaan]
     Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
-    Output: peraturan bupati, tata naskah dinas
+    Output: [INTI: peraturan bupati, tata naskah dinas]
     
     [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
     Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
-    Output: dana bantuan operasional sekolah, bos
+    Output: [INTI: dana bantuan operasional sekolah, bos]
     Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
-    Output: klaim bpjs kesehatan, pelayanan kesehatan rawat inap
+    Output: [INTI: klaim bpjs kesehatan, pelayanan kesehatan rawat inap]
     Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
-    Output: rencana anggaran biaya, gambar kerja proyek
+    Output: [INTI: rencana anggaran biaya, gambar kerja proyek]
     
     [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
     Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
+    Output: [INTI: daftar pemilih sementara, daftar penduduk potensial pemilih]
     Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
-    Output: pemantauan partai politik, organisasi kemasyarakatan
+    Output: [INTI: pemantauan partai politik, organisasi kemasyarakatan]
     Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
-    Output: penertiban pedagang kaki lima, pembongkaran baliho
+    Output: [INTI: penertiban pedagang kaki lima, pembongkaran baliho]
     
     [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
     Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
+    Output: [INTI: analisis mengenai dampak lingkungan, amdal, ukl upl]
     Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: operasi pencarian pertolongan, sar, korban banjir
+    Output: [INTI: operasi pencarian pertolongan, sar, korban banjir]
     Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
-    Output: sertifikasi keamanan pangan segar asal tumbuhan, psat
+    Output: [INTI: sertifikasi keamanan pangan segar asal tumbuhan, psat]
     
     [KASUS PEMERINTAHAN DESA & UMUM]
     Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
-    Output: dana desa, sengketa pemilihan kepala desa
+    Output: [INTI: dana desa, sengketa pemilihan kepala desa]
     Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: perjalanan dinas
+    Output: [INTI: perjalanan dinas]
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-    Output: jadwal retensi arsip, pemusnahan arsip inaktif
+    Output: [INTI: jadwal retensi arsip, pemusnahan arsip inaktif]
+    
+    ATURAN MUTLAK OUTPUT:
+    Kamu WAJIB mengurung hasil akhirmu di dalam tanda kurung siku dengan format [INTI: (jawabanmu)].
+    DILARANG KERAS menulis kalimat pengantar apapun seperti "Jadi, outputnya adalah...".
     
     SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
     Input: "{teks_user}"
@@ -166,17 +170,22 @@ def ekstrak_inti_surat(teks_user):
             model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
             temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
-       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
+        # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
-       # PISAU BEDAH PYTHON TERBARU: Mengambil teks hanya setelah tanda titik dua (:)
-        if ":" in inti_teks_mentah:
-            # rsplit(":", 1) memotong teks berdasarkan tanda ":" yang paling TERAKHIR
-            inti_teks_bersih = inti_teks_mentah.rsplit(":", 1)[-1].replace('**', '').strip()
+        # PISAU BEDAH PYTHON TERBARU: Sistem Brankas (Regex)
+        import re
+        pencarian = re.search(r'\[INTI:\s*(.*?)\]', inti_teks_mentah, re.IGNORECASE)
+        
+        if pencarian:
+            inti_teks_bersih = pencarian.group(1).strip()
         else:
-            # Cadangan jika AI kebetulan tidak memakai tanda titik dua
-            daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
-            inti_teks_bersih = daftar_baris[-1].replace('**', '').strip() if daftar_baris else inti_teks_mentah
+            # Cadangan jika AI kebetulan lupa memakai tanda kurung siku
+            if ":" in inti_teks_mentah:
+                inti_teks_bersih = inti_teks_mentah.rsplit(":", 1)[-1].replace('**', '').strip()
+            else:
+                daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
+                inti_teks_bersih = daftar_baris[-1].replace('**', '').strip() if daftar_baris else inti_teks_mentah
         
         # Membersihkan tanda kutip, dan titik di akhir kalimat
         inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "").replace('.', '').strip()
