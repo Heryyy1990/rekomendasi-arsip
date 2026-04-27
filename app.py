@@ -86,9 +86,30 @@ except:
 
 client = Groq(api_key=api_key)
 
-# 2. Fungsi "Otak Ekstraktor" (Versi Chain-of-Thought / Berpikir Mandiri)
+# 2. Fungsi "Otak Ekstraktor" (Dengan Fitur Jalur Tol / Bypass)
 def ekstrak_inti_surat(teks_user):
+    teks_lower = str(teks_user).lower()
+    
+    # ========================================================
+    # 🚨 JALUR TOL (RULE-BASED ROUTING)
+    # Jika Python menemukan kata ini, langsung berikan nomenklatur
+    # resminya tanpa perlu bertanya dan membuang kuota Groq!
+    # ========================================================
+    if "pinjam" in teks_lower and "barang" in teks_lower:
+        return "barang milik daerah"
+    elif "sertifikat" in teks_lower and "tanah" in teks_lower:
+        return "pertanahan"
+    elif "perpustakaan" in teks_lower:
+        # Mencegah perpustakaan masuk ke urusan tanah/bangunan
+        return "perpustakaan"
+    elif "cuti" in teks_lower:
+        return "cuti pegawai"
+    # Anda bisa menambahkan elif lain di sini untuk kasus yang sering error
+    # ========================================================
+
+    # Jika tidak lewat jalur tol, baru kita bangunkan Groq
     prompt = f"""
+    Anda adalah Arsiparis Ahli Utama di Pemerintahan Daerah. Tugas Anda mengekstrak perihal surat dan MENERJEMAHKANNYA menjadi "Nomenklatur Kearsipan Resmi" (HANYA 1 FRASA).
     Anda adalah Arsiparis Ahli Utama di Pemerintahan Daerah. Tugas Anda adalah mengekstrak inti substansi dari perihal surat untuk keperluan klasifikasi arsip.
 
     Perihal Surat: "{teks_user}"
