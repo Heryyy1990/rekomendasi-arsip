@@ -101,6 +101,10 @@ def ekstrak_inti_surat(teks_user):
     5. RESOLUSI JEBAKAN ASET/BANGUNAN:
        - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
        - JANGAN jadikan NAMA BANGUNAN/PROYEK (seperti Perpustakaan, Puskesmas, Sekolah, Jembatan) sebagai inti substansi.
+    6. SERTAKAN BIDANG URUSAN: Pastikan output mengandung kata yang menunjukkan
+       BIDANG urusan, bukan hanya nama kegiatan.
+       SALAH: "sosialisasi" / "rapat" / "bimtek"
+       BENAR: "sosialisasi anggaran daerah" / "bimtek kearsipan" / "rapat koordinasi kepegawaian"
 
     BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
     
@@ -362,10 +366,10 @@ def preprocess_text(text):
 # --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str)
+     try:
+        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=',', on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
     except:
-        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str)
+        df = pd.read_csv('klasifikasi_arsip_emas.csv', sep=';', on_bad_lines='skip', dtype=str, encoding='utf-8-sig')
     
     if len(df.columns) == 1:
         col_name = df.columns[0]
@@ -379,7 +383,7 @@ def load_data():
         df.columns = kolom_baru
     
     df['uraian'] = df['uraian'].astype(str).str.replace(r';$', '', regex=True).str.strip().fillna("")
-    df['kode'] = df['kode'].astype(str).str.strip().fillna("000")
+    df['kode'] = df['kode'].astype(str).str.strip().str.lstrip('\ufeff').fillna("000")
 
     kode_dict = dict(zip(df['kode'], df['uraian']))
     
