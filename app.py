@@ -699,13 +699,13 @@ def halaman_utama():
     st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
 
     try:
-       df = load_data()
+        df = load_data()
 
         if st.checkbox("🔍 Lihat konteks rumpun yang dibaca sistem"):
             konteks = bangun_konteks_rumpun(df)
             for k, v in konteks.items():
                 st.write(f"**{k}**: {v}")
-        
+
         with st.sidebar:
             # --- TAMBAHAN: INFO USER & TOMBOL LOGOUT ---
             st.success(f"Masuk sebagai:\n**{st.session_state['nama']}**")
