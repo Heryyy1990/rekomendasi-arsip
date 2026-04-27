@@ -451,10 +451,6 @@ def get_hierarchy(kode_target, df):
     return hierarchy_list
 
 def bangun_konteks_rumpun(df):
-    """
-    Baca isi database sendiri untuk membuat deskripsi kaya tiap rumpun.
-    LLM tidak perlu 'nebak' lagi — dia dikasih contoh nyata dari dalam DB.
-    """
     konteks = {}
     for i in range(10):
         kode_rumpun = f"{i}00"
@@ -463,15 +459,13 @@ def bangun_konteks_rumpun(df):
             continue
         
         nama_rumpun = baris_rumpun.iloc[0]['uraian'].title()
-        digit_awal = str(i)
         
-        # Ambil kode anak langsung (sekunder, tanpa titik)
+        # Cari kode sekunder langsung: polanya "000.1", "000.2", dst
+        # Regex: diawali kode rumpun + titik + angka, tanpa titik lagi setelahnya
+        pola = rf'^{re.escape(kode_rumpun)}\.\d+$'
         anak = df[
-            (df['kode'].str.startswith(digit_awal)) &
-            (df['kode'] != kode_rumpun) &
-            (~df['kode'].str.contains(r'\.', regex=True)) &
-            (df['kode'].str.len() <= 3)
-        ]['uraian'].head(6).tolist()
+            df['kode'].str.match(pola, na=False)
+        ]['uraian'].head(8).tolist()
         
         contoh_str = ", ".join(anak) if anak else "—"
         konteks[kode_rumpun] = f"{nama_rumpun} | Berisi: {contoh_str}"
@@ -523,10 +517,9 @@ def navigasi_subkategori(inti_surat, df_rumpun):
     Level 2 Corong: Setelah dapat rumpun, persempit ke sub-kategori.
     LLM memilih dari ~20-40 opsi, bukan 300.
     """
-    # Ambil hanya kode sekunder (tanpa titik)
+   # Ambil kode yang punya TEPAT SATU titik = level sekunder langsung
     kode_sekunder = df_rumpun[
-        (~df_rumpun['kode'].str.contains(r'\.', regex=True)) &
-        (df_rumpun['kode'].str.len() > 1)
+        df_rumpun['kode'].str.count(r'\.') == 1
     ].copy()
     
     if len(kode_sekunder) <= 5:
