@@ -32,6 +32,28 @@ def validasi_login(user, pwd):
         st.error(f"File pengguna.csv tidak ditemukan atau format salah: {e}")
     return False, None, None
 
+# --- FUNGSI RIWAYAT PERMANEN (CSV) ---
+def simpan_riwayat_csv(nama_user, pencarian):
+    file_riwayat = 'riwayat_pencarian.csv'
+    waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'pencarian': [pencarian]})
+    
+    if not os.path.isfile(file_riwayat):
+        df_baru.to_csv(file_riwayat, index=False)
+    else:
+        df_baru.to_csv(file_riwayat, mode='a', header=False, index=False)
+
+def baca_riwayat_csv(nama_user):
+    file_riwayat = 'riwayat_pencarian.csv'
+    if os.path.isfile(file_riwayat):
+        try:
+            df_riwayat = pd.read_csv(file_riwayat)
+            riwayat_user = df_riwayat[df_riwayat['nama'] == nama_user]['pencarian'].tolist()
+            return list(dict.fromkeys(riwayat_user)) # Hapus duplikat
+        except:
+            return []
+    return []
+
 # --- HALAMAN LOGIN ---
 def halaman_login():
     st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
@@ -481,10 +503,15 @@ def halaman_utama():
             # -------------------------------------------
 
             st.header("🕒 Riwayat Pencarian")
+            
+            # Tarik data dari CSV saat pertama kali masuk
+            if not st.session_state.search_history:
+                st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
+
             if st.session_state.search_history:
                 for riwayat in reversed(st.session_state.search_history[-10:]):
                     st.caption(f"• {riwayat}")
-                if st.button("Hapus Riwayat", use_container_width=True):
+                if st.button("Sembunyikan Riwayat", use_container_width=True):
                     st.session_state.search_history = []
                     st.rerun()
             else:
@@ -501,9 +528,11 @@ def halaman_utama():
             st.write("Masukkan perihal atau deskripsi surat, biarkan kecerdasan buatan mencari kode klasifikasi yang paling tepat untuk Anda.")
             user_input = st.text_input("📝 Perihal Surat / Dokumen:", placeholder="Contoh: permohonan cuti tahunan pegawai atau undangan rapat tapd...", key="input_ai")
 
-            if user_input:
+           if user_input:
                 if user_input not in st.session_state.search_history:
                     st.session_state.search_history.append(user_input)
+                    # Simpan ke CSV secara permanen
+                    simpan_riwayat_csv(st.session_state['nama'], user_input)
 
                 with st.spinner('Menganalisis bahasa dan mencari kecocokan...'):
                     results = smart_classify(user_input, df)
