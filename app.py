@@ -209,7 +209,7 @@ def get_hierarchy(kode_target, df):
 def panggil_groq_json(prompt_text):
     chat_completion = client_groq.chat.completions.create(
         messages=[{"role": "user", "content": prompt_text}],
-        model="llama3-8b-8192", 
+        model="llama-3.1-8b-instant", 
         response_format={"type": "json_object"},
         temperature=0.1
     )
