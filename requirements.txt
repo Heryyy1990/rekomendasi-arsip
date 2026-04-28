@@ -1,8 +1,8 @@
-streamlit==1.32.0
-pandas==2.2.1
-numpy==1.26.4
-groq==0.4.2
-google-generativeai==0.4.1
-scikit-learn==1.4.1.post1
-thefuzz==0.22.1
-python-Levenshtein==0.25.0
+streamlit
+pandas
+numpy
+groq
+google-generativeai
+scikit-learn
+thefuzz
+Levenshtein
