@@ -136,14 +136,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- INISIALISASI NLP (Sastrawi) ---
-@st.cache_resource
-def init_nlp():
-    stemmer = StemmerFactory().create_stemmer()
-    remover = StopWordRemoverFactory().create_stop_word_remover()
-    return stemmer, remover
-
-stemmer, remover = init_nlp()
 
 # --- KAMUS JARGON & SINGKATAN BIROKRASI (ASLI 100%) ---
 kamus_birokrasi = {
@@ -250,15 +242,6 @@ def terjemahkan_singkatan(text):
     kata_kata = str(text).lower().split()
     kata_terjemahan = [kamus_birokrasi.get(kata, kata) for kata in kata_kata]
     return " ".join(kata_terjemahan)
-
-# --- FUNGSI PEMBERSIH UTAMA ---
-def preprocess_text(text):
-    text = str(text).lower()
-    text = terjemahkan_singkatan(text)
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    text = remover.remove(text)
-    text = stemmer.stem(text)
-    return text
 
 # --- 2. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI & ANTI-LIMIT EMBEDDING) ---
 @st.cache_data
