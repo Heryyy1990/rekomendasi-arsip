@@ -168,7 +168,7 @@ def load_data():
             batch_texts = df['teks_embedding'].iloc[i:i+batch_size].tolist()
             try:
                 response = genai.embed_content(
-                    model="models/text-embedding-004",
+                    model="models/gemini-embedding-2",
                     content=batch_texts
                 )
                 all_embeddings.extend(response['embedding'])
@@ -243,7 +243,7 @@ def smart_classify(isi_surat, df):
         
         # TAHAP 2: EMBEDDING QUERY
         st.write("Mengubah makna menjadi vektor...")
-        res_embed = genai.embed_content(model="models/text-embedding-004", content=teks_query)
+        res_embed = genai.embed_content(model="models/gemini-embedding-2", content=teks_query)
         query_embed = res_embed['embedding']
         
         # TAHAP 3: CARI & VALIDASI PRIMER
