@@ -135,31 +135,49 @@ st.markdown("""
 @st.cache_data
 def load_data():
     try:
+        # Coba baca dengan koma
         df = pd.read_csv('klasifikasi_enriched.csv', sep=',', on_bad_lines='skip', dtype=str)
-    except:
-        st.error("Gagal memuat CSV. Pastikan nama file klasifikasi_enriched.csv sudah benar.")
+        # Jika semua data menumpuk di 1 kolom, berarti Excel menggunakan titik-koma (;)
+        if len(df.columns) == 1:
+            df = pd.read_csv('klasifikasi_enriched.csv', sep=';', on_bad_lines='skip', dtype=str)
+    except Exception as e:
+        st.error(f"Gagal memuat CSV. Error: {e}")
         return pd.DataFrame()
     
-    # Bersihkan NaN
+    # --- MENGEMBALIKAN FITUR "SABUK PENGAMAN" DARI KODE LAMA ANDA ---
+    # Jika ada masalah pada judul kolom Excel, kita paksa kolom 1 jadi 'kode' dan kolom 2 jadi 'uraian'
+    if len(df.columns) >= 2:
+        kolom_baru = list(df.columns)
+        kolom_baru[0] = 'kode'
+        kolom_baru[1] = 'uraian'
+        df.columns = kolom_baru
+        
+    df['uraian'] = df['uraian'].astype(str).str.replace(r';$', '', regex=True).str.strip().fillna("")
+    df['kode'] = df['kode'].astype(str).str.strip().fillna("000")
     df = df.fillna("")
     
-    # 1. Bangun Teks Super untuk Embedding
+    # --- LOGIKA BARU UNTUK AI GEMINI ---
     def gabung_teks(row):
         teks = f"Uraian: {row.get('uraian', '')}. "
-        if 'penjelasan' in row and row['penjelasan']: teks += f"Penjelasan: {row['penjelasan']}. "
-        if 'konteks' in row and row['konteks']: teks += f"Konteks: {row['konteks']}. "
-        if 'sinonim' in row and row['sinonim']: teks += f"Sinonim: {row['sinonim']}. "
-        if 'contoh_surat' in row and row['contoh_surat']: teks += f"Contoh Surat: {row['contoh_surat']}."
+        # Gunakan get() yang lebih aman jika kolom penjelas tidak sengaja terhapus di Excel
+        if 'penjelasan' in df.columns and row.get('penjelasan'): teks += f"Penjelasan: {row['penjelasan']}. "
+        if 'konteks' in df.columns and row.get('konteks'): teks += f"Konteks: {row['konteks']}. "
+        if 'sinonim' in df.columns and row.get('sinonim'): teks += f"Sinonim: {row['sinonim']}. "
+        if 'contoh_surat' in df.columns and row.get('contoh_surat'): teks += f"Contoh Surat: {row['contoh_surat']}."
         return teks
     
     df['teks_embedding'] = df.apply(gabung_teks, axis=1)
 
-    # 2. Cek apakah Embedding sudah pernah dibuat dan disimpan
+    # Cek apakah memori AI sudah ada
     if os.path.exists('embeddings.npy'):
         embeddings_matrix = np.load('embeddings.npy')
+        # Sabuk pengaman ke-2: Jika Anda menambah baris di Excel, AI otomatis sadar dan reset ingatan
+        if len(embeddings_matrix) != len(df):
+            os.remove('embeddings.npy')
+            st.warning("Perubahan jumlah baris CSV terdeteksi! Menyesuaikan ulang memori... Silakan Refresh (F5).")
+            st.stop()
         df['embedding'] = list(embeddings_matrix)
     else:
-        # Jika belum, panggil Gemini untuk memproses semua baris (Batch Processing)
         st.warning("⚠️ Membangun database kecerdasan untuk pertama kali. Mohon tunggu beberapa detik...")
         batch_size = 100
         all_embeddings = []
@@ -172,15 +190,15 @@ def load_data():
                     content=batch_texts
                 )
                 all_embeddings.extend(response['embedding'])
-                time.sleep(1) # Jeda aman
+                time.sleep(1) # Jeda aman anti-blokir
             except Exception as e:
                 st.error(f"Gagal melakukan embedding: {e}")
                 
         if all_embeddings:
             embeddings_matrix = np.array(all_embeddings)
-            np.save('embeddings.npy', embeddings_matrix) # Simpan agar tidak perlu API lagi besok
+            np.save('embeddings.npy', embeddings_matrix) 
             df['embedding'] = list(embeddings_matrix)
-            st.success("Database berhasil diperkaya!")
+            st.success("Database berhasil diperkaya! Silakan mulai pencarian surat.")
             
     return df
 
