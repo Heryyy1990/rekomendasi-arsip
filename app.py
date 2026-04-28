@@ -247,29 +247,18 @@ def cari_top_k(query_embed, df_target, k=3):
 
 import time
 
-# --- 1. MESIN PENALARAN BARU (Pengganti Groq) ---
-def panggil_gemini_json(prompt_text):
-    model = genai.GenerativeModel(
-        model_name="models/gemini-2.5-flash",
-        generation_config={
-            "response_mime_type": "application/json", # Garansi tidak ada teks "sampah"
-            "temperature": 0.1
-        }
-    )
-    response = model.generate_content(prompt_text)
-    return json.loads(response.text)
-
-# --- 2. FUNGSI KLASIFIKASI (Murni Gemini) ---
 def smart_classify(isi_surat, df):
     try:
-        # TAHAP 1: EKSTRAKSI (Insting Arsiparis Tetap Dipertahankan)
+        # ==========================================
+        # TAHAP 1 & 2: EKSTRAKSI & VEKTORISASI
+        # ==========================================
         st.write("Mengekstrak inti surat...")
         prompt_ekstrak = f"""Anda adalah Arsiparis Ahli di instansi pemerintah. Analisis surat berikut.
         ATURAN MUTLAK EKSTRAKSI:
         1. ABAIKAN KATA PENGANTAR: Buang kata "Penyampaian", "Pengantar", "Permohonan", "Undangan".
         2. ABAIKAN LOKASI/OBJEK FISIK: Jangan jadikan "Gedung", "Perpustakaan", atau "Puskesmas" sebagai inti jika suratnya tentang perizinan atau tanah.
-        3. ABAIKAN SUMBER DANA: Abaikan kata "DAK", "APBD", "BOS" kecuali surat tersebut MURNI membahas pencairan uang/SP2D.
-        4. HIERARKI DOKUMEN: Jika ada kata "Sertifikat Tanah" atau "Aset Lahan", maka inti surat ADALAH PERTANAHAN, BUKAN BAST/Hukum hibahnya.
+        3. ABAIKAN SUMBER DANA: Abaikan kata "DAK", "APBD", "BOS".
+        4. HIERARKI DOKUMEN: Jika ada kata "Sertifikat Tanah" atau "Aset Lahan", maka inti surat ADALAH PERTANAHAN, BUKAN BAST.
         
         Surat: {isi_surat}
         Output JSON format: {{"inti_surat": "...", "kata_kunci": ["...", "..."]}}"""
@@ -278,9 +267,8 @@ def smart_classify(isi_surat, df):
         inti = ekstrak.get('inti_surat', isi_surat)
         st.info(f"**Inti Surat yang Dianalisis:** {inti}")
         
-        time.sleep(1.5) # Jeda aman anti-limit
+        time.sleep(1.5) 
         
-        # TAHAP 2: PENCARIAN VEKTOR (Tetap menggunakan gemini-embedding-2)
         st.write("Mengubah makna menjadi vektor...")
         res_embed = genai.embed_content(model="models/gemini-embedding-2", content=inti)
         vektor_query = res_embed['embedding']
@@ -291,49 +279,80 @@ def smart_classify(isi_surat, df):
         vektor_db = np.array(df['embedding'].tolist())
         df['skor'] = cosine_similarity([vektor_query], vektor_db)[0]
         
-        time.sleep(1.5) # Jeda aman anti-limit
+        df_sorted = df.sort_values(by='skor', ascending=False)
+        time.sleep(1.5)
 
-        # TAHAP 3: BEDAH PRIMER
-        st.write("🔍 Membedah tingkat Primer...")
-        df_primer = df[df['kode'].str.endswith('00')].nlargest(3, 'skor')
-        pilihan_primer = df_primer[['kode', 'uraian']].to_dict('records')
+        # ==========================================
+        # TAHAP 3: BEDAH 4 HIERARKI BERJENJANG (BERBASIS TITIK)
+        # ==========================================
         
-        prompt_primer = f"""Pilih 1 kode Primer yang paling akurat untuk: "{inti}". 
-        Pilihan: {pilihan_primer}. Output JSON: {{"kode": "..."}}"""
+        # --- TINGKAT 1: PRIMER ---
+        st.write("🔍 Membedah tingkat Primer...")
+        # Primer adalah kode dasar yang TIDAK memiliki titik (contoh: 100, 500, 900)
+        df_primer = df_sorted[~df_sorted['kode'].str.contains(r'\.', na=False)].head(3)
+        if df_primer.empty: 
+            df_primer = df_sorted.head(3) # Fallback aman
+            
+        pilihan_primer = df_primer[['kode', 'uraian']].to_dict('records')
+        prompt_primer = f"Pilih 1 kode Primer yang paling akurat untuk: '{inti}'. Pilihan: {pilihan_primer}. Output JSON: {{\"kode\": \"...\"}}"
         
         hasil_primer = panggil_gemini_json(prompt_primer)
-        kode_primer = hasil_primer.get('kode', pilihan_primer[0]['kode'])
-        uraian_primer = df[df['kode'] == kode_primer]['uraian'].values[0]
+        kode_terakhir = hasil_primer.get('kode', pilihan_primer[0]['kode'])
+        uraian_terakhir = df[df['kode'] == kode_terakhir]['uraian'].values[0]
         
-        st.success(f"📁 **{kode_primer}** | {uraian_primer} (Primer)")
+        st.success(f"📁 **{kode_terakhir}** | {uraian_terakhir} (Primer)")
         
-        time.sleep(1.5) # Jeda aman anti-limit
-
-        # TAHAP 4: BEDAH SEKUNDER
-        st.write("🔍 Membedah tingkat Sekunder...")
-        prefix_sekunder = kode_primer[:1] 
-        df_sekunder = df[(df['kode'].str.startswith(prefix_sekunder)) & (~df['kode'].str.endswith('00')) & (df['kode'].str.len() <= 6)]
+        # --- ITERASI TINGKAT 2, 3, 4 (Sekunder, Tersier, Keempat) ---
+        tingkatan = ["Sekunder", "Tersier", "Keempat"]
         
-        if df_sekunder.empty:
-            return kode_primer, uraian_primer
+        for tingkat in tingkatan:
+            time.sleep(1.5)
+            st.write(f"🔍 Membedah tingkat {tingkat}...")
             
-        df_sekunder = df_sekunder.nlargest(3, 'skor')
-        pilihan_sekunder = df_sekunder[['kode', 'uraian']].to_dict('records')
-        
-        prompt_sekunder = f"""Pilih 1 kode Sekunder turunan dari {kode_primer} yang paling akurat untuk: "{inti}". 
-        Pilihan: {pilihan_sekunder}. Output JSON: {{"kode": "..."}}"""
-        
-        hasil_sekunder = panggil_gemini_json(prompt_sekunder)
-        kode_sekunder = hasil_sekunder.get('kode', pilihan_sekunder[0]['kode'])
-        uraian_sekunder = df[df['kode'] == kode_sekunder]['uraian'].values[0]
-        
-        st.success(f"📂 **{kode_sekunder}** | {uraian_sekunder} (Sekunder)")
-        
-        return kode_sekunder, uraian_sekunder
+            # LOGIKA PENCARIAN ANAK YANG BENAR:
+            # Tambahkan TITIK di belakang parent untuk memastikan itu adalah turunan aslinya
+            # Contoh: Jika parent '100', cari yang berawalan '100.'
+            # Jika parent '100.3', cari yang berawalan '100.3.'
+            prefix_anak = str(kode_terakhir) + "."
+            
+            # Filter CSV hanya untuk kode yang diawali dengan prefix_anak
+            df_anak = df_sorted[
+                (df_sorted['kode'].astype(str).str.startswith(prefix_anak)) & 
+                (df_sorted['kode'] != kode_terakhir)
+            ]
+            
+            # FITUR REM OTOMATIS: Jika di CSV memang tidak ada turunannya, maka hentikan pencarian
+            if df_anak.empty:
+                st.info(f"Mencapai ujung klasifikasi. Tidak ada turunan lebih spesifik di bawah **{kode_terakhir}**.")
+                break
+                
+            # Ambil 3 kandidat terkuat dari anak-anak tersebut
+            df_kandidat = df_anak.head(3)
+            pilihan_anak = df_kandidat[['kode', 'uraian']].to_dict('records')
+            
+            prompt_anak = f"Pilih 1 kode {tingkat} turunan dari {kode_terakhir} yang paling akurat untuk: '{inti}'. Pilihan: {pilihan_anak}. Output JSON: {{\"kode\": \"...\"}}"
+            
+            hasil_anak = panggil_gemini_json(prompt_anak)
+            kode_baru = hasil_anak.get('kode', pilihan_anak[0]['kode'])
+            
+            # Validasi keamanan
+            if kode_baru not in df['kode'].values:
+                kode_baru = pilihan_anak[0]['kode']
+                
+            uraian_baru = df[df['kode'] == kode_baru]['uraian'].values[0]
+            
+            st.success(f"📂 **{kode_baru}** | {uraian_baru} ({tingkat})")
+            
+            # Simpan hasil sebagai parent untuk iterasi tingkat berikutnya
+            kode_terakhir = kode_baru
+            uraian_terakhir = uraian_baru
+
+        # Kembalikan hasil final ke antarmuka aplikasi
+        return kode_terakhir, uraian_terakhir
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memproses data: {e}")
-        return None
+        return "000", "Gagal Klasifikasi"
 
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
