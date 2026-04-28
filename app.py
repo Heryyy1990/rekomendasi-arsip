@@ -315,7 +315,7 @@ def smart_classify(isi_surat, df):
         df_sekunder = df[(df['kode'].str.startswith(prefix_sekunder)) & (~df['kode'].str.endswith('00')) & (df['kode'].str.len() <= 6)]
         
         if df_sekunder.empty:
-            return kode_primer
+            return kode_primer, uraian_primer
             
         df_sekunder = df_sekunder.nlargest(3, 'skor')
         pilihan_sekunder = df_sekunder[['kode', 'uraian']].to_dict('records')
@@ -329,7 +329,7 @@ def smart_classify(isi_surat, df):
         
         st.success(f"📂 **{kode_sekunder}** | {uraian_sekunder} (Sekunder)")
         
-        return kode_sekunder
+        return kode_sekunder, uraian_sekunder
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memproses data: {e}")
