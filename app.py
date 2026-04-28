@@ -245,76 +245,95 @@ def cari_top_k(query_embed, df_target, k=3):
         kandidat.append({"kode": row['kode'], "uraian": row['uraian'], "idx_asli": df_target.index[idx], "score": float(similarities[idx])})
     return kandidat
 
+import time
+
+# --- 1. MESIN PENALARAN BARU (Pengganti Groq) ---
+def panggil_gemini_json(prompt_text):
+    model = genai.GenerativeModel(
+        model_name="models/gemini-2.5-flash",
+        generation_config={
+            "response_mime_type": "application/json", # Garansi tidak ada teks "sampah"
+            "temperature": 0.1
+        }
+    )
+    response = model.generate_content(prompt_text)
+    return json.loads(response.text)
+
+# --- 2. FUNGSI KLASIFIKASI (Murni Gemini) ---
 def smart_classify(isi_surat, df):
-    # Penampung Hasil
-    hasil_rekomendasi = []
-    
-    with st.status("🧠 Memulai Penalaran AI...", expanded=True) as status:
-        # TAHAP 1: EKSTRAKSI
+    try:
+        # TAHAP 1: EKSTRAKSI (Insting Arsiparis Tetap Dipertahankan)
         st.write("Mengekstrak inti surat...")
-        prompt_ekstrak = f"""Analisis surat berikut. Temukan inti utama, buat 1 kalimat ringkasan, ambil kata kunci penting (maks 5), dan hilangkan bagian formal.
+        prompt_ekstrak = f"""Anda adalah Arsiparis Ahli di instansi pemerintah. Analisis surat berikut.
+        ATURAN MUTLAK EKSTRAKSI:
+        1. ABAIKAN KATA PENGANTAR: Buang kata "Penyampaian", "Pengantar", "Permohonan", "Undangan".
+        2. ABAIKAN LOKASI/OBJEK FISIK: Jangan jadikan "Gedung", "Perpustakaan", atau "Puskesmas" sebagai inti jika suratnya tentang perizinan atau tanah.
+        3. ABAIKAN SUMBER DANA: Abaikan kata "DAK", "APBD", "BOS" kecuali surat tersebut MURNI membahas pencairan uang/SP2D.
+        4. HIERARKI DOKUMEN: Jika ada kata "Sertifikat Tanah" atau "Aset Lahan", maka inti surat ADALAH PERTANAHAN, BUKAN BAST/Hukum hibahnya.
+        
         Surat: {isi_surat}
         Output JSON format: {{"inti_surat": "...", "kata_kunci": ["...", "..."]}}"""
         
-        ekstrak = panggil_groq_json(prompt_ekstrak)
-        teks_query = ekstrak['inti_surat'] + " " + " ".join(ekstrak['kata_kunci'])
+        ekstrak = panggil_gemini_json(prompt_ekstrak)
+        inti = ekstrak.get('inti_surat', isi_surat)
+        st.info(f"**Inti Surat yang Dianalisis:** {inti}")
         
-        # TAHAP 2: EMBEDDING QUERY
+        time.sleep(1.5) # Jeda aman anti-limit
+        
+        # TAHAP 2: PENCARIAN VEKTOR (Tetap menggunakan gemini-embedding-2)
         st.write("Mengubah makna menjadi vektor...")
-        res_embed = genai.embed_content(model="models/gemini-embedding-2", content=teks_query)
-        query_embed = res_embed['embedding']
+        res_embed = genai.embed_content(model="models/gemini-embedding-2", content=inti)
+        vektor_query = res_embed['embedding']
         
-        # TAHAP 3: CARI & VALIDASI PRIMER
-        st.write("🔍 Membedah tingkat Primer...")
-        df_primer = df[~df['kode'].str.contains(r'\.')]
-        kandidat_primer = cari_top_k(query_embed, df_primer, k=3)
+        from sklearn.metrics.pairwise import cosine_similarity
+        import numpy as np
         
-        prompt_primer = f"""Pilih 1 kode primer yang paling tepat.
-        Inti Surat: {ekstrak['inti_surat']}
-        Kandidat: {kandidat_primer}
-        Output JSON: {{"primer": "kode_terpilih", "alasan": "..."}}"""
-        validasi_primer = panggil_groq_json(prompt_primer)
-        kode_aktif = validasi_primer['primer']
+        vektor_db = np.array(df['embedding'].tolist())
+        df['skor'] = cosine_similarity([vektor_query], vektor_db)[0]
         
-        time.sleep(0.5)
-        
-        # TAHAP 4: CARI & VALIDASI SEKUNDER
-        st.write(f"🔍 Menelusuri turunan dari {kode_aktif}...")
-        df_sekunder = df[df['kode'].str.fullmatch(f"{kode_aktif}\.\d+")]
-        
-        if not df_sekunder.empty:
-            kandidat_sekunder = cari_top_k(query_embed, df_sekunder, k=3)
-            prompt_sekunder = f"""Pilih 1 kode sekunder paling tepat.
-            Inti Surat: {ekstrak['inti_surat']}
-            Kandidat: {kandidat_sekunder}
-            Output JSON: {{"sekunder": "kode_terpilih"}}"""
-            validasi_sekunder = panggil_groq_json(prompt_sekunder)
-            kode_aktif = validasi_sekunder['sekunder']
-            time.sleep(0.5)
-            
-            # TAHAP 5: TERSIER
-            st.write("🔍 Mencari tingkat Tersier (jika ada)...")
-            df_tersier = df[df['kode'].str.fullmatch(f"{kode_aktif}\.\d+")]
-            if not df_tersier.empty:
-                kandidat_tersier = cari_top_k(query_embed, df_tersier, k=3)
-                prompt_tersier = f"""Pilih 1 kode tersier paling tepat.
-                Inti Surat: {ekstrak['inti_surat']}
-                Kandidat: {kandidat_tersier}
-                Output JSON: {{"tersier": "kode_terpilih"}}"""
-                validasi_tersier = panggil_groq_json(prompt_tersier)
-                kode_aktif = validasi_tersier['tersier']
-                
-        status.update(label="Klasifikasi Selesai!", state="complete", expanded=False)
+        time.sleep(1.5) # Jeda aman anti-limit
 
-    # Kembalikan format yang dimengerti oleh UI (List of Tuple: [(idx, score)])
-    # SIKAP sekarang sangat yakin dengan 1 jawaban final, tapi kita bungkus sesuai UI lama
-    idx_final = df.index[df['kode'] == kode_aktif].tolist()
-    
-    if idx_final:
-        # Kembalikan 1 rekomendasi mutlak dengan confidence 99%
-        hasil_rekomendasi.append((idx_final[0], 0.99))
-    
-    return hasil_rekomendasi
+        # TAHAP 3: BEDAH PRIMER
+        st.write("🔍 Membedah tingkat Primer...")
+        df_primer = df[df['kode'].str.endswith('00')].nlargest(3, 'skor')
+        pilihan_primer = df_primer[['kode', 'uraian']].to_dict('records')
+        
+        prompt_primer = f"""Pilih 1 kode Primer yang paling akurat untuk: "{inti}". 
+        Pilihan: {pilihan_primer}. Output JSON: {{"kode": "..."}}"""
+        
+        hasil_primer = panggil_gemini_json(prompt_primer)
+        kode_primer = hasil_primer.get('kode', pilihan_primer[0]['kode'])
+        uraian_primer = df[df['kode'] == kode_primer]['uraian'].values[0]
+        
+        st.success(f"📁 **{kode_primer}** | {uraian_primer} (Primer)")
+        
+        time.sleep(1.5) # Jeda aman anti-limit
+
+        # TAHAP 4: BEDAH SEKUNDER
+        st.write("🔍 Membedah tingkat Sekunder...")
+        prefix_sekunder = kode_primer[:1] 
+        df_sekunder = df[(df['kode'].str.startswith(prefix_sekunder)) & (~df['kode'].str.endswith('00')) & (df['kode'].str.len() <= 6)]
+        
+        if df_sekunder.empty:
+            return kode_primer
+            
+        df_sekunder = df_sekunder.nlargest(3, 'skor')
+        pilihan_sekunder = df_sekunder[['kode', 'uraian']].to_dict('records')
+        
+        prompt_sekunder = f"""Pilih 1 kode Sekunder turunan dari {kode_primer} yang paling akurat untuk: "{inti}". 
+        Pilihan: {pilihan_sekunder}. Output JSON: {{"kode": "..."}}"""
+        
+        hasil_sekunder = panggil_gemini_json(prompt_sekunder)
+        kode_sekunder = hasil_sekunder.get('kode', pilihan_sekunder[0]['kode'])
+        uraian_sekunder = df[df['kode'] == kode_sekunder]['uraian'].values[0]
+        
+        st.success(f"📂 **{kode_sekunder}** | {uraian_sekunder} (Sekunder)")
+        
+        return kode_sekunder
+
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat memproses data: {e}")
+        return None
 
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
