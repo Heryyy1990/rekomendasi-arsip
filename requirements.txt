@@ -1,8 +1,5 @@
 streamlit
 pandas
 numpy
-groq
-google-generativeai
 scikit-learn
-thefuzz
-Levenshtein
+google-genai
