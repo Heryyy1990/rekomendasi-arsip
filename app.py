@@ -200,64 +200,64 @@ def ekstrak_inti_surat(teks_user):
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (TEMA STANDARD SRIKANDI / SPBE NASIONAL) ---
+# --- UI & CSS CUSTOM (TEMA SRIKANDI - RED & SEJAJAR) ---
 st.markdown("""
     <style>
-    /* Menggunakan font standar web pemerintah (Roboto) */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Roboto', sans-serif;
-        background-color: #F4F6F9; /* Latar abu-abu sangat muda khas dashboard admin */
+        background-color: #F4F6F9;
         color: #333333;
     }
     
-    /* Judul Utama: Tegas, Formal, Biru Kemenpan/ANRI */
-    .sikap-title {
-        font-size: 2.8rem; 
-        font-weight: 700; 
-        text-align: center;
-        margin-bottom: 0px; 
-        color: #0056B3; /* Biru Resmi Pemerintah */
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
+    /* Container untuk menyejajarkan teks ke samping */
+    .header-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center; /* Meratakan posisi tengah atas-bawah */
+        justify-content: center; /* Meratakan ke tengah layar */
+        gap: 15px; /* Jarak antara SIKAP, Garis, dan Subtitle */
+        margin-top: 10px;
+        margin-bottom: 30px;
     }
     
+    /* Tulisan SIKAP: Diperkecil & Warna Merah Srikandi */
+    .sikap-title {
+        font-size: 2.2rem; /* Diperkecil dari sebelumnya */
+        font-weight: 900; 
+        color: #C62828; /* Merah khas ANRI/Srikandi */
+        letter-spacing: 1px;
+        margin: 0;
+    }
+    
+    /* Garis pemisah vertikal elegan */
+    .header-divider {
+        height: 35px;
+        width: 2px;
+        background-color: #ADB5BD;
+    }
+    
+    /* Tulisan Kepanjangan di sebelahnya */
     .sikap-subtitle {
         font-size: 1.1rem; 
-        text-align: center; 
         font-weight: 500;
-        margin-bottom: 5px;
-        color: #6C757D;
-    }
-    
-    /* Kop Instansi dengan Aksen Garis Emas/Kuning ASN */
-    .instansi-teks {
-        text-align: center; 
-        margin-bottom: 30px; 
-        font-size: 0.9rem; 
         color: #495057;
-        padding-bottom: 10px;
-        border-bottom: 3px solid #FFC107; /* Aksen Kuning/Emas */
-        width: 300px; /* Panjang garis menyesuaikan teks */
-        margin-left: auto;
-        margin-right: auto;
+        margin: 0;
+        text-align: left;
+        line-height: 1.2; /* Merapatkan jarak antar baris */
     }
 
-    /* Input Box: Putih bersih, kotak tegas */
+    /* --- Sisa Komponen ala SRIKANDI --- */
     .stTextInput>div>div>input, .stTextArea>div>div>textarea {
         border-radius: 4px !important;
         border: 1px solid #CED4DA !important;
         background-color: #FFFFFF !important;
     }
-    
-    /* Efek saat diklik (Focus) warna biru muda */
     .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
         border-color: #80BDFF !important;
         box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
     }
-
-    /* Tombol Utama ala SRIKANDI (Biru Solid) */
     .stButton>button {
         background-color: #0056B3 !important;
         color: white !important;
@@ -268,22 +268,18 @@ st.markdown("""
         transition: all 0.2s ease-in-out;
     }
     .stButton>button:hover {
-        background-color: #004494 !important; /* Biru lebih gelap saat disentuh */
+        background-color: #004494 !important; 
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-
-    /* Expander (Kotak Hasil Analisis) */
     .streamlit-expanderHeader {
         font-weight: 500 !important;
         color: #212529 !important;
         background-color: #FFFFFF !important;
         border-radius: 4px !important;
         border: 1px solid #DFE3E7 !important;
-        border-left: 5px solid #0056B3 !important; /* Pita biru identitas di sebelah kiri */
+        border-left: 5px solid #0056B3 !important; 
         margin-top: 10px !important;
     }
-    
-    /* Menghilangkan panah bawaan */
     details > summary { list-style: none !important; outline: none !important; }
     details > summary::-webkit-details-marker { display: none !important; }
     </style>
@@ -692,16 +688,21 @@ def smart_classify(user_input, df, top_n=3):
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
-    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
-    
-    # Menambahkan "Kop" Pemda agar terlihat resmi
+    # Membuat Layout Judul Sejajar (SIKAP | Sistem Informasi...)
     st.markdown("""
-        <div class='instansi-teks'>
-            <i>Inovasi Digitalisasi Kearsipan</i><br>
-            <b>Pemerintah Kabupaten Muna Barat</b>
+        <div class='header-container'>
+            <div class='sikap-title'>SIKAP</div>
+            <div class='header-divider'></div>
+            <div class='sikap-subtitle'>
+                Sistem Informasi Klasifikasi Arsip Pintar<br>
+                <span style='font-size: 0.85rem; color: #6C757D; font-style: italic;'>Pemerintah Kabupaten Muna Barat</span>
+            </div>
         </div>
     """, unsafe_allow_html=True)
+    
+    try:
+        df = load_data()
+        # ... sisa kode di bawahnya tetap sama ...
 
     try:
         df = load_data()
