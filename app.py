@@ -56,20 +56,17 @@ def baca_riwayat_csv(nama_user):
 
 def halaman_login():
     st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    # Kolom tengah dilebarkan agar teks sejajar muat dalam satu baris
-    col1, col2, col3 = st.columns([0.4, 2.2, 0.4])
-    
+    col1, col2, col3 = st.columns([0.2, 2.6, 0.2]) # Dilebarkan supaya teks sejajar aman
     with col2:
         with st.form("form_login"):
-            # HEADER SEJAJAR PERSIS SRIKANDI
+            # Header Sejajar Lurus Persis Screenshot
             st.markdown("""
-                <div style='text-align: center; margin-bottom: 30px;'>
-                    <h1 style='margin: 0; line-height: 1;'>
-                        <span style='color: #C62828; font-size: 2.3rem; font-weight: 900; vertical-align: middle;'>SIKAP</span> 
-                        <span style='color: #495057; font-size: 1.2rem; font-weight: 700; margin-left: 10px; vertical-align: middle; display: inline-block;'>Sistem Informasi Klasifikasi Arsip Pintar</span>
-                    </h1>
-                    <p style='color: #6C757D; font-size: 0.95rem; font-weight: 500; margin-top: 15px;'>Silakan masuk dengan akun Anda</p>
+                <div class='header-login'>
+                    <span class='title-red'>SIKAP</span>
+                    <span class='title-gray'>Sistem Informasi Klasifikasi Arsip Pintar</span>
+                </div>
+                <div style='text-align: center; margin-bottom: 25px;'>
+                    <p style='color: #6C757D; font-size: 1rem; font-weight: 500;'>Silakan masuk dengan akun Anda</p>
                 </div>
             """, unsafe_allow_html=True)
             
@@ -77,9 +74,7 @@ def halaman_login():
             pwd_input = st.text_input("Kata Sandi", type="password")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            # TOMBOL MASUK WARNA BIRU SOLID
-            submit = st.form_submit_button("MASUK", use_container_width=True)
+            submit = st.form_submit_button("MASUK")
             
             if submit:
                 is_valid, role, nama = validasi_login(user_input, pwd_input)
@@ -91,12 +86,8 @@ def halaman_login():
                 else:
                     st.error("Nama Pengguna atau Kata Sandi salah!")
         
-        # FOOTER NAMA PEMBUAT
-        st.markdown(f"""
-            <div style='text-align: center; margin-top: 20px; font-size: 0.85rem; color: #ADB5BD; font-weight: 600;'>
-                Dibuat oleh Heryanto, S.Pd
-            </div>
-        """, unsafe_allow_html=True)
+        # Nama Pembuat di bawah
+        st.markdown("<div class='footer-heryanto'>Dibuat oleh Heryanto, S.Pd</div>", unsafe_allow_html=True)
 
 # 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
 try:
@@ -222,119 +213,82 @@ def ekstrak_inti_surat(teks_user):
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (TEMA SRIKANDI FINAL) ---
+# --- UI & CSS CUSTOM (VERSI SRIKANDI ASLI - EXTRA BOLD) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
     
-    /* Font Dasar Aplikasi */
     html, body, [class*="css"] {
         font-family: 'Roboto', sans-serif;
         background-color: #F4F6F9;
-        color: #333333;
     }
 
-    /* HEADER SEJAJAR (Digunakan di Halaman Utama) */
-    .header-container {
+    /* HEADER LOGIN: SIKAP & Kepanjangan Sejajar Lurus */
+    .header-login {
         display: flex;
-        flex-direction: row;
-        align-items: center; 
-        justify-content: center; 
-        gap: 15px; 
-        margin-top: 10px;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
         margin-bottom: 30px;
+        white-space: nowrap; /* Memaksa tetap satu baris */
     }
-    .sikap-title-main {
-        font-size: 2.2rem !important; 
-        font-weight: 900; 
-        color: #C62828 !important; /* Merah SRIKANDI */
+    .title-red {
+        color: #C62828 !important;
+        font-size: 2.5rem !important;
+        font-weight: 900 !important; /* Paling tebal */
         margin: 0;
     }
-    .header-divider {
-        height: 30px;
-        width: 2px;
-        background-color: #ADB5BD;
-    }
-    .sikap-subtitle-main {
-        font-size: 1.2rem !important; 
-        font-weight: 700; /* Font berbobot */
+    .title-gray {
         color: #495057 !important;
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
         margin: 0;
     }
 
-    /* KOTAK LOGIN / FORM (Putih Bersih & Bayangan Halus) */
+    /* KOTAK LOGIN */
     [data-testid="stForm"] {
         background-color: #FFFFFF !important;
         border-radius: 4px !important;
         border: 1px solid #DFE3E7 !important;
+        padding: 40px !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
-        padding: 30px !important;
     }
 
-    /* LABEL INPUT (Username & Password) - Tebal & Tegas */
+    /* LABEL INPUT: Nama Pengguna & Kata Sandi (Font Berbobot) */
     .stTextInput label p {
         font-weight: 700 !important;
         color: #212529 !important;
         font-size: 1rem !important;
-        margin-bottom: 5px !important;
     }
 
-    /* INPUT FIELD */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-        border-radius: 4px !important;
-        border: 1px solid #CED4DA !important;
-    }
-
-    /* TOMBOL MASUK (Biru Solid SRIKANDI) */
-    .stButton>button {
+    /* TOMBOL MASUK: Biru Solid, Teks Putih Tegas */
+    .stButton > button {
         background-color: #0056B3 !important;
-        color: #FFFFFF !important;
-        border-radius: 4px !important;
+        color: white !important;
         border: none !important;
-        font-weight: 700 !important; /* Font Tebal */
-        font-size: 1rem !important;
-        padding: 0.6rem 2rem !important;
-        width: 100%;
-        transition: 0.3s;
-    }
-    .stButton>button:hover {
-        background-color: #004494 !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-    }
-    
-    /* Memaksa teks di dalam tombol tetap putih */
-    .stButton>button p {
-        color: white !important;
-    }
-
-    /* TAB NAVIGASI */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 45px;
-        background-color: #E9ECEF;
-        border-radius: 4px 4px 0px 0px;
-        padding: 10px 20px;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #0056B3 !important;
-        color: white !important;
-    }
-
-    /* EXPANDER (Hasil Klasifikasi) */
-    .streamlit-expanderHeader {
-        font-weight: 700 !important;
-        background-color: #FFFFFF !important;
-        border-left: 5px solid #0056B3 !important;
         border-radius: 4px !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        height: 3rem !important;
+        width: 100% !important;
+    }
+    .stButton > button:hover {
+        background-color: #004494 !important;
+        color: white !important;
+    }
+    /* Memaksa teks di tombol tetap putih */
+    .stButton > button div p {
+        color: white !important;
     }
 
-    /* Menghilangkan elemen panah bawaan */
-    details > summary { list-style: none !important; }
-    details > summary::-webkit-details-marker { display: none !important; }
+    /* FOOTER PEMBUAT */
+    .footer-heryanto {
+        text-align: center;
+        margin-top: 25px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #ADB5BD;
+    }
     </style>
 """, unsafe_allow_html=True)
 
