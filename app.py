@@ -56,14 +56,22 @@ def baca_riwayat_csv(nama_user):
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
-    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sikap-subtitle'>Silakan Masuk untuk Melanjutkan</div>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1.2, 1.5, 1.2])
     with col2:
         with st.form("form_login"):
-            user_input = st.text_input("Username")
-            pwd_input = st.text_input("Password", type="password")
+            st.markdown("""
+                <div style='text-align: center; margin-bottom: 25px;'>
+                    <h1 style='color: #C62828; margin: 0; font-size: 2.8rem; font-weight: 900; letter-spacing: 1px;'>SIKAP</h1>
+                    <h4 style='color: #495057; margin: 0; font-weight: 500; font-size: 1.05rem;'>Sistem Informasi Klasifikasi Arsip Pintar</h4>
+                    <p style='color: #6C757D; font-size: 0.9rem; margin-top: 15px;'>Silakan masuk dengan akun Anda</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            user_input = st.text_input("Nama Pengguna")
+            pwd_input = st.text_input("Kata Sandi", type="password")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
             submit = st.form_submit_button("Masuk", use_container_width=True)
             
             if submit:
@@ -74,7 +82,13 @@ def halaman_login():
                     st.session_state['nama'] = nama
                     st.rerun()
                 else:
-                    st.error("Username atau Password salah!")
+                    st.error("Nama Pengguna atau Kata Sandi salah!")
+        
+        st.markdown("""
+            <div style='text-align: center; margin-top: 20px; font-size: 0.8rem; color: #ADB5BD;'>
+                &copy; 2026 Dibuat Oleh Heryanto, S.Pd<br>
+            </div>
+        """, unsafe_allow_html=True)
 
 # 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
 try:
@@ -200,7 +214,7 @@ def ekstrak_inti_surat(teks_user):
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (TEMA SRIKANDI - RED & SEJAJAR) ---
+# --- UI & CSS CUSTOM (TEMA SRIKANDI) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
@@ -211,52 +225,52 @@ st.markdown("""
         color: #333333;
     }
     
-    /* Container untuk menyejajarkan teks ke samping */
+    /* HEADER SEJAJAR */
     .header-container {
         display: flex;
         flex-direction: row;
-        align-items: center; /* Meratakan posisi tengah atas-bawah */
-        justify-content: center; /* Meratakan ke tengah layar */
-        gap: 15px; /* Jarak antara SIKAP, Garis, dan Subtitle */
+        align-items: center; 
+        justify-content: center; 
+        gap: 15px; 
         margin-top: 10px;
         margin-bottom: 30px;
     }
-    
-    /* Tulisan SIKAP: Diperkecil & Warna Merah Srikandi */
     .sikap-title {
-        font-size: 2.2rem; /* Diperkecil dari sebelumnya */
+        font-size: 2.2rem !important; 
         font-weight: 900; 
-        color: #C62828; /* Merah khas ANRI/Srikandi */
+        color: #C62828 !important; /* Merah Srikandi */
         letter-spacing: 1px;
         margin: 0;
     }
-    
-    /* Garis pemisah vertikal elegan */
     .header-divider {
         height: 35px;
         width: 2px;
         background-color: #ADB5BD;
     }
-    
-    /* Tulisan Kepanjangan di sebelahnya */
     .sikap-subtitle {
-        font-size: 1.1rem; 
+        font-size: 1.1rem !important; 
         font-weight: 500;
-        color: #495057;
+        color: #495057 !important;
         margin: 0;
         text-align: left;
-        line-height: 1.2; /* Merapatkan jarak antar baris */
+        line-height: 1.2; 
     }
 
-    /* --- Sisa Komponen ala SRIKANDI --- */
+    /* FORM KARTU LOGIN & KOMPONEN LAIN */
+    [data-testid="stForm"] {
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+        border: 1px solid #E9ECEF !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03) !important;
+    }
+    .stTextInput>label {
+        font-weight: 500 !important;
+        color: #495057 !important;
+    }
     .stTextInput>div>div>input, .stTextArea>div>div>textarea {
         border-radius: 4px !important;
         border: 1px solid #CED4DA !important;
         background-color: #FFFFFF !important;
-    }
-    .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
-        border-color: #80BDFF !important;
-        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
     }
     .stButton>button {
         background-color: #0056B3 !important;
@@ -264,12 +278,6 @@ st.markdown("""
         border-radius: 4px !important;
         border: none !important;
         font-weight: 500 !important;
-        padding: 0.5rem 1rem !important;
-        transition: all 0.2s ease-in-out;
-    }
-    .stButton>button:hover {
-        background-color: #004494 !important; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     .streamlit-expanderHeader {
         font-weight: 500 !important;
@@ -278,7 +286,6 @@ st.markdown("""
         border-radius: 4px !important;
         border: 1px solid #DFE3E7 !important;
         border-left: 5px solid #0056B3 !important; 
-        margin-top: 10px !important;
     }
     details > summary { list-style: none !important; outline: none !important; }
     details > summary::-webkit-details-marker { display: none !important; }
@@ -688,7 +695,6 @@ def smart_classify(user_input, df, top_n=3):
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
-    # Membuat Layout Judul Sejajar (SIKAP | Sistem Informasi...)
     st.markdown("""
         <div class='header-container'>
             <div class='sikap-title'>SIKAP</div>
