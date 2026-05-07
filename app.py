@@ -54,25 +54,17 @@ def baca_riwayat_csv(nama_user):
             return []
     return []
 
+# --- HALAMAN LOGIN ---
 def halaman_login():
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([0.5, 2, 0.5])
+    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sikap-subtitle'>Silakan Masuk untuk Melanjutkan</div>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("form_login"):
-            # Header Sejajar Lurus
-            st.markdown("""
-                <div class="srikandi-header">
-                    <span class="srikandi-logo">SIKAP</span>
-                    <span class="srikandi-text">Sistem Informasi Klasifikasi<br>Arsip Pintar</span>
-                </div>
-                <p style="text-align:center; color:#6C757D; font-weight:500; margin-bottom:20px;">Silakan masuk dengan akun Anda</p>
-            """, unsafe_allow_html=True)
-            
-            user_input = st.text_input("Nama Pengguna")
-            pwd_input = st.text_input("Kata Sandi", type="password")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            submit = st.form_submit_button("MASUK")
+            user_input = st.text_input("Username")
+            pwd_input = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Masuk", use_container_width=True)
             
             if submit:
                 is_valid, role, nama = validasi_login(user_input, pwd_input)
@@ -82,10 +74,8 @@ def halaman_login():
                     st.session_state['nama'] = nama
                     st.rerun()
                 else:
-                    st.error("Gagal masuk. Cek kembali akun Anda.")
-        
-        st.markdown("<div class='footer-custom'>Dibuat oleh Heryanto, S.Pd</div>", unsafe_allow_html=True)
-        
+                    st.error("Username atau Password salah!")
+
 # 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
 try:
     # Membaca dari Streamlit Secrets jika di Cloud
@@ -210,84 +200,42 @@ def ekstrak_inti_surat(teks_user):
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (VERSI SRIKANDI ASLI - EXTRA BOLD) ---
+# --- UI & CSS CUSTOM ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Roboto', sans-serif;
-        background-color: #F8F9FA !important;
-    }
-
-    /* Memaksa kontainer form jadi putih bersih ala SRIKANDI */
-    [data-testid="stForm"] {
-        border: 1px solid #DEE2E6 !important;
-        border-radius: 4px !important;
-        padding: 40px !important;
-        background-color: white !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
-    }
-
-    /* Judul SIKAP Sejajar Lurus - Bold Parah */
-    .srikandi-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 30px;
-    }
-    .srikandi-logo {
-        color: #C62828 !important;
-        font-size: 2.5rem !important;
-        font-weight: 900 !important;
-        margin-right: 15px;
-    }
-    .srikandi-text {
-        color: #495057 !important;
-        font-size: 1.3rem !important;
-        font-weight: 700 !important;
-        border-left: 2px solid #DEE2E6;
-        padding-left: 15px;
-        line-height: 1;
-    }
-
-    /* Label Input: Dibuat tebal dan hitam (Berbobot) */
-    .stTextInput label p {
-        font-weight: 800 !important;
-        color: #212529 !important;
-        font-size: 0.95rem !important;
-    }
-
-    /* Input Box: Supaya lebih sreg di mata */
-    .stTextInput input {
-        border: 1px solid #CED4DA !important;
-        border-radius: 4px !important;
-        height: 3rem !important;
-    }
-
-    /* TOMBOL MASUK: Biru Solid Teks Putih */
-    div.stButton > button:first-child {
-        background-color: #0056B3 !important;
-        color: white !important;
-        width: 100% !important;
-        height: 3.5rem !important;
-        font-weight: 800 !important;
-        font-size: 1.1rem !important;
-        border: none !important;
-        text-transform: uppercase;
-    }
-    
-    div.stButton > button:first-child:hover {
-        background-color: #004494 !important;
-    }
-
-    /* Footer Pembuat */
-    .footer-custom {
+    .sikap-title {
+        font-size: 4.5rem; 
+        font-weight: 900; 
         text-align: center;
-        margin-top: 25px;
-        color: #6C757D;
-        font-weight: 700;
-        font-size: 0.9rem;
+        margin-bottom: -15px; 
+        letter-spacing: 3px;
+        background: linear-gradient(45deg, #00BFA5, #0288D1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .sikap-subtitle {
+        font-size: 1.3rem; 
+        text-align: center; 
+        font-weight: 600;
+        margin-bottom: 40px;
+        letter-spacing: 1px;
+        /* --- KEJUTAN WARNA: Gradasi Sunset (Oranye ke Pink) --- */
+        background: linear-gradient(45deg, #FF512F, #DD2476);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .streamlit-expanderHeader {
+        font-weight: bold;
+        color: #0288D1;
+    }
+    /* PEMBUNUH IKON PANAH BIRU BAWAAN BROWSER */
+    details > summary {
+        list-style: none !important;
+        outline: none !important;
+    }
+    details > summary::-webkit-details-marker {
+        display: none !important; 
     }
     </style>
 """, unsafe_allow_html=True)
@@ -695,16 +643,8 @@ def smart_classify(user_input, df, top_n=3):
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
-    # Menampilkan Judul Lurus Sejajar (Tanpa Muna Barat)
-    st.markdown("""
-        <div class='header-container'>
-            <div class='sikap-title'>SIKAP</div>
-            <div class='header-divider'></div>
-            <div class='sikap-subtitle'>
-                Sistem Informasi Klasifikasi Arsip Pintar
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
 
     try:
         df = load_data()
