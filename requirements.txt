@@ -1,6 +1,7 @@
 streamlit
 pandas
-scikit-learn
-Sastrawi
 thefuzz
+Sastrawi
+scikit-learn
 groq
+rank_bm25
