@@ -108,48 +108,64 @@ def ekstrak_inti_surat(teks_user):
     [KASUS KEUANGAN, ANGGARAN & ASET]
     Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
     Output: rencana kerja anggaran, dpa
-    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) untuk kegiatan sosialisasi"
-    Output: pencairan dana, sp2d
-    Input: "Penyampaian berita acara serah terima (BAST) kendaraan dinas roda empat"
-    Output: berita acara serah terima, kendaraan dinas
+    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR untuk kegiatan sosialisasi"
+    Output: pencairan dana, sp2d, sppr
+    Input: "Usulan persetujuan pinjaman hibah luar negeri (PHLN) dan dana tugas pembantuan"
+    Output: pinjaman hibah luar negeri, phln, tugas pembantuan
     
-    [KASUS KEPEGAWAIAN, PENGAWASAN & HUKUM]
+    [KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
+    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
+    Output: tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen
+    Input: "Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi (TPK)"
+    Output: laporan hasil audit investigasi, tindak pidana korupsi
     Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
     Output: penetapan angka kredit, jabatan fungsional
-    Input: "Teguran disiplin pegawai dan pemanggilan pemeriksaan pelanggaran kode etik ASN"
-    Output: disiplin pegawai, pelanggaran kode etik
-    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) BPK RI perwakilan Sulawesi Tenggara"
-    Output: tindak lanjut temuan, laporan hasil pemeriksaan
-    Input: "Permohonan fasilitasi penyusunan rancangan peraturan bupati tentang pedoman tata naskah dinas"
-    Output: peraturan bupati, tata naskah dinas
     
-    [KASUS PENDIDIKAN, KESEHATAN & INFRASTRUKTUR]
-    Input: "Penyaluran dan pencairan dana bantuan operasional sekolah (BOS) tahap I"
-    Output: dana bantuan operasional sekolah, bos
-    Input: "Klaim penggantian biaya pelayanan kesehatan BPJS Kesehatan pasien rawat inap RSUD"
-    Output: klaim bpjs kesehatan, pelayanan kesehatan rawat inap
-    Input: "Persetujuan rencana anggaran biaya (RAB) dan gambar kerja proyek pembangunan jembatan"
-    Output: rencana anggaran biaya, gambar kerja proyek
+    [KASUS INFRASTRUKTUR, PEKERJAAN UMUM & TATA RUANG]
+    Input: "Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa"
+    Output: pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa
+    Input: "Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)"
+    Output: rencana detail tata ruang, rencana tata bangunan dan lingkungan
+    Input: "Persetujuan penataan bangunan dan pengelolaan gedung rumah negara"
+    Output: penataan bangunan, pengelolaan rumah negara
+
+    [KASUS KEPENDUDUKAN, KESEHATAN & KESRA]
+    Input: "Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil"
+    Output: sistem informasi administrasi kependudukan, pencatatan sipil
+    Input: "Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)"
+    Output: jaminan kesehatan nasional, national health account
+    Input: "Data Forum Komunikasi Umat Beragama (FKUB) dan penyelesaian kasus aliran keagamaan"
+    Output: forum komunikasi umat beragama, kasus aliran keagamaan
     
+    [KASUS TEKNOLOGI INFORMASI, KOMUNIKASI & PERSANDIAN]
+    Input: "Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government tingkat kabupaten"
+    Output: sertifikasi elektronik, e government
+    Input: "Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi"
+    Output: jaringan telekomunikasi, keamanan informasi
+
     [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
     Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
     Output: daftar pemilih sementara, daftar penduduk potensial pemilih
-    Input: "Laporan pemantauan kegiatan partai politik dan organisasi kemasyarakatan (Ormas)"
-    Output: pemantauan partai politik, organisasi kemasyarakatan
-    Input: "Penertiban pedagang kaki lima dan pembongkaran baliho reklame ilegal"
-    Output: penertiban pedagang kaki lima, pembongkaran baliho
+    Input: "Penyusunan Rencana Anggaran Satuan Kerja (RASK) dan pembiayaan kegiatan operasional (PPKO) pemilu"
+    Output: rencana anggaran satuan kerja, pembiayaan kegiatan operasional pemilu
     
-    [KASUS LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
+    [KASUS PENANAMAN MODAL, LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
+    Input: "Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing"
+    Output: pencabutan pembatalan perizinan penanaman modal
     Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
     Output: analisis mengenai dampak lingkungan, amdal, ukl upl
     Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
     Output: operasi pencarian pertolongan, sar, korban banjir
-    Input: "Sertifikasi dan pengujian keamanan pangan segar asal tumbuhan (PSAT) pasar tradisional"
-    Output: sertifikasi keamanan pangan segar asal tumbuhan, psat
+    Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
+    Output: organisme pengganggu tumbuhan, pengendalian hama terpadu
     
-    [KASUS PEMERINTAHAN DESA & UMUM]
-    Input: "Penyaluran dana desa (DD) dan penyelesaian sengketa pemilihan kepala desa (Pilkades) serentak"
-    Output: dana desa, sengketa pemilihan kepala desa
+    [KASUS PERTAMBANGAN, ENERGI & PERHUBUNGAN]
+    Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
+    Output: sertifikat laik operasi, izin usaha pertambangan batubara
+    Input: "Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal"
+    Output: sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal
+    
+    [KASUS PEMERINTAHAN UMUM]
     Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
     Output: perjalanan dinas
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
@@ -241,9 +257,13 @@ stemmer, remover = init_nlp()
 kamus_birokrasi = {
     "apbd": "anggaran pendapatan dan belanja daerah",
     "apbn": "anggaran pendapatan dan belanja negara",
+    "rapbd": "rencana anggaran pendapatan dan belanja daerah",
+    "apbdp": "anggaran pendapatan dan belanja daerah perubahan",
     "tapd": "tim anggaran pemerintah daerah",
     "dpa": "dokumen pelaksanaan anggaran",
+    "rdpa": "rancangan dokumen pelaksanaan anggaran",
     "rka": "rencana kerja anggaran",
+    "rkaskpd": "rencana kerja anggaran satuan kerja perangkat daerah",
     "skpd": "satuan kerja perangkat daerah",
     "ppkd": "pejabat pengelola keuangan daerah",
     "ppa": "prioritas plafon anggaran",
@@ -258,17 +278,39 @@ kamus_birokrasi = {
     "bku": "buku kas umum",
     "sakd": "sistem akuntansi keuangan daerah",
     "phln": "pinjaman hibah luar negeri",
+    "bln": "bantuan luar negeri",
+    "wa": "withdrawal authorization",
+    "nol": "no objection letter",
     "bumd": "badan usaha milik daerah",
     "blud": "badan layanan umum daerah",
     "dau": "dana alokasi umum",
     "dak": "dana alokasi khusus",
     "dbh": "dana bagi hasil",
+    "pnbp": "penerimaan negara bukan pajak",
+    "sppr": "surat permintaan pembayaran rutinitas",
+    "spdr": "surat penyediaan dana rutin",
+    "rask": "rencana anggaran satuan kerja",
+    "drask": "dokumen rancangan anggaran satuan kerja",
+    "ppko": "penyediaan pembiayaan kegiatan operasional",
+    "pph": "pajak penghasilan",
+    "ppn": "pajak pertambahan nilai",
+    "lhp": "laporan hasil pemeriksaan",
+    "lha": "laporan hasil audit",
+    "lhpo": "laporan hasil pemeriksaan operasional",
+    "lhe": "laporan hasil evaluasi",
+    "lhai": "laporan hasil audit investigasi",
+    "la": "laporan akuntan",
+    "lai": "laporan auditor independen",
+    "tl": "tindak lanjut",
+    "tpk": "tindak pidana korupsi",
+    "gcg": "good corporate governance",
     "asn": "aparatur sipil negara",
     "pns": "pegawai negeri sipil",
     "cpns": "calon pegawai negeri sipil",
     "pppk": "pegawai pemerintah dengan perjanjian kerja",
     "p3k": "pegawai pemerintah dengan perjanjian kerja",
     "nip": "nomor induk pegawai",
+    "sdm": "sumber daya manusia",
     "bkn": "badan kepegawaian negara",
     "skp": "sasaran kinerja pegawai", 
     "duk": "daftar urut kepangkatan",
@@ -279,16 +321,8 @@ kamus_birokrasi = {
     "lp2p": "laporan pajak penghasilan pribadi",
     "kp4": "keterangan penerimaan pembayaran penghasilan pegawai",
     "baperjakat": "badan pertimbangan jabatan dan pangkat",
-    "bpjs": "badan penyelenggara jaminan sosial",
     "diklat": "pendidikan dan pelatihan",
     "bimtek": "bimbingan teknis",
-    "lhp": "laporan hasil pemeriksaan",
-    "lha": "laporan hasil audit",
-    "lhpo": "laporan hasil pemeriksaan operasional",
-    "lhe": "laporan hasil evaluasi",
-    "lhai": "laporan hasil audit investigasi",
-    "tpk": "tindak pidana korupsi",
-    "gcg": "good corporate governance",
     "perda": "peraturan daerah",
     "perbup": "peraturan bupati",
     "perwali": "peraturan wali kota",
@@ -296,9 +330,11 @@ kamus_birokrasi = {
     "sop": "standar operasional prosedur",
     "haki": "hak atas kekayaan intelektual",
     "dprd": "dewan perwakilan rakyat daerah",
+    "dpr": "dewan perwakilan rakyat",
     "musrenbang": "musyawarah perencanaan pembangunan",
     "lkpj": "laporan keterangan pertanggungjawaban",
     "lppd": "laporan penyelenggaraan pemerintahan daerah",
+    "amj": "akhir masa jabatan",
     "bmd": "barang milik daerah",
     "kak": "kerangka acuan kerja",
     "sppd": "surat perintah perjalanan dinas",
@@ -306,6 +342,9 @@ kamus_birokrasi = {
     "nodin": "nota dinas",
     "bap": "berita acara pemeriksaan",
     "bast": "berita acara serah terima",
+    "nkri": "negara kesatuan republik indonesia",
+    "satpol pp": "satuan polisi pamong praja",
+    "lnl": "lembaga nirlaba lainnya",
     "kpu": "komisi pemilihan umum",
     "kpud": "komisi pemilihan umum daerah",
     "dp4": "daftar penduduk potensial pemilih",
@@ -322,19 +361,90 @@ kamus_birokrasi = {
     "jra": "jadwal retensi arsip",
     "sikn": "sistem informasi kearsipan nasional",
     "jikn": "jaringan informasi kearsipan nasional",
+    "kckr": "karya cetak dan karya rekam",
+    "ti": "teknologi informasi",
+    "bpjs": "badan penyelenggara jaminan sosial",
+    "bos": "bantuan operasional sekolah",
+    "paud": "pendidikan anak usia dini",
+    "psg": "pendidikan sistem ganda",
+    "pkl": "praktek kerja lapang",
+    "fkub": "forum komunikasi umat beragama",
+    "hiv": "human immunodeficiency virus",
+    "aids": "acquired immunodeficiency syndrome",
+    "napza": "narkotika psikotropika dan zat adiktif",
+    "bkkbn": "badan kependudukan dan keluarga berencana nasional",
+    "ape": "anugerah parahita ekapraya",
+    "siak": "sistem informasi administrasi kependudukan",
+    "nha": "national health account",
+    "jkn": "jaminan kesehatan nasional",
+    "kuk": "konsorsium upaya kesehatan",
     "spam": "sistem penyediaan air minum",
     "psat": "pangan segar asal tumbuhan",
     "bumdes": "badan usaha milik desa",
-    "bos": "bantuan operasional sekolah",
-    "paud": "pendidikan anak usia dini",
     "rtrw": "rencana tata ruang wilayah",
     "rdtr": "rencana detail tata ruang",
     "rtbl": "rencana tata bangunan dan lingkungan",
     "amdal": "analisis mengenai dampak lingkungan",
     "ukl": "upaya pengelolaan lingkungan",
     "upl": "upaya pemantauan lingkungan",
+    "rkl": "rencana pengelolaan lingkungan",
+    "rpl": "rencana pemantauan lingkungan",
     "b3": "bahan berbahaya dan beracun",
-    "sar": "search and rescue pencarian dan pertolongan"
+    "sar": "search and rescue pencarian dan pertolongan",
+    "pvtt": "perlindungan varietas tanaman",
+    "uttp": "ukur takar timbang dan perlengkapannya",
+    "opt": "organisme pengganggu tumbuhan",
+    "pht": "pengendalian hama terpadu",
+    "ukm": "usaha kecil menengah",
+    "ukmk": "usaha kecil menengah dan koperasi",
+    "llp": "lembaga layanan pemasaran",
+    "lpb": "lembaga pengembangan bisnis",
+    "pma": "penanam modal asing",
+    "sim": "sistem informasi manajemen",
+    "tkp": "tempat khusus parkir",
+    "tkdn": "tingkat komponen dalam negeri",
+    "rkib": "rencana kebutuhan impor barang",
+    "rib": "rencana impor barang",
+    "pod": "plan of development",
+    "kks": "kontrak kerja sama",
+    "sni": "standar nasional indonesia",
+    "rsni": "rancangan standar nasional indonesia",
+    "skkni": "standar kompetensi kerja nasional indonesia",
+    "rskkni": "rancangan standar kompetensi kerja nasional indonesia",
+    "npt": "nomor pelumas terdaftar",
+    "wps": "welding procedure specification",
+    "pqr": "procedure qualification record",
+    "ebt": "energi baru terbarukan",
+    "ebtke": "energi baru terbarukan dan konservasi energi",
+    "skt": "surat keterangan terdaftar",
+    "skpi": "sertifikasi kelayakan penggunaan instalasi",
+    "iup": "izin usaha pertambangan",
+    "ipb": "izin panas bumi",
+    "ipl": "izin pemanfaatan langsung",
+    "pltp": "pembangkit listrik tenaga panas bumi",
+    "pln": "perusahaan listrik negara",
+    "ipj": "izin pemanfaatan jaringan",
+    "bbn": "bahan bakar nabati",
+    "hip": "harga indeks pasar",
+    "iga": "investment grade audit",
+    "re": "rasio elektrifikasi",
+    "rd": "rasio desa berlistrik",
+    "io": "izin operasi",
+    "iupl": "izin usaha penyediaan tenaga listrik",
+    "slo": "sertifikat laik operasi",
+    "lsk": "lembaga sertifikasi kompetensi",
+    "lit": "lembaga inspeksi teknis",
+    "wk": "wilayah kerja",
+    "kk": "kontrak karya",
+    "obvitnas": "obyek vital nasional",
+    "cnc": "clear and clean",
+    "pkp2b": "perjanjian karya pengusahaan batubara",
+    "k3": "keselamatan dan kesehatan kerja",
+    "pltsa": "pembangkit listrik tenaga sampah",
+    "ppns": "penyidik pegawai negeri sipil",
+    "tdem": "time domain electromagnetic",
+    "cdm": "clean development mechanism",
+    "ppm": "program pengembangan dan pemberdayaan masyarakat"
 }
 
 # --- FUNGSI PENERJEMAH SINGKATAN ---
