@@ -200,36 +200,58 @@ def ekstrak_inti_surat(teks_user):
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM ---
+# --- UI & CSS CUSTOM (TEMA RESMI PEMERINTAHAN) ---
 st.markdown("""
     <style>
-    .sikap-title {
-        font-size: 4.5rem; 
-        font-weight: 900; 
-        text-align: center;
-        margin-bottom: -15px; 
-        letter-spacing: 3px;
-        background: linear-gradient(45deg, #00BFA5, #0288D1);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Mengatur font dasar ke font yang bersih dan profesional */
+    html, body, [class*="css"] {
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        color: #2C3E50; /* Warna teks abu-abu gelap (lebih nyaman dibaca dari hitam pekat) */
     }
+    
+    /* Judul Aplikasi (Elegan, Berwibawa) */
+    .sikap-title {
+        font-size: 3.5rem; 
+        font-weight: 800; 
+        text-align: center;
+        margin-bottom: -5px; 
+        letter-spacing: 2px;
+        color: #1565C0; /* Biru Instansi/Royal Blue */
+    }
+    
+    /* Subjudul Aplikasi */
     .sikap-subtitle {
-        font-size: 1.3rem; 
+        font-size: 1.2rem; 
         text-align: center; 
         font-weight: 600;
-        margin-bottom: 40px;
+        margin-bottom: 10px;
+        color: #546E7A; /* Abu-abu kebiruan */
         letter-spacing: 1px;
-        /* --- KEJUTAN WARNA: Gradasi Sunset (Oranye ke Pink) --- */
-        background: linear-gradient(45deg, #FF512F, #DD2476);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
     }
+    
+    /* Teks Instansi / Kop Bawah (Gaya Resmi Pemda) */
+    .instansi-teks {
+        text-align: center; 
+        margin-bottom: 40px; 
+        font-size: 0.95rem; 
+        color: #455A64;
+        border-bottom: 2px solid #F39C12; /* Garis aksen emas bawah */
+        padding-bottom: 15px;
+        width: 60%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Merapikan Expander (Kotak Lipat) agar lebih elegan */
     .streamlit-expanderHeader {
-        font-weight: bold;
-        color: #0288D1;
+        font-weight: 600 !important;
+        color: #0A3D62 !important;
+        background-color: #F8F9FA !important;
+        border-radius: 5px !important;
+        border-left: 4px solid #1565C0 !important; /* Garis aksen biru di kiri */
     }
-    /* PEMBUNUH IKON PANAH BIRU BAWAAN BROWSER */
+    
+    /* Menghilangkan panah bawaan expander browser */
     details > summary {
         list-style: none !important;
         outline: none !important;
@@ -645,6 +667,14 @@ def smart_classify(user_input, df, top_n=3):
 def halaman_utama():
     st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
     st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
+    
+    # Menambahkan "Kop" Pemda agar terlihat resmi
+    st.markdown("""
+        <div class='instansi-teks'>
+            <i>Inovasi Digitalisasi Kearsipan</i><br>
+            <b>Pemerintah Kabupaten Muna Barat</b>
+        </div>
+    """, unsafe_allow_html=True)
 
     try:
         df = load_data()
