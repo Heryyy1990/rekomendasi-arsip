@@ -699,10 +699,6 @@ def halaman_utama():
             </div>
         </div>
     """, unsafe_allow_html=True)
-    
-    try:
-        df = load_data()
-        # ... sisa kode di bawahnya tetap sama ...
 
     try:
         df = load_data()
