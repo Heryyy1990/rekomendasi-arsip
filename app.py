@@ -200,65 +200,66 @@ def ekstrak_inti_surat(teks_user):
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (TEMA RESMI PEMERINTAHAN) ---
+# --- UI & CSS CUSTOM (TEMA MODERN & ELEGAN) ---
 st.markdown("""
     <style>
-    /* Mengatur font dasar ke font yang bersih dan profesional */
+    /* Import font Inter untuk kesan aplikasi startup modern */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    
     html, body, [class*="css"] {
-        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-        color: #2C3E50; /* Warna teks abu-abu gelap (lebih nyaman dibaca dari hitam pekat) */
+        font-family: 'Inter', sans-serif;
+        color: #1E293B; /* Teks dark slate */
     }
     
-    /* Judul Aplikasi (Elegan, Berwibawa) */
+    /* Judul Utama: Besar, padat, gradasi elegan */
     .sikap-title {
-        font-size: 3.5rem; 
+        font-size: 4.2rem; 
         font-weight: 800; 
         text-align: center;
-        margin-bottom: -5px; 
-        letter-spacing: 2px;
-        color: #1565C0; /* Biru Instansi/Royal Blue */
+        margin-bottom: -15px; 
+        letter-spacing: -1.5px;
+        background: linear-gradient(135deg, #0F2027, #203A43, #2C5364); /* Gradasi Dark Ocean */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
     
-    /* Subjudul Aplikasi */
     .sikap-subtitle {
-        font-size: 1.2rem; 
+        font-size: 1.25rem; 
         text-align: center; 
         font-weight: 600;
-        margin-bottom: 10px;
-        color: #546E7A; /* Abu-abu kebiruan */
-        letter-spacing: 1px;
+        margin-bottom: 5px;
+        color: #475569;
+        letter-spacing: 0.5px;
     }
     
-    /* Teks Instansi / Kop Bawah (Gaya Resmi Pemda) */
     .instansi-teks {
         text-align: center; 
         margin-bottom: 40px; 
-        font-size: 0.95rem; 
-        color: #455A64;
-        border-bottom: 2px solid #F39C12; /* Garis aksen emas bawah */
-        padding-bottom: 15px;
-        width: 60%;
-        margin-left: auto;
-        margin-right: auto;
+        font-size: 0.9rem; 
+        color: #64748B;
+        padding-top: 5px;
     }
 
-    /* Merapikan Expander (Kotak Lipat) agar lebih elegan */
-    .streamlit-expanderHeader {
-        font-weight: 600 !important;
-        color: #0A3D62 !important;
-        background-color: #F8F9FA !important;
-        border-radius: 5px !important;
-        border-left: 4px solid #1565C0 !important; /* Garis aksen biru di kiri */
+    /* Memperhalus input form */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
+        border-radius: 8px !important;
+        border: 1px solid #CBD5E1 !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
     }
     
-    /* Menghilangkan panah bawaan expander browser */
-    details > summary {
-        list-style: none !important;
-        outline: none !important;
+    /* Expander ala Kartu Modern */
+    .streamlit-expanderHeader {
+        font-weight: 600 !important;
+        color: #0F172A !important;
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03) !important;
+        margin-top: 8px !important;
     }
-    details > summary::-webkit-details-marker {
-        display: none !important; 
-    }
+    
+    details > summary { list-style: none !important; outline: none !important; }
+    details > summary::-webkit-details-marker { display: none !important; }
     </style>
 """, unsafe_allow_html=True)
 
