@@ -200,64 +200,90 @@ def ekstrak_inti_surat(teks_user):
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
-# --- UI & CSS CUSTOM (TEMA MODERN & ELEGAN) ---
+# --- UI & CSS CUSTOM (TEMA STANDARD SRIKANDI / SPBE NASIONAL) ---
 st.markdown("""
     <style>
-    /* Import font Inter untuk kesan aplikasi startup modern */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    /* Menggunakan font standar web pemerintah (Roboto) */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
     
     html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-        color: #1E293B; /* Teks dark slate */
+        font-family: 'Roboto', sans-serif;
+        background-color: #F4F6F9; /* Latar abu-abu sangat muda khas dashboard admin */
+        color: #333333;
     }
     
-    /* Judul Utama: Besar, padat, gradasi elegan */
+    /* Judul Utama: Tegas, Formal, Biru Kemenpan/ANRI */
     .sikap-title {
-        font-size: 4.2rem; 
-        font-weight: 800; 
+        font-size: 2.8rem; 
+        font-weight: 700; 
         text-align: center;
-        margin-bottom: -15px; 
-        letter-spacing: -1.5px;
-        background: linear-gradient(135deg, #0F2027, #203A43, #2C5364); /* Gradasi Dark Ocean */
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        margin-bottom: 0px; 
+        color: #0056B3; /* Biru Resmi Pemerintah */
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
     }
     
     .sikap-subtitle {
-        font-size: 1.25rem; 
+        font-size: 1.1rem; 
         text-align: center; 
-        font-weight: 600;
+        font-weight: 500;
         margin-bottom: 5px;
-        color: #475569;
-        letter-spacing: 0.5px;
+        color: #6C757D;
     }
     
+    /* Kop Instansi dengan Aksen Garis Emas/Kuning ASN */
     .instansi-teks {
         text-align: center; 
-        margin-bottom: 40px; 
+        margin-bottom: 30px; 
         font-size: 0.9rem; 
-        color: #64748B;
-        padding-top: 5px;
+        color: #495057;
+        padding-bottom: 10px;
+        border-bottom: 3px solid #FFC107; /* Aksen Kuning/Emas */
+        width: 300px; /* Panjang garis menyesuaikan teks */
+        margin-left: auto;
+        margin-right: auto;
     }
 
-    /* Memperhalus input form */
+    /* Input Box: Putih bersih, kotak tegas */
     .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-        border-radius: 8px !important;
-        border: 1px solid #CBD5E1 !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
-    }
-    
-    /* Expander ala Kartu Modern */
-    .streamlit-expanderHeader {
-        font-weight: 600 !important;
-        color: #0F172A !important;
+        border-radius: 4px !important;
+        border: 1px solid #CED4DA !important;
         background-color: #FFFFFF !important;
-        border-radius: 8px !important;
-        border: 1px solid #E2E8F0 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03) !important;
-        margin-top: 8px !important;
     }
     
+    /* Efek saat diklik (Focus) warna biru muda */
+    .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
+        border-color: #80BDFF !important;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
+    }
+
+    /* Tombol Utama ala SRIKANDI (Biru Solid) */
+    .stButton>button {
+        background-color: #0056B3 !important;
+        color: white !important;
+        border-radius: 4px !important;
+        border: none !important;
+        font-weight: 500 !important;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.2s ease-in-out;
+    }
+    .stButton>button:hover {
+        background-color: #004494 !important; /* Biru lebih gelap saat disentuh */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    /* Expander (Kotak Hasil Analisis) */
+    .streamlit-expanderHeader {
+        font-weight: 500 !important;
+        color: #212529 !important;
+        background-color: #FFFFFF !important;
+        border-radius: 4px !important;
+        border: 1px solid #DFE3E7 !important;
+        border-left: 5px solid #0056B3 !important; /* Pita biru identitas di sebelah kiri */
+        margin-top: 10px !important;
+    }
+    
+    /* Menghilangkan panah bawaan */
     details > summary { list-style: none !important; outline: none !important; }
     details > summary::-webkit-details-marker { display: none !important; }
     </style>
