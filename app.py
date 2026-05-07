@@ -3,8 +3,7 @@ import pandas as pd
 import re
 import os
 from datetime import datetime
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from rank_bm25 import BM25Okapi
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 from thefuzz import process, fuzz
@@ -552,93 +551,99 @@ def get_hierarchy(kode_target, df):
 
 # --- 3. LOGIKA AI HYBRID (RERANKING) ---
 def smart_classify(user_input, df, top_n=3):
-    # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
+    # 1. LLM mengekstrak "inti" substansi
     inti_dari_llm = ekstrak_inti_surat(user_input)
     st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
     
-    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
+    # 2. Pembersihan teks (Sastrawi)
     clean_input = preprocess_text(inti_dari_llm)
     
-   # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
-    vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
-    all_docs = df['clean_uraian'].tolist() + [clean_input]
-    tfidf_matrix = vectorizer.fit_transform(all_docs)
+    # 3. BM25 & Fuzzy Matching (Tahap Pencarian Nominasi)
+    corpus = df['clean_uraian'].tolist()
     
-    cosine_sim = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1])[0]
+    # BM25 butuh teks yang dipecah jadi kata-kata (tokenisasi)
+    tokenized_corpus = [doc.split() for doc in corpus]
+    bm25 = BM25Okapi(tokenized_corpus)
+    
+    tokenized_query = clean_input.split()
+    bm25_scores = bm25.get_scores(tokenized_query)
+    
+    # NORMALISASI: Skor BM25 diubah ke skala 0.0 - 1.0
+    max_bm25 = max(bm25_scores) if max(bm25_scores) > 0 else 1
+    normalized_bm25 = [score / max_bm25 for score in bm25_scores]
     
     skor_awal = []
-    for idx, score in enumerate(cosine_sim):
-        # GANTI partial_ratio MENJADI token_set_ratio
-        fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
+    for idx, score in enumerate(normalized_bm25):
+        # Fuzzy matching (token_set_ratio) untuk menangani typo
+        fuzzy_score = fuzz.token_set_ratio(clean_input, corpus[idx]) / 100
         
-        # --- TAMBAHAN: DEPTH BONUS (BOBOT KEDALAMAN) ---
+        # --- DEPTH BONUS (Memberi nilai lebih pada kode yang spesifik) ---
         kode_item = str(df.iloc[idx]['kode'])
         jumlah_titik = kode_item.count('.')
         depth_bonus = jumlah_titik * 0.05 
         
-        # Ubah porsi bobotnya: Berikan kekuatan lebih besar pada TF-IDF (Score)
+        # Gabungan: BM25 (70%) + Fuzzy (30%) + Bonus Kedalaman
         combined_score = (score * 0.70) + (fuzzy_score * 0.30) + depth_bonus 
         
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
-    # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
+    # Ambil 10 nominasi tertinggi untuk dijuri oleh AI raksasa
     top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
     
- # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
+    # 4. FASE JURI AI (Llama-3.3-70b mengevaluasi konteks secara teliti)
     daftar_kandidat = ""
     for i, item in enumerate(top_10_kandidat):
         baris = df.iloc[item['idx']]
-        # PERUBAHAN: AI SEKARANG MELIHAT JALUR LENGKAP (Konteks), BUKAN CUMA UJUNGNYA
         daftar_kandidat += f"[{i+1}] Kode: {baris['kode']} | Konteks Hierarki: {baris['uraian_lengkap'].title()}\n"
         
+    # Prompt Juri sekarang melihat "Teks Asli" dan "Inti" agar lebih cerdas
     prompt_juri = f"""
-    Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
+    Pilih 3 nomor urut opsi yang paling tepat untuk mengklasifikasikan dokumen ini.
     
-    Daftar Opsi (Baca dengan teliti jalur konteks hierarkinya):
+    Teks Asli Pengguna: "{user_input}"
+    Inti Substansi: "{inti_dari_llm}"
+    
+    Daftar Opsi Nominasi (Baca teliti jalur hierarkinya):
     {daftar_kandidat}
     
     ATURAN MUTLAK:
-    1. Kamu HANYA BOLEH membalas dengan 3 angka urutan (antara 1 sampai 10) yang dipisah koma.
-    2. JIKA ADA BEBERAPA KODE DARI RUMPUN YANG SAMA, KAMU WAJIB MEMILIH KODE TURUNAN YANG PALING DALAM/SPESIFIK. Haram hukumnya memilih kode induk jika ada kode anaknya yang lebih detail dan relevan.
-    3. JANGAN tulis kodenya. JANGAN ada teks apapun selain 3 angka.
-    Contoh balasan yang benar: 1, 5, 8
+    1. Balas HANYA dengan 3 angka urutan yang dipisah koma (contoh: 1, 5, 8).
+    2. Jika ada beberapa kode dalam rumpun yang sama, WAJIB pilih kode turunan yang paling SPESIFIK (yang paling dalam/anak).
+    3. JANGAN tulis kodenya, JANGAN tulis teks apapun selain 3 angka.
     """
     
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt_juri}],
-            model="llama-3.3-70b-versatile", # Model raksasa yang sangat teliti dalam menjuri 
+            model="llama-3.3-70b-versatile",
             temperature=0.0, 
         )
         balasan_juri = chat_completion.choices[0].message.content.strip()
         
-        # LOGIKA ANTI-JEBOL: Ambil semua angka, tapi HANYA simpan angka 1-10 yang unik
+        # Anti-Jebol: Ambil angka 1-10 yang unik
         angka_mentah = re.findall(r'\d+', balasan_juri)
         angka_pilihan = []
         for angka in angka_mentah:
-            angka_int = int(angka)
-            # Pastikan itu nomor urut nominasi (1-10), BUKAN kode klasifikasi seperti 800 atau 000
-            if 1 <= angka_int <= 10:
-                if angka_int not in angka_pilihan:
-                    angka_pilihan.append(angka_int)
-            if len(angka_pilihan) == 3: # Berhenti jika sudah dapat 3 juara
-                break
+            a_int = int(angka)
+            if 1 <= a_int <= 10 and a_int not in angka_pilihan:
+                angka_pilihan.append(a_int)
+            if len(angka_pilihan) == 3: break
                 
         hasil_akhir = []
         for nomor in angka_pilihan:
-            idx_kandidat = nomor - 1 
-            if 0 <= idx_kandidat < len(top_10_kandidat):
-                # Bobot keyakinan simulasi yang menurun (99%, 85%, 70%)
-                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
-                hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
+            idx_kand = nomor - 1 
+            if idx_kand < len(top_10_kandidat):
+                # Tampilkan skor keyakinan asli hasil perhitungan mesin
+                skor_asli = top_10_kandidat[idx_kand]['skor']
+                skor_final = min(skor_asli * 0.95, 0.95) # Dibatasi max 95% agar realistis
+                hasil_akhir.append((top_10_kandidat[idx_kand]['idx'], skor_final))
                 
-        if hasil_akhir:
-            return hasil_akhir
+        if hasil_akhir: return hasil_akhir
             
     except Exception as e:
-        st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
+        st.error(f"🚨 ERROR TAHAP JURI: {e}")
         
-    # Fallback
+    # Fallback jika AI gagal merespon angka
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
     
 # --- 4. ANTARMUKA UTAMA ---
