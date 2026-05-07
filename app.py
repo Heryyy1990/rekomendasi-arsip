@@ -57,14 +57,21 @@ def baca_riwayat_csv(nama_user):
 # --- HALAMAN LOGIN ---
 def halaman_login():
     st.markdown("<br><br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1.2, 1.5, 1.2])
+    col1, col2, col3 = st.columns([0.5, 2, 0.5]) # Kolom tengah dilebarkan agar teks lurus panjang tidak terpotong
     with col2:
         with st.form("form_login"):
+            
+            # --- HEADER SEJAJAR LURUS 1 BARIS ---
             st.markdown("""
+                <div style='display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 15px; margin-bottom: 10px;'>
+                    <h1 style='color: #C62828; margin: 0; font-size: 2.2rem; font-weight: 900;'>SIKAP</h1>
+                    <div style='height: 30px; width: 2px; background-color: #CED4DA;'></div>
+                    <h4 style='color: #495057; margin: 0; font-weight: 600; font-size: 1.1rem;'>
+                        Sistem Informasi Klasifikasi Arsip Pintar
+                    </h4>
+                </div>
                 <div style='text-align: center; margin-bottom: 25px;'>
-                    <h1 style='color: #C62828; margin: 0; font-size: 2.8rem; font-weight: 900; letter-spacing: 1px;'>SIKAP</h1>
-                    <h4 style='color: #495057; margin: 0; font-weight: 500; font-size: 1.05rem;'>Sistem Informasi Klasifikasi Arsip Pintar</h4>
-                    <p style='color: #6C757D; font-size: 0.9rem; margin-top: 15px;'>Silakan masuk dengan akun Anda</p>
+                    <p style='color: #6C757D; font-size: 0.95rem; font-weight: 500; margin: 0;'>Silakan masuk dengan akun Anda</p>
                 </div>
             """, unsafe_allow_html=True)
             
@@ -72,7 +79,7 @@ def halaman_login():
             pwd_input = st.text_input("Kata Sandi", type="password")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            submit = st.form_submit_button("Masuk", use_container_width=True)
+            submit = st.form_submit_button("Masuk")
             
             if submit:
                 is_valid, role, nama = validasi_login(user_input, pwd_input)
@@ -84,9 +91,10 @@ def halaman_login():
                 else:
                     st.error("Nama Pengguna atau Kata Sandi salah!")
         
+        # --- KETERANGAN PEMBUAT (LATSAR) ---
         st.markdown("""
-            <div style='text-align: center; margin-top: 20px; font-size: 0.8rem; color: #ADB5BD;'>
-                &copy; 2026 Dibuat Oleh Heryanto, S.Pd<br>
+            <div style='text-align: center; margin-top: 20px; font-size: 0.85rem; color: #ADB5BD; font-weight: 500;'>
+                Dibuat oleh Heryanto, S.Pd
             </div>
         """, unsafe_allow_html=True)
 
@@ -695,13 +703,13 @@ def smart_classify(user_input, df, top_n=3):
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
+    # Menampilkan Judul Lurus Sejajar (Tanpa Muna Barat)
     st.markdown("""
         <div class='header-container'>
             <div class='sikap-title'>SIKAP</div>
             <div class='header-divider'></div>
             <div class='sikap-subtitle'>
-                Sistem Informasi Klasifikasi Arsip Pintar<br>
-                <span style='font-size: 0.85rem; color: #6C757D; font-style: italic;'>Pemerintah Kabupaten Muna Barat</span>
+                Sistem Informasi Klasifikasi Arsip Pintar
             </div>
         </div>
     """, unsafe_allow_html=True)
