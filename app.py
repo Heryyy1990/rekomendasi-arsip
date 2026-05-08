@@ -793,16 +793,16 @@ def smart_classify(user_input, df, top_n=3):
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
-    st.markdown("""
+st.markdown("""
 <div class="sikap-wrapper">
 
-    <div class="sikap-title">
-        SIKAP
-    </div>
+<div class="sikap-title">
+SIKAP
+</div>
 
-    <div class="sikap-subtitle">
-        Sistem Informasi Klasifikasi Arsip Pintar
-    </div>
+<div class="sikap-subtitle">
+Sistem Informasi Klasifikasi Arsip Pintar
+</div>
 
 </div>
 """, unsafe_allow_html=True)
