@@ -264,11 +264,17 @@ st.markdown("""
 
     text-align:center;
 
-    letter-spacing: 0.5px;
+    letter-spacing: 1.2px;
 
     margin-top: 2px;
 
-    background: linear-gradient(45deg, #FF512F, #DD2476);
+    margin-left: 6px;
+
+    background: linear-gradient(
+        45deg,
+        #FF512F,
+        #DD2476
+    );
 
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
