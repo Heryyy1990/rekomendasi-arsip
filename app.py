@@ -103,9 +103,15 @@ def halaman_login():
             use_container_width=True
         )
         
+        # FOOTER BARU: Icon Futuristik + Crafted by Heryanto, S.Pd.
         st.markdown("""
         <div class="login-footer">
-            🛡️ <b>Aman &bull; Cepat &bull; Akurat</b>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 6px;">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span>Crafted by <b>Heryanto, S.Pd.</b></span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -256,10 +262,12 @@ def ekstrak_inti_surat(teks_user):
 st.markdown("""
 <style>
 /* ============================= */
-/* GLOBAL FONT & VARIABEL TEMA TERANG */
+/* IMPORT FONT POPPINS & GLOBAL */
 /* ============================= */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
+
 * {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+    font-family: 'Poppins', sans-serif !important;
 }
 
 :root {
@@ -369,7 +377,7 @@ div[data-testid="stForm"] {
     padding: 40px 30px !important;
     backdrop-filter: blur(16px) !important;
     box-shadow: var(--card-shadow) !important;
-    max-width: 450px !important; 
+    max-width: 460px !important; 
     margin: 0 auto !important;
 }
 
@@ -390,15 +398,16 @@ div[data-testid="stForm"] {
     justify-content: center;
 }
 .login-title {
-    font-size: 2rem;
+    font-size: 2.1rem;
     font-weight: 800 !important;
     color: var(--text-title);
+    letter-spacing: -0.5px;
 }
 .login-subtitle {
     text-align: center;
     font-size: 0.95rem;
     color: var(--text-subtitle);
-    margin-bottom: 25px;
+    margin-bottom: 30px;
     line-height: 1.6;
 }
 
@@ -407,15 +416,14 @@ div[data-testid="stForm"] {
 /* ============================= */
 .stTextInput label {
     color: var(--text-title) !important;
-    font-weight: 800 !important;
+    font-weight: 700 !important;
     font-size: 1rem !important;
     margin-bottom: 8px !important;
 }
 
 /* ============================= */
-/* INPUT BOX - FIX OVERLAY JENGKELIN */
+/* INPUT BOX - FIX POSISI IKON & TEKS */
 /* ============================= */
-/* Bersihkan semua background dan border bawaan Streamlit di dalam-dalamnya */
 div[data-baseweb="input"], 
 div[data-baseweb="base-input"] {
     background: transparent !important;
@@ -423,35 +431,33 @@ div[data-baseweb="base-input"] {
     box-shadow: none !important;
 }
 
-/* Kita hanya taruh border di lapisan terluar saja biar rapi */
 div[data-baseweb="input"] {
     background: var(--input-bg) !important;
     border: 2px solid var(--input-border) !important;
     border-radius: 12px !important;
     transition: all 0.3s ease !important;
-    overflow: hidden !important; /* Mencegah background meluber */
+    overflow: hidden !important; 
 }
 
 div[data-baseweb="input"]:focus-within {
     border: 2px solid #009DFF !important;
     background: var(--input-focus-bg) !important;
-    box-shadow: 0 0 12px rgba(0, 157, 255, 0.25) !important;
+    box-shadow: 0 0 15px rgba(0, 157, 255, 0.2) !important;
 }
 
-/* Styling kolom teksnya */
 input[type="text"], input[type="password"] {
-    height: 52px !important;
-    padding-left: 45px !important; /* Ruang untuk ikon di kiri */
+    height: 56px !important; /* Ditinggikan sedikit biar lega */
+    padding-left: 55px !important; /* Dorong teks ke kanan menjauhi ikon */
     padding-right: 15px !important;
     color: var(--text-title) !important;
     font-weight: 600 !important;
-    font-size: 1.05rem !important;
+    font-size: 1rem !important;
     background-color: transparent !important;
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
     background-repeat: no-repeat !important;
-    background-position: 15px center !important;
+    background-position: 18px center !important; /* Ikon didorong agak ke kanan dari pinggir */
     background-size: 20px !important;
 }
 
@@ -470,10 +476,10 @@ input[type="text"]::placeholder, input[type="password"]::placeholder {
     font-weight: 500 !important;
 }
 
-/* Fix Ikon Mata Streamlit biar nyatu dan gak ada kotak abu-abunya */
 div[data-testid="stTextInputPassword"] button {
     color: #009DFF !important;
     background: transparent !important;
+    padding-right: 10px !important;
 }
 
 /* ============================= */
@@ -486,23 +492,29 @@ small {
 }
 
 /* ============================= */
-/* BUTTON MASUK + IKON GEMBOK PUTIH */
+/* BUTTON MASUK FIRM & BOLD */
 /* ============================= */
 .stFormSubmitButton > button {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 10px !important;
+    gap: 12px !important;
     width: 100% !important;
-    height: 52px !important;
+    height: 56px !important;
     border: none !important;
     border-radius: 12px !important;
-    margin-top: 15px !important;
-    font-size: 1.2rem !important; 
+    margin-top: 20px !important;
+    
+    /* Setting font MASUK yang baru */
+    font-size: 1.15rem !important; 
     font-weight: 800 !important; 
+    letter-spacing: 1.5px !important; /* Spasi direnggangkan */
+    text-transform: uppercase !important; /* Memaksa jadi KAPITAL */
+    
     color: white !important;
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
-    transition: all .2s ease !important;
+    transition: all .25s ease !important;
+    box-shadow: 0 4px 15px rgba(0, 157, 255, 0.2) !important;
 }
 
 /* Suntik ikon Gembok putih ke dalam tombol */
@@ -517,16 +529,16 @@ small {
 }
 
 .stFormSubmitButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,140,255,0.4) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,140,255,0.4) !important;
 }
 
 .login-footer {
     text-align: center;
     color: var(--text-subtitle);
-    font-size: 0.9rem;
-    margin-top: 20px;
-    font-weight: 700;
+    font-size: 0.95rem;
+    margin-top: 25px;
+    font-weight: 500;
 }
 </style>
 """, unsafe_allow_html=True)
