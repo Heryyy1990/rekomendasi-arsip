@@ -957,7 +957,7 @@ def halaman_utama():
         font-family: 'Poppins', sans-serif;
     }
 
-    /* Penyelamat Ikon Streamlit */
+    /* Penyelamat Ikon Streamlit & Material Symbols */
     @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
     .material-symbols-rounded, [data-testid="stHeader"] *, [data-testid="stSidebarCollapseButton"] *, .st-emotion-cache-1wivap2, .st-emotion-cache-1104e76 {
         font-family: 'Material Symbols Rounded', sans-serif !important;
@@ -984,8 +984,13 @@ def halaman_utama():
         box-shadow: none !important; transform: none !important; font-family: 'Poppins', sans-serif !important;
     }
     section[data-testid="stSidebar"] .stButton button:hover { background-color: #F8FAFC !important; color: #0F172A !important; }
+    
+    /* PAKSA WARNA BIRU UNTUK TOMBOL AKTIF (Melawan tema merah bawaan) */
+    button[kind="primary"] {
+        background-color: #009DFF !important; border-color: #009DFF !important; color: white !important; font-weight: 700 !important;
+    }
     section[data-testid="stSidebar"] .stButton button[kind="primary"] {
-        background-color: #E0F2FE !important; color: #009DFF !important; font-weight: 700 !important;
+        background-color: #E0F2FE !important; color: #009DFF !important;
     }
 
     /* UMUM */
@@ -1044,69 +1049,91 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Fokus Memperbaiki Banner dan Kotak Pencarian)
+            # CSS KHUSUS BERANDA (Banner & Kartu Akses Cepat Baru)
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
             .hero-banner {
-                background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
-                border-radius: 16px; 
-                padding: 40px; 
-                display: flex; align-items: center; justify-content: space-between;
-                border: 1px solid #BAE6FD;
-                margin-bottom: -60px; /* Trik agar kolom Streamlit bisa naik ke atas banner */
-                padding-bottom: 80px; /* Memberi ruang di bawah untuk kotak putih */
+                background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border-radius: 16px; padding: 40px; 
+                display: flex; align-items: center; justify-content: space-between; border: 1px solid #BAE6FD;
+                margin-bottom: -60px; padding-bottom: 80px; 
             }
             .hero-content { width: 60%; }
             .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
             .hero-title span { color: #009DFF; }
             .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
             
-            /* 2. Desain Kotak Putih Tempat Search Berada */
+            /* 2. Desain Kotak Putih Tempat Search */
             .search-card-bg { 
                 background: #FFFFFF; border-radius: 12px; padding: 25px; 
                 box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #E2E8F0;
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .search-desc { font-size: 0.85rem; color: #64748B; margin-bottom: 0; font-family: 'Poppins', sans-serif !important;}
-            .search-spacer { height: 60px; } /* Ruang kosong untuk ditempati input Streamlit nanti */
+            .search-spacer { height: 60px; } 
             
-            /* 3. Ilustrasi Kanan (Menggunakan Gambar Asli agar tidak cacat) */
+            /* 3. Ilustrasi Kanan */
             .hero-illustration { width: 35%; display: flex; justify-content: center; }
             .hero-illustration img { width: 100%; max-width: 220px; filter: drop-shadow(0 10px 15px rgba(0, 157, 255, 0.2)); opacity: 0.9; }
 
-            /* 4. POSISI INPUT STREAMLIT (Ditarik naik agar pas di dalam kotak putih) */
+            /* 4. POSISI INPUT STREAMLIT (Ditarik naik ke kotak putih) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -85px !important;
-                margin-left: 65px !important;
-                width: calc(60% - 90px) !important;
-                position: relative; z-index: 10; 
-                margin-bottom: 50px !important;
-                align-items: center !important;
+                margin-top: -85px !important; margin-left: 65px !important; width: calc(60% - 90px) !important;
+                position: relative; z-index: 10; margin-bottom: 50px !important; align-items: center !important;
             }
-            
-            /* 5. Desain Kolom Teks Pencarian */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
-                height: 48px !important; border-radius: 8px !important;
-                border: 1px solid #E2E8F0 !important; background: #F8FAFC !important;
+                height: 48px !important; border-radius: 8px !important; border: 1px solid #E2E8F0 !important; background: #F8FAFC !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
                 border-color: #009DFF !important; background: #FFFFFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.15) !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
-            
-            /* 6. Desain Tombol Biru Kaca Pembesar */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
                 height: 48px !important; border-radius: 8px !important; width: 100% !important; 
                 background-color: #009DFF !important; color: white !important; border: none !important; font-size: 1.2rem !important;
             }
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {
-                background-color: #0077CC !important;
+
+            /* ============================================================== */
+            /* 5. KARTU AKSES CEPAT (DESAIN BARU SESUAI GAMBAR) */
+            /* ============================================================== */
+            .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
+            
+            /* Trik Tombol Gaib */
+            .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+            .card-container div[data-testid="stButton"] button { width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; }
+
+            /* Desain Visual Kartu */
+            .saas-card {
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
+                padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s ease;
+                z-index: 1; /* Di bawah tombol gaib */
             }
+            .card-container:hover .saas-card {
+                border-color: #009DFF; box-shadow: 0 8px 20px rgba(0, 157, 255, 0.08); transform: translateY(-3px);
+            }
+
+            /* Ikon Lingkaran Kiri */
+            .saas-icon-box {
+                width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+            }
+            .bg-blue { background-color: #F0F9FF; color: #009DFF; }
+            .bg-orange { background-color: #FFF7ED; color: #F97316; }
+            .bg-purple { background-color: #FAF5FF; color: #A855F7; }
+
+            /* Area Teks Kanan */
+            .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
+            .saas-card-title { font-weight: 700; color: #0F172A; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
+            .saas-card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
+            
+            /* Panah Kanan Bawah */
+            .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA (Dirapatkan ke kiri agar aman dari Streamlit Markdown bug)
+            # HTML BANNER UTAMA
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
@@ -1138,26 +1165,66 @@ def halaman_utama():
 
 
             # =========================================================
-            # AKSES CEPAT (Dibiarkan normal bawaan Streamlit untuk saat ini)
+            # AKSES CEPAT (DESAIN IDENTIK GAMBAR + TOMBOL GAIB)
             # =========================================================
-            st.markdown('<div class="section-title">⚡ Akses Cepat</div>', unsafe_allow_html=True)
-            col1, col2, col3, col4 = st.columns(4)
+            st.markdown('<div class="section-title" style="margin-top: 10px;">⚡ Akses Cepat</div>', unsafe_allow_html=True)
+            
+            # Kita gunakan 3 kolom saja karena 'Perihal Surat' dihapus
+            col1, col2, col3 = st.columns(3)
+            
             with col1:
-                if st.button("🤖 Pencarian AI", use_container_width=True):
+                # 1. Gambar UI Kartu nya (HTML Murni)
+                st.markdown("""
+                <div class="card-container">
+                    <div class="saas-card">
+                        <div class="saas-icon-box bg-blue"><span class="material-symbols-rounded">smart_toy</span></div>
+                        <div class="saas-card-content">
+                            <div class="saas-card-title">Pencarian AI (Cerdas)</div>
+                            <div class="saas-card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
+                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                # 2. Tombol Gaib yang ditimpa CSS (opacity 0) di atas kartu
+                if st.button("btn_ai", key="btn_akses_ai"):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
+
             with col2:
-                if st.button("📁 Jelajah Kode", use_container_width=True):
+                st.markdown("""
+                <div class="card-container">
+                    <div class="saas-card">
+                        <div class="saas-icon-box bg-orange"><span class="material-symbols-rounded">folder</span></div>
+                        <div class="saas-card-content">
+                            <div class="saas-card-title">Jelajah Kode Klasifikasi</div>
+                            <div class="saas-card-desc">Telusuri dan jelajahi struktur kode klasifikasi.</div>
+                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("btn_jelajah", key="btn_akses_jelajah"):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
+
             with col3:
-                if st.button("📄 Dokumen Surat", use_container_width=True):
-                    ganti_halaman('Pencarian AI')
-                    st.rerun()
-            with col4:
-                if st.button("🕒 Riwayat Anda", use_container_width=True):
+                st.markdown("""
+                <div class="card-container">
+                    <div class="saas-card">
+                        <div class="saas-icon-box bg-purple"><span class="material-symbols-rounded">schedule</span></div>
+                        <div class="saas-card-content">
+                            <div class="saas-card-title">Riwayat Pencarian</div>
+                            <div class="saas-card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
+                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("btn_riwayat", key="btn_akses_riwayat"):
                     ganti_halaman('Riwayat')
                     st.rerun()
+
 
             # TABEL RIWAYAT
             st.markdown("""
