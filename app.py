@@ -950,30 +950,25 @@ def halaman_utama():
     <style>
     /* Reset & Force Light Theme */
     .stApp { background-color: #F8FAFC !important; }
-    
-    /* 1. HAPUS KODE BINTANG (*) YANG BRUTAL!
-       Kita terapkan font Poppins HANYA pada elemen teks buatan kita sendiri 
-       agar ikon bawaan Streamlit tidak mati. */
-    .hero-title, .hero-subtitle, .search-box-title, .search-box-desc, 
-    .section-title, .card-title, .card-desc, .sidebar-title, p, h1, h2, h3, h4 {
-        font-family: 'Poppins', sans-serif !important;
+
+    /* Gunakan Poppins khusus untuk teks kita, biarkan ikon Streamlit hidup */
+    .hero-title, .hero-subtitle, .search-box-title, .search-box-desc,
+    .section-title, .card-title, .card-desc, .sidebar-title, p, h1, h2, h3, h4, span, div {
+        font-family: 'Poppins', sans-serif;
     }
 
-    /* Terapkan juga font Poppins ke kolom input pencarian kita */
-    div[data-testid="stTextInput"] * {
-        font-family: 'Poppins', sans-serif !important;
-    }
-
-    /* 2. SUNTIKAN VITAMIN UNTUK IKON STREAMLIT 
-       Memastikan font pembuat ikon kembali bekerja dengan normal */
+    /* PERBAIKAN IKON ABSOLUT (Agar Hamburger Menu & Panah Tidak Mati) */
     @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
-    [data-testid="stHeader"] *, [data-testid="stSidebarCollapseButton"] * {
+    .material-symbols-rounded, [data-testid="stHeader"] *, [data-testid="stSidebarCollapseButton"] *, .st-emotion-cache-1wivap2, .st-emotion-cache-1104e76 {
         font-family: 'Material Symbols Rounded', sans-serif !important;
     }
-
-    /* 3. Transparankan header agar tombol Hamburger tetap bisa diklik */
     header[data-testid="stHeader"] { background: transparent !important; }
-    
+
+    /* --- SIDEBAR --- */
+    [data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E2E8F0 !important;
+    }
     .sidebar-title-container {
         display: flex;
         align-items: center;
@@ -1001,32 +996,38 @@ def halaman_utama():
         line-height: 1;
     }
 
-    /* --- HERO BANNER --- */
+    /* --- HERO BANNER (Dirampingkan & Pakai SVG Elegan) --- */
     .hero-banner {
         background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
-        border-radius: 20px;
-        padding: 40px;
+        border-radius: 16px;
+        padding: 25px 35px;
         margin-bottom: 25px;
+        border: 1px solid #BAE6FD;
         box-shadow: 0 4px 15px rgba(0, 157, 255, 0.05);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        position: relative;
+        overflow: hidden;
     }
-    .hero-content { max-width: 65%; }
-    .hero-title {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #0F172A;
-        margin-bottom: 10px;
+    .hero-banner::after {
+        content: '';
+        position: absolute;
+        right: -30px;
+        top: -50px;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(0,157,255,0.1) 0%, rgba(0,0,0,0) 70%);
+        border-radius: 50%;
+        z-index: 1;
     }
-    .hero-title span { color: #009DFF; }
-    .hero-subtitle {
-        font-size: 0.95rem;
-        color: #475569;
-        margin-bottom: 0;
-    }
+    .hero-content { max-width: 70%; z-index: 2; position: relative; }
+    .hero-title { font-size: 1.8rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important; }
+    .hero-title span { color: #009DFF; font-family: 'Poppins', sans-serif !important;}
+    .hero-subtitle { font-size: 0.9rem; color: #475569; margin-bottom: 0; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
+    .hero-icon { z-index: 2; position: relative; padding-right: 20px; }
 
-    /* Input Streamlit Custom (Aman & Tidak Bocor) */
+    /* Input Streamlit Custom (Search Box) */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         background: #FFFFFF !important;
         border: 2px solid #E2E8F0 !important;
@@ -1042,65 +1043,56 @@ def halaman_utama():
     div[data-testid="stTextInput"] input {
         font-size: 1rem !important;
         padding-left: 20px !important;
+        font-family: 'Poppins', sans-serif !important;
     }
 
-    /* --- KARTU AKSES CEPAT --- */
-    .section-title {
-        font-weight: 700;
-        color: #0F172A;
-        font-size: 1.2rem;
-        margin-bottom: 15px;
-        margin-top: 25px;
-    }
-    .card-row {
+    /* --- SULAP TOMBOL STREAMLIT JADI KARTU AKSES CEPAT --- */
+    section.main .stButton button {
+        height: 75px !important;
+        border-radius: 12px !important;
+        border: 1px solid #E2E8F0 !important;
+        background-color: #FFFFFF !important;
+        font-family: 'Poppins', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+        color: #0F172A !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
         display: flex;
-        gap: 15px;
-        margin-bottom: 35px;
-    }
-    .saas-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 16px;
-        padding: 20px;
-        flex: 1;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        transition: all 0.2s ease;
-    }
-    .saas-card:hover {
-        border-color: #009DFF;
-        box-shadow: 0 10px 20px rgba(0, 157, 255, 0.08);
-        transform: translateY(-2px);
-    }
-    .card-icon-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 10px;
-    }
-    .card-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        align-items: center;
     }
-    .icon-blue { background: #E0F2FE; color: #009DFF; }
-    .icon-orange { background: #FFEDD5; color: #F97316; }
-    .icon-green { background: #DCFCE7; color: #22C55E; }
-    .icon-purple { background: #F3E8FF; color: #A855F7; }
-    
-    .card-title { font-weight: 700; color: #0F172A; font-size: 0.95rem; }
-    .card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; }
+    section.main .stButton button:hover {
+        border-color: #009DFF !important;
+        color: #009DFF !important;
+        box-shadow: 0 10px 20px rgba(0, 157, 255, 0.1) !important;
+        transform: translateY(-3px) !important;
+    }
 
-    /* --- TABEL RIWAYAT --- */
-    div[data-testid="stDataFrame"] {
-        background: #FFFFFF;
-        border-radius: 16px;
-        padding: 10px;
-        border: 1px solid #E2E8F0;
+    /* Kembalikan style normal khusus untuk tombol di Sidebar */
+    section[data-testid="stSidebar"] .stButton button {
+        height: 45px !important;
+        border: none !important;
+        background-color: transparent !important;
+        font-size: 0.95rem !important;
+        color: #475569 !important;
+        justify-content: flex-start !important;
+        box-shadow: none !important;
+        transform: none !important;
     }
+    section[data-testid="stSidebar"] .stButton button:hover {
+        background-color: #F8FAFC !important;
+        color: #0F172A !important;
+    }
+    section[data-testid="stSidebar"] .stButton button[kind="primary"] {
+        background-color: #E0F2FE !important;
+        color: #009DFF !important;
+        font-weight: 700 !important;
+    }
+
+    /* --- UMUM --- */
+    .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 30px; font-family: 'Poppins', sans-serif !important;}
+    div[data-testid="stDataFrame"] { background: #FFFFFF; border-radius: 12px; padding: 10px; border: 1px solid #E2E8F0; }
     div[data-testid="InputInstructions"] { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -1154,20 +1146,31 @@ def halaman_utama():
         
         # --- HALAMAN 1: BERANDA ---
         if st.session_state.page == 'Beranda':
+            # BANNER (Elegan & Menggunakan Inline SVG Murni)
             st.markdown(f"""
             <div class="hero-banner">
                 <div class="hero-content">
                     <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
-                    <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
+                    <div class="hero-subtitle">Sistem Informasi Klasifikasi Arsip Pintar (SIKAP) siap membantu Anda mengelola kode arsip dengan cepat, akurat, dan modern.</div>
                 </div>
-                <div style="width: 25%; opacity: 0.85;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" width="100%">
+                <div class="hero-icon">
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 10px 15px rgba(0,157,255,0.3));">
+                      <defs>
+                        <linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" style="stop-color:#009DFF;stop-opacity:1" />
+                          <stop offset="100%" style="stop-color:#0A6CFF;stop-opacity:1" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                      <circle cx="12" cy="13" r="3"></circle>
+                      <path d="M14 15l2.5 2.5"></path>
+                    </svg>
                 </div>
             </div>
             
             <div style="margin-bottom: 5px;">
-                <div style="font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 3px;">Cari kode klasifikasi arsip</div>
-                <div style="color: #64748B; font-size: 0.85rem;">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
+                <div style="font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 3px;">🔍 Cari Kode Klasifikasi Arsip</div>
+                <div style="color: #64748B; font-size: 0.85rem;">Gunakan AI untuk menemukan kode arsip dari perihal surat Anda.</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1178,25 +1181,23 @@ def halaman_utama():
                 ganti_halaman('Pencarian AI')
                 st.rerun()
 
-            st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
-            st.markdown("""
-            <div class="card-row">
-                <div class="saas-card">
-                    <div class="card-icon-wrapper"><div class="card-icon icon-blue">🤖</div><div class="card-title">Pencarian AI</div></div>
-                    <div class="card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
-                </div>
-                <div class="saas-card">
-                    <div class="card-icon-wrapper"><div class="card-icon icon-orange">📁</div><div class="card-title">Jelajah Kode</div></div>
-                    <div class="card-desc">Telusuri dan jelajahi struktur kode manual.</div>
-                </div>
-                <div class="saas-card">
-                    <div class="card-icon-wrapper"><div class="card-icon icon-purple">🕒</div><div class="card-title">Riwayat</div></div>
-                    <div class="card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown('<div class="section-title">⚡ Akses Cepat</div>', unsafe_allow_html=True)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("🤖 Pencarian AI", use_container_width=True):
+                    ganti_halaman('Pencarian AI')
+                    st.rerun()
+            with col2:
+                if st.button("📁 Jelajah Katalog", use_container_width=True):
+                    ganti_halaman('Jelajah Kode')
+                    st.rerun()
+            with col3:
+                if st.button("🕒 Riwayat Anda", use_container_width=True):
+                    ganti_halaman('Riwayat')
+                    st.rerun()
 
-            st.markdown('<div class="section-title">Riwayat Pencarian Terakhir</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">🕒 Riwayat Pencarian Terakhir</div>', unsafe_allow_html=True)
             if not st.session_state.search_history:
                 st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
                 
@@ -1240,7 +1241,7 @@ def halaman_utama():
             st.markdown('<div class="section-title">📁 Jelajah Kode Klasifikasi</div>', unsafe_allow_html=True)
             st.write("Telusuri seluruh struktur hierarki klasifikasi arsip secara manual.")
             
-            import re # Pastikan library regex diload
+            import re
             daftar_primer = [f"{i}00" for i in range(10)]
             
             for p in daftar_primer:
@@ -1299,7 +1300,6 @@ def halaman_utama():
                             
                             warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
                             warna_bg = warna_level[actual_level]
-                            
                             levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
                             label = levels_name[actual_level]
                             
@@ -1319,7 +1319,6 @@ def halaman_utama():
                             for child_kode in sorted_children:
                                 full_html += render_tree(child_kode)
                             st.markdown(full_html, unsafe_allow_html=True)
-                        
                     else:
                         st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
 
