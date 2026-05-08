@@ -1069,7 +1069,7 @@ def halaman_utama():
         # --- HALAMAN 1: BERANDA ---
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Mengatur Posisi Kotak Pencarian agar Masuk ke Dalam Banner)
+            # CSS KHUSUS BERANDA
             st.markdown("""
             <style>
             .hero-banner {
@@ -1095,7 +1095,7 @@ def halaman_utama():
             .hero-illustration { width: 35%; display: flex; justify-content: center; }
             .hero-illustration svg { width: 100%; max-width: 250px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.05)); }
 
-            /* TRIK RAHASIA: Menarik input Streamlit ke atas agar masuk ke dalam kotak putih banner */
+            /* Menarik input Streamlit ke atas agar masuk ke dalam kotak putih banner */
             div[data-testid="stTextInput"] {
                 margin-top: -95px !important;
                 margin-left: 65px !important;
@@ -1115,36 +1115,38 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA (Sama persis kata-katanya dengan Gambar 2)
+            # HTML BANNER UTAMA (Dirapatkan ke kiri agar tidak dibaca sebagai Code Block)
             st.markdown(f"""
-            <div class="hero-banner">
-                <div class="hero-content">
-                    <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
-                    <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
-                    
-                    <div class="search-card-bg">
-                        <div class="search-title">Cari kode klasifikasi arsip</div>
-                        <div class="search-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
-                        <div class="search-spacer"></div> </div>
-                </div>
-                
-                <div class="hero-illustration">
-                    <svg viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="150" cy="100" r="80" fill="#E0F2FE" opacity="0.5"/>
-                        <path d="M120 170 h60 v10 h-60 z" fill="#CBD5E1"/>
-                        <path d="M140 140 h20 v30 h-20 z" fill="#E2E8F0"/>
-                        <rect x="40" y="30" width="220" height="130" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="4"/>
-                        <rect x="40" y="30" width="220" height="20" rx="10" fill="#E2E8F0"/>
-                        <circle cx="55" cy="40" r="3" fill="#CBD5E1"/>
-                        <circle cx="65" cy="40" r="3" fill="#CBD5E1"/>
-                        <circle cx="75" cy="40" r="3" fill="#CBD5E1"/>
-                        <rect x="70" y="70" width="160" height="20" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-                        <path d="M120 100 h60 a10 10 0 0 1 10 10 v40 a10 10 0 0 1 -10 10 h-80 a10 10 0 0 1 -10 -10 v-45 a5 5 0 0 1 5 -5 h20 l5 -10 h20 z" fill="#009DFF"/>
-                        <path d="M100 115 h90 v35 a10 10 0 0 1 -10 10 h-80 a10 10 0 0 1 -10 -10 v-35 z" fill="#3B82F6"/>
-                    </svg>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+<div class="hero-banner">
+    <div class="hero-content">
+        <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
+        <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
+        <div class="search-card-bg">
+            <div class="search-title">Cari kode klasifikasi arsip</div>
+            <div class="search-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
+            <div class="search-spacer"></div>
+        </div>
+    </div>
+    <div class="hero-illustration">
+        <svg viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="150" cy="100" r="80" fill="#E0F2FE" opacity="0.5"/>
+            <path d="M120 170 h60 v10 h-60 z" fill="#CBD5E1"/>
+            <path d="M140 140 h20 v30 h-20 z" fill="#E2E8F0"/>
+            <rect x="40" y="30" width="220" height="130" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="4"/>
+            <rect x="40" y="30" width="220" height="20" rx="10" fill="#E2E8F0"/>
+            <circle cx="55" cy="40" r="3" fill="#CBD5E1"/>
+            <circle cx="65" cy="40" r="3" fill="#CBD5E1"/>
+            <circle cx="75" cy="40" r="3" fill="#CBD5E1"/>
+            <rect x="70" y="70" width="160" height="20" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+            <path d="M120 100 h60 a10 10 0 0 1 10 10 v40 a10 10 0 0 1 -10 10 h-80 a10 10 0 0 1 -10 -10 v-45 a5 5 0 0 1 5 -5 h20 l5 -10 h20 z" fill="#009DFF"/>
+            <path d="M100 115 h90 v35 a10 10 0 0 1 -10 10 h-80 a10 10 0 0 1 -10 -10 v-35 z" fill="#3B82F6"/>
+        </svg>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+            # INPUT PENCARIAN
+            user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal atau deskripsi surat/dokumen...", label_visibility="collapsed")
 
             # INPUT PENCARIAN (Akan otomatis terangkat masuk ke dalam Banner oleh CSS di atas)
             user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal atau deskripsi surat/dokumen...", label_visibility="collapsed")
