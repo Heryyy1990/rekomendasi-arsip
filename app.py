@@ -67,17 +67,23 @@ def halaman_login():
 </div>
 """, unsafe_allow_html=True)
 
-    # KITA HAPUS st.columns! Langsung panggil form-nya.
-    # CSS nanti yang akan membuat form ini berada di tengah dan responsif.
+    # SVG Icon elegan pengganti emoji monyet
+    svg_user = """
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+    </svg>
+    """
+
     with st.form("form_login"):
-        st.markdown("""
+        st.markdown(f"""
         <div class="login-header-container">
-            <div class="icon-user-badge">👤</div>
+            <div class="icon-user-badge">{svg_user}</div>
             <div class="login-title">Selamat Datang</div>
         </div>
         <div class="login-subtitle">
-        Masuk untuk mengakses sistem klasifikasi arsip<br>
-        secara cepat, akurat, dan pintar.
+        <b>Masuk untuk mengakses sistem klasifikasi arsip<br>
+        secara cepat, akurat, dan pintar.</b>
         </div>
         """, unsafe_allow_html=True)
 
@@ -99,7 +105,7 @@ def halaman_login():
         
         st.markdown("""
         <div class="login-footer">
-            🛡️ Aman &bull; Cepat &bull; Akurat
+            🛡️ <b>Aman &bull; Cepat &bull; Akurat</b>
         </div>
         """, unsafe_allow_html=True)
 
@@ -239,24 +245,24 @@ def ekstrak_inti_surat(teks_user):
 st.markdown("""
 <style>
 /* ============================= */
-/* VARIABEL TEMA TERANG (DEFAULT) */
+/* GLOBAL FONT & VARIABEL TEMA TERANG */
 /* ============================= */
+* {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+}
+
 :root {
-    /* Latar belakang diberi sedikit nuansa biru es agar form putihnya menonjol */
-    --bg-app: radial-gradient(circle at top right, #E0F2FE 0%, transparent 40%), 
-              linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+    --bg-app: radial-gradient(circle at top right, #E0F2FE 0%, transparent 40%), linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
     --card-bg: rgba(255, 255, 255, 0.95);
     --card-border: rgba(0, 157, 255, 0.15);
     --card-shadow: 0 20px 40px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.8);
     --text-title: #0F172A;
     --text-subtitle: #475569;
-    
-    /* Input di light mode diberi warna abu-abu kebiruan super muda */
     --input-bg: #F8FAFC; 
-    --input-border: rgba(0, 157, 255, 0.25);
+    --input-border: rgba(0, 157, 255, 0.4); /* Ditebalkan */
     --input-focus-bg: #FFFFFF;
     --icon-bg: rgba(0, 157, 255, 0.08);
-    --icon-border: rgba(0, 157, 255, 0.4);
+    --icon-border: rgba(0, 157, 255, 0.5);
 }
 
 /* ============================= */
@@ -264,48 +270,43 @@ st.markdown("""
 /* ============================= */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-app: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%), 
-                  linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
+        --bg-app: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%), linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
         --card-bg: rgba(10, 20, 40, 0.5);
         --card-border: rgba(0, 194, 255, 0.25);
         --card-shadow: 0 15px 50px rgba(0,0,0,0.6);
         --text-title: #FFFFFF;
         --text-subtitle: #94A3B8;
         --input-bg: rgba(255, 255, 255, 0.05);
-        --input-border: rgba(120, 180, 255, 0.3);
+        --input-border: rgba(120, 180, 255, 0.4); /* Ditebalkan */
         --input-focus-bg: rgba(0, 157, 255, 0.05);
         --icon-bg: rgba(0, 157, 255, 0.1);
         --icon-border: #009DFF;
     }
 }
 
-/* ============================= */
-/* BACKGROUND GLOBAL */
-/* ============================= */
 .stApp {
     background: var(--bg-app) !important;
     min-height: 100vh;
-    transition: background 0.3s ease;
 }
 
 /* ============================= */
-/* TITLE & WRAPPER */
+/* TITLE & WRAPPER SIKAP */
 /* ============================= */
 .sikap-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-top: 8vh;
+    margin-top: 6vh;
     margin-bottom: 2rem;
     padding: 0 15px;
 }
 
 .sikap-title {
-    font-size: clamp(3.5rem, 8vw, 5.5rem) !important;
+    font-size: clamp(4.5rem, 9vw, 6.5rem) !important; /* Diperbesar */
     font-weight: 900;
     line-height: 1.1;
-    letter-spacing: 2px;
+    letter-spacing: 6px !important; /* Diperlebar / Lebih ke samping */
     background: linear-gradient(90deg, #21E6C1 0%, #009DFF 50%, #1E88FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -314,39 +315,34 @@ st.markdown("""
 }
 
 .sikap-subtitle {
-    font-size: clamp(0.9rem, 3vw, 1.1rem) !important;
-    font-weight: 500;
+    font-size: clamp(0.95rem, 3vw, 1.15rem) !important;
+    font-weight: 700 !important; /* Ditebalkan */
     color: var(--text-subtitle);
     text-align: center;
     margin-top: 5px;
-    padding-bottom: 25px; /* Jarak untuk garis bawah */
+    padding-bottom: 20px; 
     position: relative;
-    transition: color 0.3s ease;
 }
 
-/* ============================= */
-/* GARIS BIRU + TITIK GLOWING DI TENGAH */
-/* ============================= */
+/* Garis Biru sama panjang dengan teks */
 .sikap-subtitle::after {
     content: "";
     position: absolute;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 250px;
+    left: 0; 
+    width: 100%; /* 100% mengikuti panjang teks subtitle! */
     height: 1.5px;
-    /* Gradasi agar ujung kiri dan kanannya memudar */
     background: linear-gradient(90deg, transparent, #009DFF, transparent); 
 }
 
 .sikap-subtitle::before {
     content: "";
     position: absolute;
-    bottom: -1.5px; /* Menempatkan titik pas di atas garis */
+    bottom: -1.5px; 
     left: 50%;
     transform: translateX(-50%);
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #00C2FF;
     box-shadow: 0 0 10px 2px rgba(0, 194, 255, 0.8);
@@ -360,82 +356,103 @@ div[data-testid="stForm"] {
     background: var(--card-bg) !important;
     border: 1px solid var(--card-border) !important;
     border-radius: 24px !important;
-    padding: 35px 25px !important;
+    padding: 40px 30px !important;
     backdrop-filter: blur(16px) !important;
     box-shadow: var(--card-shadow) !important;
-    
     max-width: 450px !important; 
     margin: 0 auto !important;
-    transition: all 0.3s ease;
 }
 
-/* TEXT DALAM FORM */
 .login-header-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    margin-bottom: 10px;
+    gap: 15px;
+    margin-bottom: 15px;
 }
 .icon-user-badge {
     background: var(--icon-bg);
     border: 1px solid var(--icon-border);
     border-radius: 12px;
-    padding: 6px 10px;
-    font-size: 1.2rem;
-    transition: all 0.3s ease;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .login-title {
-    font-size: 1.8rem;
-    font-weight: 700;
+    font-size: 2rem;
+    font-weight: 800 !important; /* Ditebalkan */
     color: var(--text-title);
-    transition: color 0.3s ease;
 }
 .login-subtitle {
     text-align: center;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--text-subtitle);
     margin-bottom: 25px;
-    line-height: 1.5;
-    transition: color 0.3s ease;
+    line-height: 1.6;
 }
 
 /* ============================= */
-/* INPUT FIELD */
+/* LABEL USERNAME & PASSWORD */
 /* ============================= */
 .stTextInput label {
     color: var(--text-title) !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    transition: color 0.3s ease;
+    font-weight: 800 !important; /* Ditebalkan */
+    font-size: 1rem !important;
+    margin-bottom: 8px !important;
 }
 
+/* ============================= */
+/* INPUT BOX - FIX PANJANG & KEPOTONG */
+/* ============================= */
+/* Kita tembak bungkusannya agar ikon mata masuk ke dalam border */
 div[data-baseweb="input"], 
 div[data-baseweb="base-input"] {
-    background: transparent !important;
-    border: none !important;
+    background: var(--input-bg) !important;
+    border: 2px solid var(--input-border) !important; /* Outline 2px, lebih kentara */
+    border-radius: 12px !important;
+    min-height: 50px !important; /* Mengatasi teks kepotong */
+    transition: all 0.3s ease !important;
+    box-shadow: none !important;
 }
 
+div[data-baseweb="input"]:focus-within {
+    border: 2px solid #009DFF !important;
+    background: var(--input-focus-bg) !important;
+    box-shadow: 0 0 12px rgba(0, 157, 255, 0.25) !important;
+}
+
+/* Input teksnya dibuat tembus pandang */
 input[type="text"], input[type="password"] {
-    background: var(--input-bg) !important;
-    border: 1px solid var(--input-border) !important;
-    border-radius: 12px !important;
-    height: 50px !important;
+    background: transparent !important;
+    border: none !important;
+    height: 100% !important;
     color: var(--text-title) !important;
     padding: 0 15px !important;
-    font-size: 1rem !important;
+    font-size: 1.05rem !important;
+    font-weight: 600 !important; /* Teks input ditebalkan */
     box-shadow: none !important;
-    transition: all 0.3s ease !important;
+    outline: none !important;
 }
 
 input[type="text"]::placeholder, input[type="password"]::placeholder {
     color: #94A3B8 !important;
+    font-weight: 400 !important;
 }
 
 input[type="text"]:focus, input[type="password"]:focus {
-    border: 1px solid #009DFF !important;
-    background: var(--input-focus-bg) !important;
-    box-shadow: 0 0 12px rgba(0, 157, 255, 0.2) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important; 
+}
+
+/* ============================= */
+/* MENGHILANGKAN PRESS ENTER TEXT */
+/* ============================= */
+div[data-testid="InputInstructions"], 
+.st-emotion-cache-12oz5g7, 
+small {
+    display: none !important;
 }
 
 /* ============================= */
@@ -443,12 +460,12 @@ input[type="text"]:focus, input[type="password"]:focus {
 /* ============================= */
 .stFormSubmitButton > button {
     width: 100% !important;
-    height: 50px !important;
+    height: 52px !important;
     border: none !important;
     border-radius: 12px !important;
     margin-top: 15px !important;
-    font-size: 1.1rem !important;
-    font-weight: 700 !important;
+    font-size: 1.2rem !important; /* Diperbesar */
+    font-weight: 800 !important; /* Ditebalkan maksimal */
     color: white !important;
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
     transition: all .2s ease !important;
@@ -461,10 +478,9 @@ input[type="text"]:focus, input[type="password"]:focus {
 .login-footer {
     text-align: center;
     color: var(--text-subtitle);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     margin-top: 20px;
-    font-weight: 500;
-    transition: color 0.3s ease;
+    font-weight: 600;
 }
 </style>
 """, unsafe_allow_html=True)
