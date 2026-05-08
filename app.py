@@ -67,18 +67,9 @@ def halaman_login():
 </div>
 """, unsafe_allow_html=True)
 
-    # SVG Icon elegan untuk lencana di atas "Selamat Datang"
-    svg_user = """
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-        <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-    """
-
     with st.form("form_login"):
-        st.markdown(f"""
+        st.markdown("""
         <div class="login-header-container">
-            <div class="icon-user-badge">{svg_user}</div>
             <div class="login-title">Selamat Datang</div>
         </div>
         <div class="login-subtitle">
@@ -387,23 +378,15 @@ div[data-testid="stForm"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Jarak dirapatkan sedikit karena ikon hilang */
 }
-.icon-user-badge {
-    background: var(--icon-bg);
-    border: 1px solid var(--icon-border);
-    border-radius: 12px;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+
 .login-title {
     font-size: clamp(1.6rem, 5vw, 2.1rem) !important;
     font-weight: 800 !important;
     color: var(--text-title);
     letter-spacing: -0.5px;
+    text-align: center !important;
 }
 .login-subtitle {
     text-align: center;
@@ -491,7 +474,7 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
 /* BUTTON MASUK (BERSIH & CENTER) */
 /* ============================= */
 .stFormSubmitButton > button {
-    display: block !important; /* Kembali ke block biasa agar centering lebih natural */
+    display: block !important; 
     width: 100% !important;
     height: 58px !important; 
     border: none !important;
@@ -503,7 +486,7 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
     font-weight: 700 !important; 
     letter-spacing: 4px !important; 
     text-transform: uppercase !important; 
-    text-align: center !important; /* Paksa teks ke tengah */
+    text-align: center !important; 
     
     color: #FFFFFF !important; 
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
