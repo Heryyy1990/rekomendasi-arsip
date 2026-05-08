@@ -950,9 +950,12 @@ def halaman_utama():
     <style>
     /* Reset & Force Light Theme */
     .stApp { background-color: #F8FAFC !important; }
-    * { font-family: 'Poppins', sans-serif !important; }
     
-    /* Transparankan header agar menu sidebar (hamburger) tetap bisa diklik */
+    /* Gunakan Poppins, TAPI kecualikan ikon bawaan Streamlit agar tidak rusak */
+    *:not(.material-symbols-rounded) { font-family: 'Poppins', sans-serif !important; }
+    .material-symbols-rounded { font-family: 'Material Symbols Rounded' !important; }
+    
+    /* Transparankan header agar tombol Hamburger tetap muncul dan bisa diklik */
     header[data-testid="stHeader"] { background: transparent !important; }
     .block-container { padding-top: 2rem !important; max-width: 1100px !important; }
 
