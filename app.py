@@ -951,13 +951,24 @@ def halaman_utama():
     /* Reset & Force Light Theme */
     .stApp { background-color: #F8FAFC !important; }
     
-    /* Gunakan Poppins, TAPI kecualikan ikon bawaan Streamlit agar tidak rusak */
-    *:not(.material-symbols-rounded) { font-family: 'Poppins', sans-serif !important; }
-    .material-symbols-rounded { font-family: 'Material Symbols Rounded' !important; }
-    
-    /* Transparankan header agar tombol Hamburger tetap muncul dan bisa diklik */
-    header[data-testid="stHeader"] { background: transparent !important; }
+    /* 1. Paksa font Poppins ke seluruh aplikasi */
+    .stApp, .stApp * {
+        font-family: 'Poppins', sans-serif !important;
+    }
 
+    /* 2. KEMBALIKAN NYAWA IKON STREAMLIT! (Timpa balik font Poppins khusus untuk ikon) */
+    .stApp .material-icons,
+    .stApp .material-symbols-rounded,
+    .stApp [class*="material-icons"],
+    .stApp [class*="material-symbols"] {
+        font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+    }
+    
+    /* 3. Transparankan header agar tombol Hamburger tetap muncul dan bisa diklik */
+    header[data-testid="stHeader"] { 
+        background: transparent !important; 
+    }
+    
     /* --- SIDEBAR --- */
     [data-testid="stSidebar"] {
         background-color: #FFFFFF !important;
