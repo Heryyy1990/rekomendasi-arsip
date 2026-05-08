@@ -516,61 +516,44 @@ div[data-baseweb="base-input"] {
     box-shadow: none !important;
 }
 
-/* SAMAKAN LEBAR PASSWORD DENGAN USERNAME */
+/* ============================= */
+/* FIX PASSWORD WIDTH */
+/* ============================= */
 
-[data-testid="stTextInput"] {
+/* Semua input */
 
+.stTextInput {
     width: 100% !important;
 }
 
-[data-testid="stTextInput"] > div {
+/* Wrapper input */
 
+.stTextInput > div {
     width: 100% !important;
 }
 
-[data-testid="stTextInput"] input {
+/* Container baseweb */
 
+.stTextInput div[data-baseweb="base-input"] {
     width: 100% !important;
-    min-width: 100% !important;
+}
+
+/* Input field */
+
+.stTextInput input {
+    width: 100% !important;
     box-sizing: border-box !important;
+    padding-right: 3rem !important;
 }
 
-/* KHUSUS PASSWORD */
+/* Tombol mata password */
 
-[data-testid="stTextInput"] div:has(input[type="password"]) input {
-
-    padding-right: 48px !important;
-}
-
-/* FIX PASSWORD ICON MOBILE */
-
-[data-testid="stTextInput"] div[data-baseweb="base-input"] {
-
-    display: flex !important;
-    align-items: center !important;
-    overflow: hidden !important;
-
-    border-radius: 16px !important;
-}
-
-/* ICON MATA */
-
-[data-testid="stTextInput"] button {
-
-    margin-right: 12px !important;
-
+.stTextInput button {
+    position: absolute !important;
+    right: 10px !important;
     background: transparent !important;
-
     border: none !important;
-
     box-shadow: none !important;
-}
-
-/* INPUT PASSWORD */
-
-[data-testid="stTextInput"] input[type="password"] {
-
-    padding-right: 12px !important;
 }
 
 </style>
