@@ -387,9 +387,6 @@ div[data-testid="stForm"] {
         ) !important;
 }
 
-</style>
-""", unsafe_allow_html=True)
-
 /* ============================= */
 /* HERO BOX */
 /* ============================= */
@@ -476,6 +473,9 @@ div[data-testid="stForm"] {
     box-shadow:
         0 6px 16px rgba(2,136,209,.35);
 }
+
+</style>
+""", unsafe_allow_html=True)
 
 # --- INISIALISASI SESSION STATE ---
 if 'search_history' not in st.session_state:
