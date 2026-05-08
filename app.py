@@ -427,7 +427,7 @@ div[data-testid="stForm"] {
 
     font-weight:500;
 
-    color:#EAEAEA;
+    color:inherit;
 
     letter-spacing:0.3px;
 
