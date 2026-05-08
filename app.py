@@ -56,8 +56,19 @@ def baca_riwayat_csv(nama_user):
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
-    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sikap-subtitle'>Silakan Masuk untuk Melanjutkan</div>", unsafe_allow_html=True)
+    st.markdown("""
+<div class="sikap-wrapper">
+
+    <div class="sikap-title">
+        SIKAP
+    </div>
+
+    <div class="sikap-subtitle">
+        Sistem Informasi Klasifikasi Arsip Pintar
+    </div>
+
+</div>
+""", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -202,42 +213,157 @@ st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="ðŸ—
 
 # --- UI & CSS CUSTOM ---
 st.markdown("""
-    <style>
-    .sikap-title {
-        font-size: 4.5rem; 
-        font-weight: 900; 
-        text-align: center;
-        margin-bottom: -15px; 
-        letter-spacing: 3px;
-        background: linear-gradient(45deg, #00BFA5, #0288D1);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .sikap-subtitle {
-        font-size: 1.3rem; 
-        text-align: center; 
-        font-weight: 600;
-        margin-bottom: 40px;
-        letter-spacing: 1px;
-        /* --- KEJUTAN WARNA: Gradasi Sunset (Oranye ke Pink) --- */
-        background: linear-gradient(45deg, #FF512F, #DD2476);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .streamlit-expanderHeader {
-        font-weight: bold;
-        color: #0288D1;
-    }
-    /* PEMBUNUH IKON PANAH BIRU BAWAAN BROWSER */
-    details > summary {
-        list-style: none !important;
-        outline: none !important;
-    }
-    details > summary::-webkit-details-marker {
-        display: none !important; 
-    }
-    </style>
+<style>
+
+/* ===== TITLE UTAMA ===== */
+.sikap-wrapper{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    margin-top:20px;
+    margin-bottom:40px;
+}
+
+.sikap-title {
+    font-size: 5.3rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 4px;
+
+    background: linear-gradient(
+        45deg,
+        #00BFA5,
+        #0288D1
+    );
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    margin:0;
+    padding:0;
+
+    text-align:center;
+}
+
+/* ===== SUBTITLE ===== */
+.sikap-subtitle {
+
+    width: fit-content;
+
+    font-size: 1.15rem;
+    font-weight: 600;
+
+    text-align:center;
+
+    letter-spacing: 1px;
+
+    margin-top: 8px;
+
+    background: linear-gradient(
+        45deg,
+        #FF512F,
+        #DD2476
+    );
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    white-space: nowrap;
+}
+
+/* ===== FORM LOGIN ===== */
+div[data-testid="stForm"] {
+
+    background: rgba(255,255,255,0.03);
+
+    padding: 35px;
+
+    border-radius: 22px;
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    backdrop-filter: blur(8px);
+
+    box-shadow:
+        0 8px 32px rgba(0,0,0,0.15);
+}
+
+/* ===== INPUT ===== */
+.stTextInput input {
+
+    border-radius: 14px !important;
+
+    border: 1px solid rgba(255,255,255,0.15) !important;
+
+    padding: 14px !important;
+
+    font-size: 1rem !important;
+
+    transition: all .25s ease;
+}
+
+.stTextInput input:focus {
+
+    border: 1px solid #0288D1 !important;
+
+    box-shadow:
+        0 0 0 3px rgba(2,136,209,.15) !important;
+}
+
+/* ===== TOMBOL MASUK ===== */
+.stButton > button,
+.stFormSubmitButton > button {
+
+    width: 100%;
+
+    border-radius: 14px !important;
+
+    padding: 14px 20px !important;
+
+    font-size: 1rem !important;
+
+    font-weight: 700 !important;
+
+    border: none !important;
+
+    color: white !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #0288D1,
+            #03A9F4
+        ) !important;
+
+    box-shadow:
+        0 6px 18px rgba(2,136,209,.35),
+        inset 0 1px 1px rgba(255,255,255,.25);
+
+    transition: all .25s ease;
+}
+
+/* ===== HOVER BUTTON ===== */
+.stButton > button:hover,
+.stFormSubmitButton > button:hover {
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 24px rgba(2,136,209,.45),
+        inset 0 1px 1px rgba(255,255,255,.3);
+
+    background:
+        linear-gradient(
+            135deg,
+            #039BE5,
+            #29B6F6
+        ) !important;
+}
+
+</style>
 """, unsafe_allow_html=True)
 
 # --- INISIALISASI SESSION STATE ---
@@ -643,8 +769,19 @@ def smart_classify(user_input, df, top_n=3):
     
 # --- 4. ANTARMUKA UTAMA ---
 def halaman_utama():
-    st.markdown("<div class='sikap-title'>SIKAP</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sikap-subtitle'>Sistem Informasi Klasifikasi Arsip Pintar</div>", unsafe_allow_html=True)
+    st.markdown("""
+<div class="sikap-wrapper">
+
+    <div class="sikap-title">
+        SIKAP
+    </div>
+
+    <div class="sikap-subtitle">
+        Sistem Informasi Klasifikasi Arsip Pintar
+    </div>
+
+</div>
+""", unsafe_allow_html=True)
 
     try:
         df = load_data()
