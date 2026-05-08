@@ -1255,3 +1255,10 @@ def halaman_utama():
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memuat data: {e}")
+        
+# --- 5. PENGATUR HALAMAN (ROUTER) ---
+if not st.session_state.get('logged_in', False):
+    # Memanggil fungsi halaman_login() yang harusnya sudah Anda letakkan di bagian atas file
+    halaman_login()
+else:
+    halaman_utama()
