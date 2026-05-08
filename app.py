@@ -63,8 +63,19 @@ def halaman_login():
     st.markdown("""
 <div class="sikap-wrapper">
 
-<div class="sikap-title">
-SIKAP
+<div class="sikap-subtitle">
+Sistem Informasi Klasifikasi Arsip Pintar
+</div>
+
+</div>
+
+<div class="login-title">
+Selamat Datang
+</div>
+
+<div class="login-subtitle">
+Masuk untuk mengakses sistem klasifikasi arsip<br>
+secara cepat, akurat, dan pintar.
 </div>
 
 <div class="sikap-subtitle">
@@ -221,202 +232,308 @@ st.markdown("""
 <style>
 
 /* ============================= */
-/* WRAPPER JUDUL */
+/* BACKGROUND GLOBAL */
+/* ============================= */
+
+.stApp {
+
+    background:
+        radial-gradient(circle at top left, rgba(0,191,255,0.15), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(0,140,255,0.12), transparent 35%),
+        linear-gradient(135deg, #020617 0%, #071028 40%, #020617 100%);
+
+    min-height: 100vh;
+}
+
+/* ============================= */
+/* WRAPPER */
 /* ============================= */
 
 .sikap-wrapper{
+
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    margin-top:20px;
-    margin-bottom:40px;
+
+    margin-top:10px;
+    margin-bottom:30px;
 }
 
 /* ============================= */
 /* TITLE */
 /* ============================= */
 
-.sikap-title {
+.sikap-title{
 
-    font-size: 6rem;
+    font-size:7rem;
 
-    font-weight: 900;
+    font-weight:900;
 
-    line-height: 1;
+    line-height:1;
 
-    letter-spacing: 2px;
+    letter-spacing:3px;
 
-    background: linear-gradient(45deg, #00BFA5, #0288D1);
+    background: linear-gradient(
+        90deg,
+        #21E6C1 0%,
+        #00C2FF 50%,
+        #1E88FF 100%
+    );
 
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family:'Segoe UI',sans-serif;
+
+    text-align:center;
 
     margin:0;
     padding:0;
 
-    text-align:center;
-}
-
-.sikap-subtitle {
-
-    font-size: 0.95rem;
-
-    font-weight: 600;
-
-    text-align:center;
-
-    letter-spacing: 0.8px;
-
-    margin-top: 2px;
-
-    margin-left: 2px;
-
-    background: linear-gradient(
-        45deg,
-        #FF512F,
-        #DD2476
-    );
-
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-
-    white-space: normal;
+    filter:drop-shadow(0 0 18px rgba(0,194,255,0.25));
 }
 
 /* ============================= */
-/* CARD LOGIN */
+/* SUBTITLE */
 /* ============================= */
 
-div[data-testid="stForm"] {
+.sikap-subtitle{
 
-    background: rgba(255,255,255,0.04);
+    font-size:1.1rem;
 
-    padding: 35px;
+    font-weight:500;
 
-    border-radius: 22px;
+    color:#E2E8F0;
 
-    border: 1px solid rgba(255,255,255,0.08);
+    text-align:center;
 
-    backdrop-filter: blur(8px);
+    margin-top:8px;
+
+    letter-spacing:0.5px;
+}
+
+/* ============================= */
+/* LOGIN CARD */
+/* ============================= */
+
+div[data-testid="stForm"]{
+
+    background: rgba(10,20,40,0.72);
+
+    border:1px solid rgba(0,194,255,0.35);
+
+    border-radius:34px;
+
+    padding:45px 40px;
+
+    backdrop-filter: blur(14px);
 
     box-shadow:
-        0 8px 32px rgba(0,0,0,0.15);
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 0 40px rgba(0,150,255,0.12),
+        0 20px 60px rgba(0,0,0,0.55);
 
-    margin-top: 10px;
+    max-width:760px;
+
+    margin:auto;
+
+    position:relative;
+
+    overflow:hidden;
+}
+
+/* ============================= */
+/* GARIS ATAS */
+/* ============================= */
+
+div[data-testid="stForm"]::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:88px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    width:82%;
+
+    height:1px;
+
+    background:rgba(120,180,255,0.12);
+}
+
+div[data-testid="stForm"]::after{
+
+    content:"";
+
+    position:absolute;
+
+    top:84px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    width:10px;
+
+    height:10px;
+
+    border-radius:50%;
+
+    background:#35C9FF;
+
+    box-shadow:0 0 18px #35C9FF;
+}
+
+/* ============================= */
+/* TEXT SELAMAT DATANG */
+/* ============================= */
+
+.login-title{
+
+    text-align:center;
+
+    font-size:2.2rem;
+
+    font-weight:800;
+
+    color:white;
+
+    margin-top:25px;
+
+    margin-bottom:10px;
+}
+
+.login-subtitle{
+
+    text-align:center;
+
+    font-size:1.05rem;
+
+    line-height:1.7;
+
+    color:#CBD5E1;
+
+    margin-bottom:30px;
+}
+
+/* ============================= */
+/* LABEL */
+/* ============================= */
+
+label{
+
+    color:white !important;
+
+    font-size:1rem !important;
+
+    font-weight:600 !important;
 }
 
 /* ============================= */
 /* INPUT */
 /* ============================= */
 
-.stTextInput input {
+.stTextInput{
 
-    border-radius: 16px !important;
-
-    border: 1px solid rgba(120,120,120,0.25) !important;
-
-    padding: 14px 16px !important;
-
-    font-size: 1rem !important;
-
-    background: transparent !important;
-
-    color: inherit !important;
-
-    caret-color: currentColor !important;
-
-    outline: none !important;
-
-    box-shadow: none !important;
-
-    transition: all .25s ease;
+    position:relative;
 }
 
-/* Placeholder adaptif */
+.stTextInput input{
 
-.stTextInput input::placeholder {
-    color: rgba(140,140,140,0.85) !important;
-}
+    background: rgba(0,0,0,0.28) !important;
 
-/* Autofill browser */
+    border:1px solid rgba(120,180,255,0.28) !important;
 
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-    -webkit-text-fill-color: inherit !important;
-    transition: background-color 9999s ease-in-out 0s;
+    border-radius:18px !important;
+
+    height:64px !important;
+
+    padding-left:20px !important;
+
+    padding-right:50px !important;
+
+    color:white !important;
+
+    font-size:1.05rem !important;
+
+    transition:all .25s ease;
+
+    box-shadow:none !important;
 }
 
 /* ============================= */
-/* INPUT FOCUS */
+/* PLACEHOLDER */
 /* ============================= */
 
-.stTextInput input:focus {
+.stTextInput input::placeholder{
 
-    border: 1px solid #00BCD4 !important;
+    color:#94A3B8 !important;
+}
 
-    outline: none !important;
+/* ============================= */
+/* FOCUS */
+/* ============================= */
+
+.stTextInput input:focus{
+
+    border:1px solid #35C9FF !important;
 
     box-shadow:
-        0 0 0 1px rgba(0,188,212,.25),
-        0 0 12px rgba(0,188,212,.18) !important;
+        0 0 0 1px rgba(53,201,255,0.3),
+        0 0 20px rgba(53,201,255,0.15) !important;
 }
 
 /* ============================= */
-/* TOMBOL MASUK */
+/* BUTTON */
 /* ============================= */
 
-.stFormSubmitButton > button {
+.stFormSubmitButton > button{
 
-    width: 100%;
+    width:100%;
 
-    border-radius: 14px !important;
+    height:64px;
 
-    padding: 14px 20px !important;
+    border:none !important;
 
-    font-size: 1rem !important;
+    border-radius:18px !important;
 
-    font-weight: 700 !important;
+    margin-top:15px;
 
-    border: none !important;
+    font-size:1.2rem !important;
 
-    color: white !important;
+    font-weight:800 !important;
+
+    color:white !important;
 
     background:
         linear-gradient(
-            135deg,
-            #0288D1,
-            #03A9F4
+            90deg,
+            #009DFF 0%,
+            #0084FF 50%,
+            #0A6CFF 100%
         ) !important;
 
     box-shadow:
-        0 6px 18px rgba(2,136,209,.35),
-        inset 0 1px 1px rgba(255,255,255,.25);
+        0 10px 30px rgba(0,140,255,0.35);
 
-    transition: all .25s ease;
+    transition:all .25s ease;
 }
 
 /* ============================= */
-/* HOVER BUTTON */
+/* BUTTON HOVER */
 /* ============================= */
 
-.stFormSubmitButton > button:hover {
+.stFormSubmitButton > button:hover{
 
-    transform: translateY(-2px);
+    transform:translateY(-2px);
 
     box-shadow:
-        0 10px 24px rgba(2,136,209,.45),
-        inset 0 1px 1px rgba(255,255,255,.3);
-
-    background:
-        linear-gradient(
-            135deg,
-            #039BE5,
-            #29B6F6
-        ) !important;
+        0 14px 35px rgba(0,140,255,0.45);
 }
 
 /* ============================= */
@@ -427,26 +544,20 @@ input:-webkit-autofill:focus {
 
     width:100%;
 
-    padding:22px 28px;
+    padding:24px 28px;
 
     border-radius:24px;
 
-    background:
-        linear-gradient(
-            135deg,
-            rgba(0,191,165,0.12),
-            rgba(2,136,209,0.12)
-        );
+    background: rgba(10,20,40,0.65);
 
-    border:1px solid rgba(255,255,255,0.08);
+    border:1px solid rgba(0,194,255,0.18);
 
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
 
     margin-bottom:25px;
 
     box-shadow:
-        0 8px 24px rgba(0,0,0,0.12);
-
+        0 10px 35px rgba(0,0,0,0.25);
 }
 
 .hero-text{
@@ -459,34 +570,27 @@ input:-webkit-autofill:focus {
 
     font-weight:500;
 
-    color:inherit;
-
-    letter-spacing:0.3px;
-
+    color:#E2E8F0;
 }
 
 /* ============================= */
-/* TAB MODERN */
+/* TAB */
 /* ============================= */
 
 .stTabs [data-baseweb="tab-list"]{
 
-    gap:10px;
-
-    margin-bottom:10px;
+    gap:12px;
 }
 
 .stTabs [data-baseweb="tab"]{
 
-    height:52px;
-
-    padding:0 22px;
+    background:rgba(255,255,255,0.04);
 
     border-radius:14px;
 
-    background:rgba(255,255,255,0.04);
+    padding:12px 22px;
 
-    transition:all .2s ease;
+    color:white;
 
     font-weight:600;
 }
@@ -496,81 +600,37 @@ input:-webkit-autofill:focus {
     background:
         linear-gradient(
             135deg,
-            #0288D1,
-            #00BFA5
+            #009DFF,
+            #00C2FF
         ) !important;
 
     color:white !important;
 
     box-shadow:
-        0 6px 16px rgba(2,136,209,.35);
-}
-
-/* HILANGKAN GARIS MERAH/BIRU STREAMLIT */
-
-div[data-baseweb="input"] {
-
-    border: none !important;
-
-    box-shadow: none !important;
-
-    background: transparent !important;
-}
-
-div[data-baseweb="base-input"] {
-
-    border: none !important;
-
-    box-shadow: none !important;
-
-    background: transparent !important;
-}
-
-[data-testid="stTextInput"] {
-
-    border: none !important;
-
-    box-shadow: none !important;
+        0 8px 20px rgba(0,160,255,0.25);
 }
 
 /* ============================= */
-/* FIX PASSWORD WIDTH */
+/* HILANGKAN BORDER STREAMLIT */
 /* ============================= */
 
-/* Semua input */
+div[data-baseweb="input"],
+div[data-baseweb="base-input"]{
 
-.stTextInput {
-    width: 100% !important;
+    border:none !important;
+
+    background:transparent !important;
+
+    box-shadow:none !important;
 }
 
-/* Wrapper input */
+/* ============================= */
+/* TEXT */
+/* ============================= */
 
-.stTextInput > div {
-    width: 100% !important;
-}
+html, body, [class*="css"]{
 
-/* Container baseweb */
-
-.stTextInput div[data-baseweb="base-input"] {
-    width: 100% !important;
-}
-
-/* Input field */
-
-.stTextInput input {
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding-right: 3rem !important;
-}
-
-/* Tombol mata password */
-
-.stTextInput button {
-    position: absolute !important;
-    right: 10px !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    color:white;
 }
 
 </style>
