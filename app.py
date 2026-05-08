@@ -951,21 +951,28 @@ def halaman_utama():
     /* Reset & Force Light Theme */
     .stApp { background-color: #F8FAFC !important; }
     
-    /* 1. Paksa font Poppins ke seluruh aplikasi, KECUALI tombol sidebar agar tidak rusak */
-    *:not([data-testid="collapsedControl"]):not([data-testid="collapsedControl"] *):not(.material-symbols-rounded) {
+    /* 1. HAPUS KODE BINTANG (*) YANG BRUTAL!
+       Kita terapkan font Poppins HANYA pada elemen teks buatan kita sendiri 
+       agar ikon bawaan Streamlit tidak mati. */
+    .hero-title, .hero-subtitle, .search-box-title, .search-box-desc, 
+    .section-title, .card-title, .card-desc, .sidebar-title, p, h1, h2, h3, h4 {
         font-family: 'Poppins', sans-serif !important;
     }
-    
-    /* 2. Kembalikan font khusus pembuat IKON ke habitat aslinya */
-    [data-testid="collapsedControl"], 
-    [data-testid="collapsedControl"] *,
-    header[data-testid="stHeader"] * {
-        font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+
+    /* Terapkan juga font Poppins ke kolom input pencarian kita */
+    div[data-testid="stTextInput"] * {
+        font-family: 'Poppins', sans-serif !important;
     }
-    
+
+    /* 2. SUNTIKAN VITAMIN UNTUK IKON STREAMLIT 
+       Memastikan font pembuat ikon kembali bekerja dengan normal */
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
+    [data-testid="stHeader"] *, [data-testid="stSidebarCollapseButton"] * {
+        font-family: 'Material Symbols Rounded', sans-serif !important;
+    }
+
     /* 3. Transparankan header agar tombol Hamburger tetap bisa diklik */
-    header[data-testid="stHeader"] { background: transparent !important;
-    }
+    header[data-testid="stHeader"] { background: transparent !important; }
     
     .sidebar-title-container {
         display: flex;
