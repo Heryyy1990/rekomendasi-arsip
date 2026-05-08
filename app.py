@@ -938,11 +938,19 @@ def smart_classify(user_input, df, top_n=3):
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
 def halaman_utama():
+    # INISIALISASI ROUTING HALAMAN
+    if 'page' not in st.session_state:
+        st.session_state.page = 'Beranda'
+
+    def ganti_halaman(nama_halaman):
+        st.session_state.page = nama_halaman
+
     # CSS KHUSUS HALAMAN UTAMA
     st.markdown("""
     <style>
     /* Reset & Force Light Theme */
     .stApp { background-color: #F8FAFC !important; }
+    * { font-family: 'Poppins', sans-serif !important; }
     
     /* Sembunyikan header default Streamlit */
     header[data-testid="stHeader"] { display: none !important; }
@@ -985,13 +993,13 @@ def halaman_utama():
         background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
         border-radius: 20px;
         padding: 40px;
-        margin-bottom: 30px;
+        margin-bottom: 10px; /* Jarak dirapatkan dengan input */
         box-shadow: 0 4px 15px rgba(0, 157, 255, 0.05);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
-    .hero-content { max-width: 60%; }
+    .hero-content { max-width: 65%; }
     .hero-title {
         font-size: 2rem;
         font-weight: 800;
@@ -1005,12 +1013,13 @@ def halaman_utama():
         margin-bottom: 25px;
     }
     
-    /* Search Box di dalam Banner */
+    /* Search Box di dalam Banner (Bebas Bocor) */
     .search-box-container {
         background: #FFFFFF;
         padding: 20px;
         border-radius: 16px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        margin-bottom: 0; /* Rapihkan jarak */
     }
     .search-box-title {
         font-weight: 700;
@@ -1021,23 +1030,22 @@ def halaman_utama():
     .search-box-desc {
         color: #64748B;
         font-size: 0.85rem;
-        margin-bottom: 15px;
     }
 
     /* Input Streamlit Custom untuk Search Box */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
         background: #F8FAFC !important;
-        border: 1px solid #E2E8F0 !important;
+        border: 2px solid #E2E8F0 !important;
         border-radius: 8px !important;
-        height: 50px !important;
+        height: 55px !important;
     }
     div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
         border-color: #009DFF !important;
         box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.1) !important;
     }
     div[data-testid="stTextInput"] input {
-        font-size: 0.95rem !important;
-        padding-left: 15px !important;
+        font-size: 1rem !important;
+        padding-left: 20px !important;
     }
 
     /* --- KARTU AKSES CEPAT --- */
@@ -1061,7 +1069,6 @@ def halaman_utama():
         flex: 1;
         box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         transition: all 0.2s ease;
-        cursor: pointer;
     }
     .saas-card:hover {
         border-color: #009DFF;
@@ -1083,28 +1090,13 @@ def halaman_utama():
         justify-content: center;
         font-size: 1.2rem;
     }
-    /* Warna spesifik ikon kartu */
     .icon-blue { background: #E0F2FE; color: #009DFF; }
     .icon-orange { background: #FFEDD5; color: #F97316; }
     .icon-green { background: #DCFCE7; color: #22C55E; }
     .icon-purple { background: #F3E8FF; color: #A855F7; }
     
-    .card-title {
-        font-weight: 700;
-        color: #0F172A;
-        font-size: 0.95rem;
-    }
-    .card-desc {
-        font-size: 0.8rem;
-        color: #64748B;
-        line-height: 1.4;
-    }
-    .card-arrow {
-        text-align: right;
-        color: #94A3B8;
-        font-size: 1.2rem;
-        margin-top: 10px;
-    }
+    .card-title { font-weight: 700; color: #0F172A; font-size: 0.95rem; }
+    .card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; }
 
     /* --- TABEL RIWAYAT --- */
     div[data-testid="stDataFrame"] {
@@ -1112,9 +1104,7 @@ def halaman_utama():
         border-radius: 16px;
         padding: 10px;
         border: 1px solid #E2E8F0;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
-    /* Menghilangkan instruksi Press Enter */
     div[data-testid="InputInstructions"] { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -1124,7 +1114,7 @@ def halaman_utama():
         nama_user = st.session_state.get('nama', 'Administrator')
         role_user = st.session_state.get('role', 'admin')
 
-        # ================= SIDEBAR =================
+        # ================= SIDEBAR NAVIGASI =================
         with st.sidebar:
             st.markdown("""
             <div class="sidebar-title-container">
@@ -1135,17 +1125,18 @@ def halaman_utama():
             """, unsafe_allow_html=True)
             
             st.caption("MENU UTAMA")
-            st.button("🏠 Beranda", use_container_width=True, type="primary") # Aktif
-            st.button("🤖 Pencarian AI (Cerdas)", use_container_width=True)
-            st.button("📁 Jelajah Kode Klasifikasi", use_container_width=True)
-            st.button("🕒 Riwayat Pencarian", use_container_width=True)
+            # Tombol Navigasi Asli menggunakan on_click
+            st.button("🏠 Beranda", use_container_width=True, type="primary" if st.session_state.page == 'Beranda' else "secondary", on_click=ganti_halaman, args=('Beranda',))
+            st.button("🤖 Pencarian AI (Cerdas)", use_container_width=True, type="primary" if st.session_state.page == 'Pencarian AI' else "secondary", on_click=ganti_halaman, args=('Pencarian AI',))
+            st.button("📁 Jelajah Kode Klasifikasi", use_container_width=True, type="primary" if st.session_state.page == 'Jelajah Kode' else "secondary", on_click=ganti_halaman, args=('Jelajah Kode',))
+            st.button("🕒 Riwayat Pencarian", use_container_width=True, type="primary" if st.session_state.page == 'Riwayat' else "secondary", on_click=ganti_halaman, args=('Riwayat',))
             
             if role_user == 'admin':
-                st.button("⚙️ Panel Admin", use_container_width=True)
+                st.button("⚙️ Panel Admin", use_container_width=True, type="primary" if st.session_state.page == 'Admin' else "secondary", on_click=ganti_halaman, args=('Admin',))
             
             st.divider()
             
-            # Profil User di Bawah Sidebar
+            # Profil User
             st.markdown(f"""
             <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#F8FAFC; border-radius:10px; border:1px solid #E2E8F0;">
                 <div style="width:35px; height:35px; background:#E0F2FE; color:#009DFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
@@ -1165,120 +1156,129 @@ def halaman_utama():
                 st.session_state['nama'] = ""
                 st.rerun()
 
-        # ================= MAIN CONTENT =================
+        # ================= MAIN CONTENT (ROUTING) =================
         
-        # 1. Hero Banner dengan Form Pencarian di dalamnya
-        st.markdown(f"""
-        <div class="hero-banner">
-            <div class="hero-content">
-                <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
-                <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
+        # --- HALAMAN 1: BERANDA ---
+        if st.session_state.page == 'Beranda':
+            # Banner dirapatkan kodenya agar tidak bocor jadi teks
+            st.markdown(f"""
+            <div class="hero-banner">
+                <div class="hero-content">
+                    <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
+                    <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
+                    <div class="search-box-container">
+                        <div class="search-box-title">Cari kode klasifikasi arsip</div>
+                        <div class="search-box-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
+                    </div>
+                </div>
+                <div style="width: 30%; opacity: 0.9;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" width="100%" style="filter: hue-rotate(190deg) opacity(0.8);">
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Input menyatu dengan banner
+            st.markdown('<div style="margin-top: -35px; margin-bottom: 60px; max-width: 60%; margin-left: 60px; position: relative; z-index: 10;">', unsafe_allow_html=True)
+            user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini (Contoh: permohonan cuti tahunan)...", label_visibility="collapsed")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            if user_input:
+                # Mengarahkan langsung ke halaman Pencarian AI jika user mengetik di Beranda
+                st.session_state.temp_search = user_input 
+                ganti_halaman('Pencarian AI')
+                st.rerun()
+
+            # Akses Cepat
+            st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="card-row">
+                <div class="saas-card">
+                    <div class="card-icon-wrapper"><div class="card-icon icon-blue">🤖</div><div class="card-title">Pencarian AI</div></div>
+                    <div class="card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
+                </div>
+                <div class="saas-card">
+                    <div class="card-icon-wrapper"><div class="card-icon icon-orange">📁</div><div class="card-title">Jelajah Kode</div></div>
+                    <div class="card-desc">Telusuri dan jelajahi struktur kode manual.</div>
+                </div>
+                <div class="saas-card">
+                    <div class="card-icon-wrapper"><div class="card-icon icon-purple">🕒</div><div class="card-title">Riwayat</div></div>
+                    <div class="card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Tabel Riwayat Singkat
+            st.markdown('<div class="section-title">Riwayat Pencarian Terakhir</div>', unsafe_allow_html=True)
+            if not st.session_state.search_history:
+                st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
                 
-                <div class="search-box-container">
-                    <div class="search-box-title">Cari kode klasifikasi arsip</div>
-                    <div class="search-box-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
-                </div>
-            </div>
-            <div style="width: 35%; opacity: 0.9;">
-                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" width="100%" style="filter: hue-rotate(190deg) opacity(0.8);">
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            if st.session_state.search_history:
+                history_data = {"WAKTU": [], "KATA KUNCI": []}
+                for riwayat in reversed(st.session_state.search_history[-3:]):
+                    history_data["WAKTU"].append("Terkini")
+                    history_data["KATA KUNCI"].append(riwayat)
+                st.dataframe(history_data, use_container_width=True, hide_index=True)
+            else:
+                st.info("Belum ada riwayat pencarian.")
 
-        # Meletakkan input Streamlit persis "menimpa" area search box di HTML atas
-        # Menggunakan sedikit margin negatif agar posisinya pas
-        st.markdown('<div style="margin-top: -115px; margin-bottom: 80px; max-width: 55%; margin-left: 60px;">', unsafe_allow_html=True)
-        user_input = st.text_input("Ketik perihal...", placeholder="Ketik perihal atau deskripsi surat/dokumen...", label_visibility="collapsed")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        if user_input:
-            if user_input not in st.session_state.search_history:
-                st.session_state.search_history.append(user_input)
-                simpan_riwayat_csv(st.session_state['nama'], user_input)
-
-            with st.spinner('Menganalisis bahasa dan mencari kecocokan...'):
-                results = smart_classify(user_input, df)
-                if results:
-                    st.success("✨ Analisis selesai! Berikut rekomendasi untuk dokumen Anda:")
-                    for i, (idx, score) in enumerate(results):
-                        res = df.iloc[idx]
-                        with st.expander(f"🏅 Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                            st.markdown(f"**Uraian:** {res['uraian'].title()}")
-                            hierarki = get_hierarchy(res['kode'], df)
-                            for h in hierarki: st.markdown(h, unsafe_allow_html=True)
-                else:
-                    st.warning("Tidak ditemukan klasifikasi yang cocok.")
-
-        # 2. Akses Cepat (Cards)
-        st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
-        st.markdown("""
-        <div class="card-row">
-            <div class="saas-card">
-                <div class="card-icon-wrapper">
-                    <div class="card-icon icon-blue">🤖</div>
-                    <div class="card-title">Pencarian AI</div>
-                </div>
-                <div class="card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
-                <div class="card-arrow">→</div>
-            </div>
-            <div class="saas-card">
-                <div class="card-icon-wrapper">
-                    <div class="card-icon icon-orange">📁</div>
-                    <div class="card-title">Jelajah Kode</div>
-                </div>
-                <div class="card-desc">Telusuri dan jelajahi struktur kode klasifikasi.</div>
-                <div class="card-arrow">→</div>
-            </div>
-            <div class="saas-card">
-                <div class="card-icon-wrapper">
-                    <div class="card-icon icon-green">📄</div>
-                    <div class="card-title">Perihal Surat</div>
-                </div>
-                <div class="card-desc">Cari rekomendasi dari perihal surat/dokumen.</div>
-                <div class="card-arrow">→</div>
-            </div>
-            <div class="saas-card">
-                <div class="card-icon-wrapper">
-                    <div class="card-icon icon-purple">🕒</div>
-                    <div class="card-title">Riwayat</div>
-                </div>
-                <div class="card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
-                <div class="card-arrow">→</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 3. Tabel Riwayat
-        st.markdown("""
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="section-title">Riwayat Pencarian Terakhir</div>
-            <div style="color:#009DFF; font-size:0.85rem; font-weight:600; cursor:pointer;">Lihat semua &gt;</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if not st.session_state.search_history:
-            st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
+        # --- HALAMAN 2: PENCARIAN AI ---
+        elif st.session_state.page == 'Pencarian AI':
+            st.markdown('<div class="section-title">🤖 Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
+            st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
-        if st.session_state.search_history:
-            history_data = {"WAKTU": [], "KATA KUNCI": [], "METODE": []}
-            waktu_dummy = ["Hari ini, 20:30", "Hari ini, 19:45", "Hari ini, 18:10", "Kemarin, 14:20", "Kemarin, 09:15"]
-            
-            for i, riwayat in enumerate(reversed(st.session_state.search_history[-5:])):
-                waktu = waktu_dummy[i] if i < len(waktu_dummy) else "Baru saja"
-                history_data["WAKTU"].append(waktu)
-                history_data["KATA KUNCI"].append(riwayat)
-                history_data["METODE"].append("AI (Cerdas)")
-            
-            st.dataframe(history_data, use_container_width=True, hide_index=True)
-        else:
-            st.info("Belum ada riwayat pencarian.")
+            # Ambil nilai sementara jika user mengetik dari Beranda
+            default_val = st.session_state.pop('temp_search', '') 
+            user_input = st.text_input("Ketik perihal surat:", value=default_val, placeholder="Contoh: penyusunan rencana kerja anggaran...")
+
+            if user_input:
+                if user_input not in st.session_state.search_history:
+                    st.session_state.search_history.append(user_input)
+                    simpan_riwayat_csv(st.session_state['nama'], user_input)
+
+                with st.spinner('AI sedang membedah dokumen Anda...'):
+                    results = smart_classify(user_input, df)
+                    if results:
+                        st.success("✨ Analisis selesai! Berikut rekomendasi untuk dokumen Anda:")
+                        for i, (idx, score) in enumerate(results):
+                            res = df.iloc[idx]
+                            with st.expander(f"🏅 Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
+                                st.markdown(f"**Uraian:** {res['uraian'].title()}")
+                                hierarki = get_hierarchy(res['kode'], df)
+                                for h in hierarki: st.markdown(h, unsafe_allow_html=True)
+                    else:
+                        st.warning("Tidak ditemukan klasifikasi yang cocok.")
+
+        # --- HALAMAN 3: JELAJAH KODE ---
+        elif st.session_state.page == 'Jelajah Kode':
+            st.markdown('<div class="section-title">📁 Jelajah Kode Klasifikasi</div>', unsafe_allow_html=True)
+            st.write("Telusuri seluruh struktur hierarki klasifikasi arsip secara manual.")
+            daftar_primer = [f"{i}00" for i in range(10)]
+            for p in daftar_primer:
+                cek_df = df[df['kode'] == p]
+                uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
+                with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
+                    st.caption("Pohon hierarki dirender di sini...") 
+                    # Logika render_tree Anda bisa dipanggil di sini
+
+        # --- HALAMAN 4: RIWAYAT ---
+        elif st.session_state.page == 'Riwayat':
+            st.markdown('<div class="section-title">🕒 Riwayat Pencarian Lengkap</div>', unsafe_allow_html=True)
+            if not st.session_state.search_history:
+                st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
+                
+            if st.session_state.search_history:
+                for riwayat in reversed(st.session_state.search_history):
+                    st.markdown(f"🔹 {riwayat}")
+                if st.button("Hapus Riwayat"):
+                    st.session_state.search_history = []
+                    st.rerun()
+            else:
+                st.info("Belum ada riwayat.")
+
+        # --- HALAMAN 5: ADMIN PANEL ---
+        elif st.session_state.page == 'Admin':
+            st.markdown('<div class="section-title">⚙️ Panel Administrator</div>', unsafe_allow_html=True)
+            st.warning("Area terbatas. Mengelola database pengguna dan log sistem.")
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memuat data: {e}")
-
-# --- 5. PENGATUR HALAMAN (ROUTER) ---
-if not st.session_state.get('logged_in', False):
-    # Memanggil fungsi halaman_login() yang harusnya sudah Anda letakkan di bagian atas file
-    halaman_login()
-else:
-    halaman_utama()
