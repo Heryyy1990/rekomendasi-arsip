@@ -390,6 +390,93 @@ div[data-testid="stForm"] {
 </style>
 """, unsafe_allow_html=True)
 
+/* ============================= */
+/* HERO BOX */
+/* ============================= */
+
+.hero-box{
+
+    width:100%;
+
+    padding:22px 28px;
+
+    border-radius:24px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(0,191,165,0.12),
+            rgba(2,136,209,0.12)
+        );
+
+    border:1px solid rgba(255,255,255,0.08);
+
+    backdrop-filter: blur(10px);
+
+    margin-bottom:25px;
+
+    box-shadow:
+        0 8px 24px rgba(0,0,0,0.12);
+
+}
+
+.hero-text{
+
+    text-align:center;
+
+    font-size:1.05rem;
+
+    line-height:1.8;
+
+    font-weight:500;
+
+    color:#EAEAEA;
+
+    letter-spacing:0.3px;
+
+}
+
+/* ============================= */
+/* TAB MODERN */
+/* ============================= */
+
+.stTabs [data-baseweb="tab-list"]{
+
+    gap:10px;
+
+    margin-bottom:10px;
+}
+
+.stTabs [data-baseweb="tab"]{
+
+    height:52px;
+
+    padding:0 22px;
+
+    border-radius:14px;
+
+    background:rgba(255,255,255,0.04);
+
+    transition:all .2s ease;
+
+    font-weight:600;
+}
+
+.stTabs [aria-selected="true"]{
+
+    background:
+        linear-gradient(
+            135deg,
+            #0288D1,
+            #00BFA5
+        ) !important;
+
+    color:white !important;
+
+    box-shadow:
+        0 6px 16px rgba(2,136,209,.35);
+}
+
 # --- INISIALISASI SESSION STATE ---
 if 'search_history' not in st.session_state:
     st.session_state.search_history = []
