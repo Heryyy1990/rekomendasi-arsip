@@ -60,49 +60,62 @@ def baca_riwayat_csv(nama_user):
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
+
     st.markdown("""
 <div class="sikap-wrapper">
 
-<div class="sikap-subtitle">
-Sistem Informasi Klasifikasi Arsip Pintar
-</div>
+    <div class="sikap-title">
+    SIKAP
+    </div>
 
-</div>
-
-<div class="login-title">
-Selamat Datang
-</div>
-
-<div class="login-subtitle">
-Masuk untuk mengakses sistem klasifikasi arsip<br>
-secara cepat, akurat, dan pintar.
-</div>
-
-<div class="sikap-subtitle">
-Sistem Informasi Klasifikasi Arsip Pintar
-</div>
+    <div class="sikap-subtitle">
+    Sistem Informasi Klasifikasi Arsip Pintar
+    </div>
 
 </div>
 """, unsafe_allow_html=True)
-    
+
     col1, col2, col3 = st.columns([0.6, 2.8, 0.6])
+
     with col2:
         with st.form("form_login"):
-            user_input = st.text_input("Username")
-            pwd_input = st.text_input(
-                "Password", 
-                type="password", 
-                label_visibility="visible"
+
+            st.markdown("""
+            <div class="login-title">
+            Selamat Datang
+            </div>
+
+            <div class="login-subtitle">
+            Masuk untuk mengakses sistem klasifikasi arsip<br>
+            secara cepat, akurat, dan pintar.
+            </div>
+            """, unsafe_allow_html=True)
+
+            user_input = st.text_input(
+                "Username",
+                placeholder="Masukkan username Anda"
             )
-            submit = st.form_submit_button("Masuk", use_container_width=True)
-            
+
+            pwd_input = st.text_input(
+                "Password",
+                type="password",
+                placeholder="Masukkan password Anda"
+            )
+
+            submit = st.form_submit_button(
+                "Masuk",
+                use_container_width=True
+            )
+
             if submit:
                 is_valid, role, nama = validasi_login(user_input, pwd_input)
+
                 if is_valid:
                     st.session_state['logged_in'] = True
                     st.session_state['role'] = role
                     st.session_state['nama'] = nama
                     st.rerun()
+
                 else:
                     st.error("Username atau Password salah!")
 
