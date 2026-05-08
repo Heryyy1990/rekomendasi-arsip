@@ -952,8 +952,8 @@ def halaman_utama():
     .stApp { background-color: #F8FAFC !important; }
     * { font-family: 'Poppins', sans-serif !important; }
     
-    /* Sembunyikan header default Streamlit */
-    header[data-testid="stHeader"] { display: none !important; }
+    /* Transparankan header agar menu sidebar (hamburger) tetap bisa diklik */
+    header[data-testid="stHeader"] { background: transparent !important; }
     .block-container { padding-top: 2rem !important; max-width: 1100px !important; }
 
     /* --- SIDEBAR --- */
@@ -1226,12 +1226,89 @@ def halaman_utama():
         elif st.session_state.page == 'Jelajah Kode':
             st.markdown('<div class="section-title">📁 Jelajah Kode Klasifikasi</div>', unsafe_allow_html=True)
             st.write("Telusuri seluruh struktur hierarki klasifikasi arsip secara manual.")
+            
+            import re # Pastikan library regex diload
             daftar_primer = [f"{i}00" for i in range(10)]
+            
             for p in daftar_primer:
                 cek_df = df[df['kode'] == p]
                 uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
+                
                 with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
-                    st.caption("Pohon hierarki dirender di sini...") 
+                    hasil_filter = df[df['kode'].str.startswith(p)]
+                    
+                    if not hasil_filter.empty:
+                        hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
+                        
+                        nodes = {}
+                        for _, row in hasil_filter.iterrows():
+                            k = str(row['kode']).strip()
+                            u = str(row['uraian']).title()
+                            nodes[k] = {'uraian': u, 'children': []}
+                            
+                        for k in nodes:
+                            if k == p: continue 
+                            curr = k
+                            parent = None
+                            while True:
+                                if '.' in curr:
+                                    curr = curr.rsplit('.', 1)[0]
+                                else:
+                                    if len(curr) == 3 and curr.endswith('00'):
+                                        parent = curr
+                                        break
+                                    elif len(curr) > 3:
+                                        curr = curr[:-1]
+                                    elif len(curr) == 3:
+                                        if curr.endswith('0'): curr = curr[0] + '00'
+                                        else: curr = curr[0:2] + '0'
+                                    else:
+                                        break
+                                if curr in nodes:
+                                    parent = curr
+                                    break
+                            
+                            if not parent or parent not in nodes:
+                                parent = p
+                            
+                            if parent in nodes and parent != k:
+                                nodes[parent]['children'].append(k)
+                                
+                        def render_tree(k):
+                            node = nodes[k]
+                            u = node['uraian']
+                            children = node['children']
+                            
+                            children.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+                            
+                            titik_count = str(k).count('.')
+                            actual_level = titik_count if titik_count < 4 else 3
+                            
+                            warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
+                            warna_bg = warna_level[actual_level]
+                            
+                            levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
+                            label = levels_name[actual_level]
+                            
+                            html = ""
+                            if children:
+                                html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
+                                for c in children:
+                                    html += render_tree(c)
+                                html += '</div></details>'
+                            else:
+                                html += f'<div style="margin-bottom: 8px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></div>'
+                            return html
+                            
+                        if p in nodes:
+                            full_html = ""
+                            sorted_children = sorted(nodes[p]['children'], key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+                            for child_kode in sorted_children:
+                                full_html += render_tree(child_kode)
+                            st.markdown(full_html, unsafe_allow_html=True)
+                        
+                    else:
+                        st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
 
         # --- HALAMAN 4: RIWAYAT ---
         elif st.session_state.page == 'Riwayat':
