@@ -936,211 +936,342 @@ def smart_classify(user_input, df, top_n=3):
     # Fallback
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
     
-# --- 4. ANTARMUKA UTAMA ---
+# --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
 def halaman_utama():
+    # CSS KHUSUS HALAMAN UTAMA
     st.markdown("""
-<div class="sikap-wrapper">
+    <style>
+    /* Reset & Force Light Theme */
+    .stApp { background-color: #F8FAFC !important; }
+    
+    /* Sembunyikan header default Streamlit */
+    header[data-testid="stHeader"] { display: none !important; }
+    .block-container { padding-top: 2rem !important; max-width: 1100px !important; }
 
-<div class="sikap-title">
-SIKAP
-</div>
+    /* --- SIDEBAR --- */
+    [data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E2E8F0 !important;
+    }
+    .sidebar-title-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0 20px 0;
+    }
+    .sidebar-logo {
+        background: #009DFF;
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    .sidebar-title {
+        color: #009DFF;
+        font-weight: 900;
+        letter-spacing: 1px;
+        margin: 0;
+        font-size: 1.8rem;
+        line-height: 1;
+    }
 
-<div class="sikap-subtitle">
-Sistem Informasi Klasifikasi Arsip Pintar
-</div>
+    /* --- HERO BANNER --- */
+    .hero-banner {
+        background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 157, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .hero-content { max-width: 60%; }
+    .hero-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0F172A;
+        margin-bottom: 10px;
+    }
+    .hero-title span { color: #009DFF; }
+    .hero-subtitle {
+        font-size: 0.95rem;
+        color: #475569;
+        margin-bottom: 25px;
+    }
+    
+    /* Search Box di dalam Banner */
+    .search-box-container {
+        background: #FFFFFF;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+    }
+    .search-box-title {
+        font-weight: 700;
+        color: #0F172A;
+        margin-bottom: 5px;
+        font-size: 1.05rem;
+    }
+    .search-box-desc {
+        color: #64748B;
+        font-size: 0.85rem;
+        margin-bottom: 15px;
+    }
 
-</div>
-""", unsafe_allow_html=True)
+    /* Input Streamlit Custom untuk Search Box */
+    div[data-testid="stTextInput"] div[data-baseweb="input"] {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 8px !important;
+        height: 50px !important;
+    }
+    div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
+        border-color: #009DFF !important;
+        box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.1) !important;
+    }
+    div[data-testid="stTextInput"] input {
+        font-size: 0.95rem !important;
+        padding-left: 15px !important;
+    }
 
-    st.markdown("""
-<div class="hero-box">
-    <div class="hero-text">
-        🔍 Sistem klasifikasi arsip cerdas berbasis AI untuk membantu identifikasi kode arsip secara cepat, akurat, dan modern.
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    /* --- KARTU AKSES CEPAT --- */
+    .section-title {
+        font-weight: 700;
+        color: #0F172A;
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+        margin-top: 10px;
+    }
+    .card-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 35px;
+    }
+    .saas-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 20px;
+        flex: 1;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .saas-card:hover {
+        border-color: #009DFF;
+        box-shadow: 0 10px 20px rgba(0, 157, 255, 0.08);
+        transform: translateY(-2px);
+    }
+    .card-icon-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+    .card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    /* Warna spesifik ikon kartu */
+    .icon-blue { background: #E0F2FE; color: #009DFF; }
+    .icon-orange { background: #FFEDD5; color: #F97316; }
+    .icon-green { background: #DCFCE7; color: #22C55E; }
+    .icon-purple { background: #F3E8FF; color: #A855F7; }
+    
+    .card-title {
+        font-weight: 700;
+        color: #0F172A;
+        font-size: 0.95rem;
+    }
+    .card-desc {
+        font-size: 0.8rem;
+        color: #64748B;
+        line-height: 1.4;
+    }
+    .card-arrow {
+        text-align: right;
+        color: #94A3B8;
+        font-size: 1.2rem;
+        margin-top: 10px;
+    }
+
+    /* --- TABEL RIWAYAT --- */
+    div[data-testid="stDataFrame"] {
+        background: #FFFFFF;
+        border-radius: 16px;
+        padding: 10px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    /* Menghilangkan instruksi Press Enter */
+    div[data-testid="InputInstructions"] { display: none !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
     try:
         df = load_data()
-        
+        nama_user = st.session_state.get('nama', 'Administrator')
+        role_user = st.session_state.get('role', 'admin')
+
+        # ================= SIDEBAR =================
         with st.sidebar:
-            # --- TAMBAHAN: INFO USER & TOMBOL LOGOUT ---
-            st.success(f"Masuk sebagai:\n**{st.session_state['nama']}**")
+            st.markdown("""
+            <div class="sidebar-title-container">
+                <div class="sidebar-logo">S</div>
+                <h1 class="sidebar-title">SIKAP</h1>
+            </div>
+            <p style="color:#64748B; font-size:0.75rem; margin-top:-15px; margin-bottom:30px;">Sistem Informasi Klasifikasi<br>Arsip Pintar</p>
+            """, unsafe_allow_html=True)
+            
+            st.caption("MENU UTAMA")
+            st.button("🏠 Beranda", use_container_width=True, type="primary") # Aktif
+            st.button("🤖 Pencarian AI (Cerdas)", use_container_width=True)
+            st.button("📁 Jelajah Kode Klasifikasi", use_container_width=True)
+            st.button("🕒 Riwayat Pencarian", use_container_width=True)
+            
+            if role_user == 'admin':
+                st.button("⚙️ Panel Admin", use_container_width=True)
+            
+            st.divider()
+            
+            # Profil User di Bawah Sidebar
+            st.markdown(f"""
+            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#F8FAFC; border-radius:10px; border:1px solid #E2E8F0;">
+                <div style="width:35px; height:35px; background:#E0F2FE; color:#009DFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
+                    {nama_user[0:2].upper()}
+                </div>
+                <div>
+                    <div style="font-size:0.85rem; font-weight:700; color:#0F172A;">{nama_user}</div>
+                    <div style="font-size:0.7rem; color:#64748B;">{role_user.title()}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.write("")
             if st.button("Keluar", use_container_width=True):
                 st.session_state['logged_in'] = False
                 st.session_state['role'] = None
                 st.session_state['nama'] = ""
                 st.rerun()
-            st.divider()
-            # -------------------------------------------
 
-            st.header("🕒 Riwayat Pencarian")
+        # ================= MAIN CONTENT =================
+        
+        # 1. Hero Banner dengan Form Pencarian di dalamnya
+        st.markdown(f"""
+        <div class="hero-banner">
+            <div class="hero-content">
+                <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
+                <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
+                
+                <div class="search-box-container">
+                    <div class="search-box-title">Cari kode klasifikasi arsip</div>
+                    <div class="search-box-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
+                </div>
+            </div>
+            <div style="width: 35%; opacity: 0.9;">
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" width="100%" style="filter: hue-rotate(190deg) opacity(0.8);">
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Meletakkan input Streamlit persis "menimpa" area search box di HTML atas
+        # Menggunakan sedikit margin negatif agar posisinya pas
+        st.markdown('<div style="margin-top: -115px; margin-bottom: 80px; max-width: 55%; margin-left: 60px;">', unsafe_allow_html=True)
+        user_input = st.text_input("Ketik perihal...", placeholder="Ketik perihal atau deskripsi surat/dokumen...", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if user_input:
+            if user_input not in st.session_state.search_history:
+                st.session_state.search_history.append(user_input)
+                simpan_riwayat_csv(st.session_state['nama'], user_input)
+
+            with st.spinner('Menganalisis bahasa dan mencari kecocokan...'):
+                results = smart_classify(user_input, df)
+                if results:
+                    st.success("✨ Analisis selesai! Berikut rekomendasi untuk dokumen Anda:")
+                    for i, (idx, score) in enumerate(results):
+                        res = df.iloc[idx]
+                        with st.expander(f"🏅 Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
+                            st.markdown(f"**Uraian:** {res['uraian'].title()}")
+                            hierarki = get_hierarchy(res['kode'], df)
+                            for h in hierarki: st.markdown(h, unsafe_allow_html=True)
+                else:
+                    st.warning("Tidak ditemukan klasifikasi yang cocok.")
+
+        # 2. Akses Cepat (Cards)
+        st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="card-row">
+            <div class="saas-card">
+                <div class="card-icon-wrapper">
+                    <div class="card-icon icon-blue">🤖</div>
+                    <div class="card-title">Pencarian AI</div>
+                </div>
+                <div class="card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
+                <div class="card-arrow">→</div>
+            </div>
+            <div class="saas-card">
+                <div class="card-icon-wrapper">
+                    <div class="card-icon icon-orange">📁</div>
+                    <div class="card-title">Jelajah Kode</div>
+                </div>
+                <div class="card-desc">Telusuri dan jelajahi struktur kode klasifikasi.</div>
+                <div class="card-arrow">→</div>
+            </div>
+            <div class="saas-card">
+                <div class="card-icon-wrapper">
+                    <div class="card-icon icon-green">📄</div>
+                    <div class="card-title">Perihal Surat</div>
+                </div>
+                <div class="card-desc">Cari rekomendasi dari perihal surat/dokumen.</div>
+                <div class="card-arrow">→</div>
+            </div>
+            <div class="saas-card">
+                <div class="card-icon-wrapper">
+                    <div class="card-icon icon-purple">🕒</div>
+                    <div class="card-title">Riwayat</div>
+                </div>
+                <div class="card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
+                <div class="card-arrow">→</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 3. Tabel Riwayat
+        st.markdown("""
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="section-title">Riwayat Pencarian Terakhir</div>
+            <div style="color:#009DFF; font-size:0.85rem; font-weight:600; cursor:pointer;">Lihat semua &gt;</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if not st.session_state.search_history:
+            st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
             
-            # Tarik data dari CSV saat pertama kali masuk
-            if not st.session_state.search_history:
-                st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
-
-            if st.session_state.search_history:
-                for riwayat in reversed(st.session_state.search_history[-10:]):
-                    st.caption(f"• {riwayat}")
-                if st.button("Sembunyikan Riwayat", use_container_width=True):
-                    st.session_state.search_history = []
-                    st.rerun()
-            else:
-                st.info("Belum ada pencarian.")
-
-        # --- TAMBAHAN: LOGIKA TAB ADMIN ---
-        if st.session_state.get('role') == 'admin':
-            tab_ai, tab_katalog, tab_admin = st.tabs(["🤖 Pencarian AI (Cerdas)", "📂 Jelajah Kode Klasifikasi (Manual)", "⚙️ Panel Admin"])
+        if st.session_state.search_history:
+            history_data = {"WAKTU": [], "KATA KUNCI": [], "METODE": []}
+            waktu_dummy = ["Hari ini, 20:30", "Hari ini, 19:45", "Hari ini, 18:10", "Kemarin, 14:20", "Kemarin, 09:15"]
+            
+            for i, riwayat in enumerate(reversed(st.session_state.search_history[-5:])):
+                waktu = waktu_dummy[i] if i < len(waktu_dummy) else "Baru saja"
+                history_data["WAKTU"].append(waktu)
+                history_data["KATA KUNCI"].append(riwayat)
+                history_data["METODE"].append("AI (Cerdas)")
+            
+            st.dataframe(history_data, use_container_width=True, hide_index=True)
         else:
-            tab_ai, tab_katalog = st.tabs(["🤖 Pencarian AI (Cerdas)", "📂 Jelajah Kode Klasifikasi (Manual)"])
-
-        # ================= TAB 1: PENCARIAN AI =================
-        with tab_ai:
-            st.write("Masukkan perihal atau deskripsi surat, biarkan kecerdasan buatan mencari kode klasifikasi yang paling tepat untuk Anda.")
-            user_input = st.text_input("📝 Perihal Surat / Dokumen:", placeholder="Contoh: permohonan cuti tahunan pegawai atau undangan rapat tapd...", key="input_ai")
-
-            if user_input:
-                if user_input not in st.session_state.search_history:
-                    st.session_state.search_history.append(user_input)
-                    # Simpan ke CSV secara permanen
-                    simpan_riwayat_csv(st.session_state['nama'], user_input)
-
-                with st.spinner('Menganalisis bahasa dan mencari kecocokan...'):
-                    results = smart_classify(user_input, df)
-                    
-                    if results:
-                        st.success("Analisis selesai! Berikut adalah rekomendasi kode untuk dokumen Anda:")
-                        pilihan_feedback = [] 
-                        
-                        for i, (idx, score) in enumerate(results):
-                            res = df.iloc[idx]
-                            pilihan_feedback.append(f"{res['kode']} - {res['uraian'].title()}")
-                            
-                            with st.expander(f"🏅 Rekomendasi #{i+1}: Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                                st.markdown(f"**Uraian Akhir:** {res['uraian'].title()}")
-                                st.markdown("**Struktur Hierarki:**")
-                                hierarki = get_hierarchy(res['kode'], df)
-                                for h in hierarki:
-                                    st.markdown(h, unsafe_allow_html=True)
-                        
-                        st.divider()
-                        
-                        st.markdown("#### 💡 Bantu SIKAP Menjadi Lebih Pintar")
-                        st.write("Dari rekomendasi di atas, mana kode yang paling tepat menurut Anda?")
-                        
-                        with st.form("feedback_form"):
-                            jawaban_benar = st.radio("Pilih kode yang benar:", pilihan_feedback)
-                            submit_feedback = st.form_submit_button("Kirim Masukan")
-                            
-                            if submit_feedback:
-                                waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                data_feedback = f"{waktu_sekarang} | Input: {user_input} | Terpilih: {jawaban_benar}\n"
-                                with open("feedback_ai_log.txt", "a", encoding="utf-8") as f:
-                                    f.write(data_feedback)
-                                st.success(f"Terima kasih! Pilihan Anda telah disimpan untuk evaluasi AI ke depannya.")
-                    else:
-                        st.warning("Tidak ditemukan klasifikasi yang cocok. Coba gunakan kata kunci lain.")
-
-        # ================= TAB 2: JELAJAH KODE =================
-        with tab_katalog:
-            st.write("Jelajahi Pohon Hierarki Klasifikasi Arsip (Klik pada Folder Utama untuk membuka isinya):")
-            
-            daftar_primer = [f"{i}00" for i in range(10)]
-            
-            for p in daftar_primer:
-                cek_df = df[df['kode'] == p]
-                uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
-                
-                with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
-                    
-                    hasil_filter = df[df['kode'].str.startswith(p)]
-                    
-                    if not hasil_filter.empty:
-                        hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
-                        
-                        nodes = {}
-                        for _, row in hasil_filter.iterrows():
-                            k = str(row['kode']).strip()
-                            u = str(row['uraian']).title()
-                            nodes[k] = {'uraian': u, 'children': []}
-                            
-                        for k in nodes:
-                            if k == p: continue 
-                            curr = k
-                            parent = None
-                            while True:
-                                if '.' in curr:
-                                    curr = curr.rsplit('.', 1)[0]
-                                else:
-                                    if len(curr) == 3 and curr.endswith('00'):
-                                        parent = curr
-                                        break
-                                    elif len(curr) > 3:
-                                        curr = curr[:-1]
-                                    elif len(curr) == 3:
-                                        if curr.endswith('0'): curr = curr[0] + '00'
-                                        else: curr = curr[0:2] + '0'
-                                    else:
-                                        break
-                                if curr in nodes:
-                                    parent = curr
-                                    break
-                            
-                            if not parent or parent not in nodes:
-                                parent = p
-                            
-                            if parent in nodes and parent != k:
-                                nodes[parent]['children'].append(k)
-                                
-                        def render_tree(k):
-                            node = nodes[k]
-                            u = node['uraian']
-                            children = node['children']
-                            
-                            children.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
-                            
-                            titik_count = str(k).count('.')
-                            actual_level = titik_count if titik_count < 4 else 3
-                            
-                            warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
-                            warna_bg = warna_level[actual_level]
-                            
-                            levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
-                            label = levels_name[actual_level]
-                            
-                            html = ""
-                            if children:
-                                html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
-                                for c in children:
-                                    html += render_tree(c)
-                                html += '</div></details>'
-                            else:
-                                html += f'<div style="margin-bottom: 8px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></div>'
-                            return html
-                            
-                        if p in nodes:
-                            full_html = ""
-                            sorted_children = sorted(nodes[p]['children'], key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
-                            for child_kode in sorted_children:
-                                full_html += render_tree(child_kode)
-                            st.markdown(full_html, unsafe_allow_html=True)
-                        
-                    else:
-                        st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
-
-        # ================= TAB 3: PANEL ADMIN (BARU) =================
-        if st.session_state.get('role') == 'admin':
-            with tab_admin:
-                st.header("⚙️ Panel Kontrol Administrator")
-                st.write("Selamat datang di halaman khusus Admin.")
-                
-                st.subheader("Daftar Pengguna")
-                try:
-                    df_user = pd.read_csv('pengguna.csv')
-                    st.dataframe(df_user, use_container_width=True)
-                except:
-                    st.warning("File pengguna.csv belum dibuat atau tidak ditemukan.")
+            st.info("Belum ada riwayat pencarian.")
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memuat data: {e}")
