@@ -357,52 +357,6 @@ div[data-testid="stForm"]{
 }
 
 /* ============================= */
-/* GARIS ATAS */
-/* ============================= */
-
-div[data-testid="stForm"]::before{
-
-    content:"";
-
-    position:absolute;
-
-    top:88px;
-
-    left:50%;
-
-    transform:translateX(-50%);
-
-    width:82%;
-
-    height:1px;
-
-    background:rgba(120,180,255,0.12);
-}
-
-div[data-testid="stForm"]::after{
-
-    content:"";
-
-    position:absolute;
-
-    top:84px;
-
-    left:50%;
-
-    transform:translateX(-50%);
-
-    width:10px;
-
-    height:10px;
-
-    border-radius:50%;
-
-    background:#35C9FF;
-
-    box-shadow:0 0 18px #35C9FF;
-}
-
-/* ============================= */
 /* TEXT SELAMAT DATANG */
 /* ============================= */
 
@@ -438,7 +392,7 @@ div[data-testid="stForm"]::after{
 /* LABEL */
 /* ============================= */
 
-label{
+.stTextInput label{
 
     color:white !important;
 
@@ -641,7 +595,7 @@ div[data-baseweb="base-input"]{
 /* TEXT */
 /* ============================= */
 
-html, body, [class*="css"]{
+html, body{
 
     color:white;
 }
