@@ -1044,7 +1044,7 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-            # CSS FOKUS: Hanya Mengatur Banner dan Kotak Pencarian agar Sempurna
+            # CSS FOKUS: Mengobati Tombol XP & Mendorong Akses Cepat
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
@@ -1053,6 +1053,8 @@ def halaman_utama():
                 border-radius: 16px; padding: 40px; margin-bottom: 10px;
                 display: flex; align-items: center; justify-content: space-between;
                 border: 1px solid #E2E8F0;
+                margin-bottom: -60px; /* Trik agar kolom naik ke banner */
+                padding-bottom: 100px; /* Diperbesar agar input tidak menyentuh garis bawah */
             }
             .hero-content { width: 60%; }
             .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
@@ -1066,17 +1068,18 @@ def halaman_utama():
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .search-desc { font-size: 0.85rem; color: #64748B; margin-bottom: 0; font-family: 'Poppins', sans-serif !important;}
-            .search-spacer { height: 60px; } /* Ruang kosong untuk input Streamlit */
+            .search-spacer { height: 75px; } /* Diperbesar agar input punya ruang lega di dalam kotak */
             
-            /* 3. Ilustrasi Kanan (Diperbaiki) */
+            /* 3. Ilustrasi Kanan */
             .hero-illustration { width: 35%; display: flex; justify-content: center; align-items: center;}
 
-            /* 4. POSISI INPUT STREAMLIT (Ditarik naik pas ke dalam kotak putih) */
+            /* 4. POSISI INPUT STREAMLIT (Diatur presisi ke tengah kotak putih) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -95px !important;
+                margin-top: -110px !important;
                 margin-left: 65px !important;
                 width: calc(60% - 95px) !important;
-                position: relative; z-index: 10; margin-bottom: 40px !important;
+                position: relative; z-index: 10; 
+                margin-bottom: 80px !important; /* MENDORONG AKSES CEPAT KE BAWAH! */
                 gap: 8px !important; align-items: center !important;
             }
             
@@ -1090,18 +1093,24 @@ def halaman_utama():
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
-            /* 6. Desain Tombol Biru Kaca Pembesar (DIPAKSA BIRU) */
+            /* 6. MENGHANCURKAN VIRUS WINDOWS XP (Trik Sulap Font Ikon) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
                 height: 50px !important; border-radius: 8px !important; width: 100% !important; 
-                background-color: #009DFF !important; color: white !important; border: none !important; font-size: 1.2rem !important;
+                background-color: #009DFF !important; color: white !important; border: none !important;
+                display: flex; align-items: center; justify-content: center;
+            }
+            /* Kita menyuruh CSS merender kata 'search' menjadi gambar ikon Material UI modern */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button p {
+                font-family: 'Material Symbols Rounded', sans-serif !important;
+                font-size: 1.5rem !important; color: white !important; font-weight: normal !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {
-                background-color: #0077CC !important; color: white !important;
+                background-color: #0077CC !important;
             }
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA (Ilustrasi CV Dibuang, Diganti Folder Biru SVG)
+            # HTML BANNER UTAMA
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
@@ -1123,12 +1132,12 @@ def halaman_utama():
 </div>
 """, unsafe_allow_html=True)
 
-            # FORM PENCARIAN (Input dan Tombol Kaca Pembesar)
+            # FORM PENCARIAN (Emoji Windows XP saya buang, diganti kata "search" yang disulap CSS)
             col_in, col_btn = st.columns([5, 1.2])
             with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
             with col_btn:
-                btn_cari = st.button("🔍", key="btn_cari_beranda")
+                btn_cari = st.button("search", key="btn_cari_beranda") # Kata ini akan berubah jadi ikon modern berkat CSS!
 
             if user_input or btn_cari:
                 st.session_state.temp_search = user_input 
@@ -1136,16 +1145,16 @@ def halaman_utama():
                 st.rerun()
 
             # =========================================================
-            # AKSES CEPAT (DIBIARKAN STANDAR STREAMLIT AGAR TIDAK GEPENG/HANCUR)
+            # AKSES CEPAT (Ikon Petir Dihapus)
             # =========================================================
-            st.markdown('<div class="section-title">⚡ Akses Cepat</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("🤖 Pencarian AI Cerdas", use_container_width=True):
+                if st.button("🤖 Pencarian AI", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
             with col2:
-                if st.button("📁 Jelajah Kode Klasifikasi", use_container_width=True):
+                if st.button("📁 Jelajah Kode", use_container_width=True):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
             with col3:
