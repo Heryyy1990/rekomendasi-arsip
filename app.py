@@ -945,7 +945,7 @@ def halaman_utama():
     def ganti_halaman(nama_halaman):
         st.session_state.page = nama_halaman
 
-    # CSS GLOBAL HALAMAN UTAMA (SANGAT AMAN & BERSIH)
+    # CSS GLOBAL HALAMAN UTAMA
     st.markdown("""
     <style>
     /* Reset & Force Light Theme */
@@ -957,7 +957,7 @@ def halaman_utama():
         font-family: 'Poppins', sans-serif;
     }
 
-    /* Penyelamat Ikon Streamlit */
+    /* Penyelamat Ikon Streamlit & Material Symbols */
     @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
     .material-symbols-rounded, [data-testid="stHeader"] *, [data-testid="stSidebarCollapseButton"] *, .st-emotion-cache-1wivap2, .st-emotion-cache-1104e76 {
         font-family: 'Material Symbols Rounded', sans-serif !important;
@@ -967,7 +967,8 @@ def halaman_utama():
 
     /* --- SIDEBAR --- */
     [data-testid="stSidebar"] {
-        background-color: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important;
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E2E8F0 !important;
     }
     .sidebar-title-container { display: flex; align-items: center; gap: 10px; padding: 10px 0 20px 0; }
     .sidebar-logo {
@@ -977,16 +978,23 @@ def halaman_utama():
     .sidebar-title { color: #009DFF; font-weight: 900; letter-spacing: 1px; margin: 0; font-size: 1.8rem; line-height: 1; }
 
     /* Tombol Sidebar Normal */
-    section[data-testid="stSidebar"] div.stButton button {
+    section[data-testid="stSidebar"] .stButton button {
         height: 45px !important; border: none !important; background-color: transparent !important;
         font-size: 0.95rem !important; color: #475569 !important; justify-content: flex-start !important;
         box-shadow: none !important; transform: none !important; font-family: 'Poppins', sans-serif !important;
     }
-    section[data-testid="stSidebar"] div.stButton button:hover { background-color: #F8FAFC !important; color: #0F172A !important; }
-    section[data-testid="stSidebar"] div.stButton button[kind="primary"] { background-color: #E0F2FE !important; color: #009DFF !important; font-weight: 700 !important; }
+    section[data-testid="stSidebar"] .stButton button:hover { background-color: #F8FAFC !important; color: #0F172A !important; }
+    
+    /* PAKSA WARNA BIRU UNTUK TOMBOL AKTIF (Melawan tema merah bawaan) */
+    button[kind="primary"] {
+        background-color: #009DFF !important; border-color: #009DFF !important; color: white !important; font-weight: 700 !important;
+    }
+    section[data-testid="stSidebar"] .stButton button[kind="primary"] {
+        background-color: #E0F2FE !important; color: #009DFF !important;
+    }
 
     /* UMUM */
-    .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; font-family: 'Poppins', sans-serif !important;}
+    .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 25px; font-family: 'Poppins', sans-serif !important;}
     div[data-testid="stDataFrame"] { background: #FFFFFF; border-radius: 12px; padding: 10px; border: 1px solid #E2E8F0; }
     div[data-testid="InputInstructions"] { display: none !important; }
     </style>
@@ -1037,114 +1045,191 @@ def halaman_utama():
                 st.session_state['nama'] = ""
                 st.rerun()
 
-        # ================= MAIN CONTENT =================
+        # ================= MAIN CONTENT (ROUTING) =================
         
         if st.session_state.page == 'Beranda':
             
-            # KODE CSS UTAMA YANG MENGUNCI TATA LETAK AGAR TIDAK HANCUR
+            # CSS KHUSUS BERANDA (Banner & Kartu Akses Cepat Baru)
             st.markdown("""
             <style>
-            /* 1. DESAIN INPUT TEKS STREAMLIT (BERSIH & TINGGI) */
-            div[data-testid="stTextInput"] div[data-baseweb="input"] {
-                height: 52px !important; border-radius: 8px !important; border: 1px solid #CBD5E1 !important; background: #FFFFFF !important;
+            /* 1. Desain Banner Biru Utama */
+            .hero-banner {
+                background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border-radius: 16px; padding: 40px; 
+                display: flex; align-items: center; justify-content: space-between; border: 1px solid #BAE6FD;
+                margin-bottom: -60px; padding-bottom: 80px; 
             }
-            div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
-                border-color: #009DFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.15) !important;
-            }
-            div[data-testid="stTextInput"] input { font-size: 1rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
+            .hero-content { width: 60%; }
+            .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
+            .hero-title span { color: #009DFF; }
+            .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
             
-            /* 2. DESAIN TOMBOL KACA PEMBESAR (DI AREA UTAMA) */
-            section.main div.stButton button[kind="primary"] {
-                height: 52px !important; border-radius: 8px !important; width: 100% !important; 
-                background-color: #009DFF !important; color: white !important; border: none !important; font-size: 1.3rem !important;
-                box-shadow: 0 4px 6px -1px rgba(0, 157, 255, 0.3) !important; transition: all 0.2s ease !important;
+            /* 2. Desain Kotak Putih Tempat Search */
+            .search-card-bg { 
+                background: #FFFFFF; border-radius: 12px; padding: 25px; 
+                box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #E2E8F0;
             }
-            section.main div.stButton button[kind="primary"]:hover {
-                background-color: #0077CC !important; transform: translateY(-2px) !important;
+            .search-title { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
+            .search-desc { font-size: 0.85rem; color: #64748B; margin-bottom: 0; font-family: 'Poppins', sans-serif !important;}
+            .search-spacer { height: 60px; } 
+            
+            /* 3. Ilustrasi Kanan */
+            .hero-illustration { width: 35%; display: flex; justify-content: center; }
+            .hero-illustration img { width: 100%; max-width: 220px; filter: drop-shadow(0 10px 15px rgba(0, 157, 255, 0.2)); opacity: 0.9; }
+
+            /* 4. POSISI INPUT STREAMLIT (Ditarik naik ke kotak putih) */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
+                margin-top: -85px !important; margin-left: 65px !important; width: calc(60% - 90px) !important;
+                position: relative; z-index: 10; margin-bottom: 50px !important; align-items: center !important;
+            }
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
+                height: 48px !important; border-radius: 8px !important; border: 1px solid #E2E8F0 !important; background: #F8FAFC !important;
+            }
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
+                border-color: #009DFF !important; background: #FFFFFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.15) !important;
+            }
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
+                height: 48px !important; border-radius: 8px !important; width: 100% !important; 
+                background-color: #009DFF !important; color: white !important; border: none !important; font-size: 1.2rem !important;
             }
 
-            /* 3. DESAIN KARTU AKSES CEPAT (MELEBAR & PROPORSIONAL) */
-            section.main div.stButton button[kind="secondary"] {
-                height: auto !important; min-height: 120px !important; width: 100% !important; padding: 20px !important;
-                background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 12px !important;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; display: flex !important; flex-direction: column !important;
-                justify-content: flex-start !important; align-items: flex-start !important; transition: all 0.2s ease !important;
-            }
-            section.main div.stButton button[kind="secondary"]:hover {
-                border-color: #009DFF !important; box-shadow: 0 8px 15px rgba(0, 157, 255, 0.08) !important; transform: translateY(-3px) !important;
-            }
+            /* ============================================================== */
+            /* 5. KARTU AKSES CEPAT (DESAIN BARU SESUAI GAMBAR) */
+            /* ============================================================== */
+            .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
             
-            /* Menyulap teks di dalam tombol Akses Cepat */
-            section.main div.stButton button[kind="secondary"] p {
-                white-space: pre-wrap !important; text-align: left !important; color: #64748B !important; 
-                font-size: 0.85rem !important; line-height: 1.5 !important; margin: 0 !important; font-family: 'Poppins', sans-serif !important;
+            /* Trik Tombol Gaib */
+            .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+            .card-container div[data-testid="stButton"] button { width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; }
+
+            /* Desain Visual Kartu */
+            .saas-card {
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
+                padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s ease;
+                z-index: 1; /* Di bawah tombol gaib */
             }
-            section.main div.stButton button[kind="secondary"] p::first-line {
-                color: #0F172A !important; font-size: 1.05rem !important; font-weight: 700 !important; line-height: 2 !important;
+            .card-container:hover .saas-card {
+                border-color: #009DFF; box-shadow: 0 8px 20px rgba(0, 157, 255, 0.08); transform: translateY(-3px);
             }
+
+            /* Ikon Lingkaran Kiri */
+            .saas-icon-box {
+                width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+            }
+            .bg-blue { background-color: #F0F9FF; color: #009DFF; }
+            .bg-orange { background-color: #FFF7ED; color: #F97316; }
+            .bg-purple { background-color: #FAF5FF; color: #A855F7; }
+
+            /* Area Teks Kanan */
+            .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
+            .saas-card-title { font-weight: 700; color: #0F172A; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
+            .saas-card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
+            
+            /* Panah Kanan Bawah */
+            .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
             </style>
             """, unsafe_allow_html=True)
 
-            # --- BAGIAN 1: BANNER UTAMA ---
-            # Menggunakan susunan normal, tidak ada kotak yang disuruh menabrak/tumpang tindih
+            # HTML BANNER UTAMA
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border-radius: 16px; padding: 40px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #BAE6FD; margin-bottom: 30px;">
-                <div style="width: 65%;">
-                    <h1 style="font-size: 2.2rem; font-weight: 800; color: #0F172A; margin-bottom: 10px; font-family: 'Poppins', sans-serif; line-height: 1.2;">Selamat datang, <span style="color: #009DFF;">{nama_user.split()[0]}</span></h1>
-                    <p style="font-size: 1rem; color: #475569; margin-bottom: 0; line-height: 1.6; font-family: 'Poppins', sans-serif;">Sistem Informasi Klasifikasi Arsip Pintar (SIKAP) siap membantu Anda mengelola kode arsip dengan cepat, akurat, dan modern.</p>
-                </div>
-                <div style="width: 30%; display: flex; justify-content: center;">
-                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 15px 25px rgba(0,157,255,0.15)); width: 100%; max-width: 150px;">
-                        <path d="M100 160H30C24.477 160 20 155.523 20 150V50C20 44.477 24.477 40 30 40H75L95 60H170C175.523 60 180 64.477 180 70V150C180 155.523 175.523 160 170 160H140" stroke="#009DFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-                        <rect x="100" y="90" width="60" height="40" rx="6" fill="#3B82F6" opacity="0.1" stroke="#3B82F6" stroke-width="4"/>
-                        <path d="M120 110L140 110" stroke="#3B82F6" stroke-width="4" stroke-linecap="round"/>
-                    </svg>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+<div class="hero-banner">
+    <div class="hero-content">
+        <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
+        <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
+        <div class="search-card-bg">
+            <div class="search-title">Cari kode klasifikasi arsip</div>
+            <div class="search-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
+            <div class="search-spacer"></div>
+        </div>
+    </div>
+    <div class="hero-illustration">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" alt="Arsip Illustration">
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-            # --- BAGIAN 2: AREA PENCARIAN (Berada tepat di bawah banner, aman dan rapi) ---
-            st.markdown("<h3 style='font-size: 1.15rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: \"Poppins\", sans-serif;'>🔍 Cari Kode Klasifikasi Arsip</h3>", unsafe_allow_html=True)
-            st.markdown("<p style='font-size: 0.9rem; color: #64748B; margin-top: 0; margin-bottom: 15px; font-family: \"Poppins\", sans-serif;'>Gunakan AI untuk menemukan kode arsip dari perihal surat Anda.</p>", unsafe_allow_html=True)
-
+            # FORM PENCARIAN (Input dan Tombol Biru)
             col_in, col_btn = st.columns([5, 1])
             with col_in:
-                user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini (Contoh: permohonan cuti)...", label_visibility="collapsed", key="input_beranda")
+                user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
             with col_btn:
-                btn_cari = st.button("🔍", type="primary", key="btn_cari_beranda")
+                btn_cari = st.button("🔍", key="btn_cari_beranda")
 
             if user_input or btn_cari:
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
 
-            # Jarak pembatas yang mutlak
-            st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
 
-            # --- BAGIAN 3: AKSES CEPAT (Bentuk Kartu Melebar ke Samping) ---
-            st.markdown('<div class="section-title" style="margin-bottom: 10px;">⚡ Akses Cepat</div>', unsafe_allow_html=True)
+            # =========================================================
+            # AKSES CEPAT (DESAIN IDENTIK GAMBAR + TOMBOL GAIB)
+            # =========================================================
+            st.markdown('<div class="section-title" style="margin-top: 10px;">⚡ Akses Cepat</div>', unsafe_allow_html=True)
             
-            # Dibagi 3 kolom agar rapi dan proporsional seperti referensi
+            # Kita gunakan 3 kolom saja karena 'Perihal Surat' dihapus
             col1, col2, col3 = st.columns(3)
+            
             with col1:
-                if st.button("🤖 Pencarian AI (Cerdas)\nTemukan kode klasifikasi arsip\ndengan bantuan kecerdasan buatan.", use_container_width=True):
+                # 1. Gambar UI Kartu nya (HTML Murni)
+                st.markdown("""
+                <div class="card-container">
+                    <div class="saas-card">
+                        <div class="saas-icon-box bg-blue"><span class="material-symbols-rounded">smart_toy</span></div>
+                        <div class="saas-card-content">
+                            <div class="saas-card-title">Pencarian AI (Cerdas)</div>
+                            <div class="saas-card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
+                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                # 2. Tombol Gaib yang ditimpa CSS (opacity 0) di atas kartu
+                if st.button("btn_ai", key="btn_akses_ai"):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
+
             with col2:
-                if st.button("📁 Jelajah Kode Manual\nTelusuri dan jelajahi seluruh struktur\nkode klasifikasi secara manual.", use_container_width=True):
+                st.markdown("""
+                <div class="card-container">
+                    <div class="saas-card">
+                        <div class="saas-icon-box bg-orange"><span class="material-symbols-rounded">folder</span></div>
+                        <div class="saas-card-content">
+                            <div class="saas-card-title">Jelajah Kode Klasifikasi</div>
+                            <div class="saas-card-desc">Telusuri dan jelajahi struktur kode klasifikasi.</div>
+                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("btn_jelajah", key="btn_akses_jelajah"):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
+
             with col3:
-                if st.button("🕒 Riwayat Pencarian\nLihat kembali log riwayat pencarian\nyang telah Anda lakukan sebelumnya.", use_container_width=True):
+                st.markdown("""
+                <div class="card-container">
+                    <div class="saas-card">
+                        <div class="saas-icon-box bg-purple"><span class="material-symbols-rounded">schedule</span></div>
+                        <div class="saas-card-content">
+                            <div class="saas-card-title">Riwayat Pencarian</div>
+                            <div class="saas-card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
+                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("btn_riwayat", key="btn_akses_riwayat"):
                     ganti_halaman('Riwayat')
                     st.rerun()
 
-            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-            # --- BAGIAN 4: TABEL RIWAYAT ---
+            # TABEL RIWAYAT
             st.markdown("""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 20px;">
-                <div class="section-title" style="margin-top:0;">Riwayat Pencarian Terakhir</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="section-title">Riwayat Pencarian Terakhir</div>
                 <div style="color:#009DFF; font-size:0.85rem; font-weight:600; cursor:pointer;">Lihat semua &gt;</div>
             </div>
             """, unsafe_allow_html=True)
