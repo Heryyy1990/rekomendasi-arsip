@@ -310,13 +310,21 @@ div[data-testid="stForm"] {
 
 .stTextInput input {
 
-    border-radius: 14px !important;
+    border-radius: 16px !important;
 
-    border: 1px solid rgba(255,255,255,0.15) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
 
-    padding: 14px !important;
+    padding: 14px 16px !important;
 
     font-size: 1rem !important;
+
+    background: rgba(255,255,255,0.04) !important;
+
+    color: white !important;
+
+    outline: none !important;
+
+    box-shadow: none !important;
 
     transition: all .25s ease;
 }
@@ -327,10 +335,13 @@ div[data-testid="stForm"] {
 
 .stTextInput input:focus {
 
-    border: 1px solid #0288D1 !important;
+    border: 1px solid #00BCD4 !important;
+
+    outline: none !important;
 
     box-shadow:
-        0 0 0 3px rgba(2,136,209,.15) !important;
+        0 0 0 1px rgba(0,188,212,.25),
+        0 0 12px rgba(0,188,212,.18) !important;
 }
 
 /* ============================= */
@@ -472,6 +483,33 @@ div[data-testid="stForm"] {
 
     box-shadow:
         0 6px 16px rgba(2,136,209,.35);
+}
+
+/* HILANGKAN GARIS MERAH/BIRU STREAMLIT */
+
+div[data-baseweb="input"] {
+
+    border: none !important;
+
+    box-shadow: none !important;
+
+    background: transparent !important;
+}
+
+div[data-baseweb="base-input"] {
+
+    border: none !important;
+
+    box-shadow: none !important;
+
+    background: transparent !important;
+}
+
+[data-testid="stTextInput"] {
+
+    border: none !important;
+
+    box-shadow: none !important;
 }
 
 </style>
