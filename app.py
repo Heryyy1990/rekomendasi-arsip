@@ -967,8 +967,7 @@ def halaman_utama():
 
     /* --- SIDEBAR --- */
     [data-testid="stSidebar"] {
-        background-color: #FFFFFF !important;
-        border-right: 1px solid #E2E8F0 !important;
+        background-color: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important;
     }
     .sidebar-title-container { display: flex; align-items: center; gap: 10px; padding: 10px 0 20px 0; }
     .sidebar-logo {
@@ -984,12 +983,13 @@ def halaman_utama():
         box-shadow: none !important; transform: none !important; font-family: 'Poppins', sans-serif !important;
     }
     section[data-testid="stSidebar"] .stButton button:hover { background-color: #F8FAFC !important; color: #0F172A !important; }
-    section[data-testid="stSidebar"] .stButton button[kind="primary"] {
-        background-color: #E0F2FE !important; color: #009DFF !important; font-weight: 700 !important;
-    }
+    
+    /* Tombol Aktif Biru */
+    button[kind="primary"] { background-color: #009DFF !important; border-color: #009DFF !important; color: white !important; font-weight: 700 !important; }
+    section[data-testid="stSidebar"] .stButton button[kind="primary"] { background-color: #E0F2FE !important; color: #009DFF !important; }
 
     /* UMUM */
-    .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 25px; font-family: 'Poppins', sans-serif !important;}
+    .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; font-family: 'Poppins', sans-serif !important;}
     div[data-testid="stDataFrame"] { background: #FFFFFF; border-radius: 12px; padding: 10px; border: 1px solid #E2E8F0; }
     div[data-testid="InputInstructions"] { display: none !important; }
     </style>
@@ -1044,68 +1044,63 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-            # CSS FOKUS: Mengobati Tombol XP & Mendorong Akses Cepat
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
             .hero-banner {
-                background: linear-gradient(135deg, #F4F9FF 0%, #E6F0F9 100%);
-                border-radius: 16px; padding: 40px; margin-bottom: 10px;
-                display: flex; align-items: center; justify-content: space-between;
-                border: 1px solid #E2E8F0;
-                margin-bottom: -60px; /* Trik agar kolom naik ke banner */
-                padding-bottom: 100px; /* Diperbesar agar input tidak menyentuh garis bawah */
+                background: linear-gradient(135deg, #F4F9FF 0%, #E6F0F9 100%); border-radius: 16px; padding: 40px; 
+                display: flex; align-items: center; justify-content: space-between; border: 1px solid #E2E8F0;
+                margin-bottom: -65px; padding-bottom: 100px; /* Trik agar input bisa naik tanpa menyentuh garis */
             }
             .hero-content { width: 60%; }
             .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
             .hero-title span { color: #009DFF; }
             .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
             
-            /* 2. Desain Kotak Putih Tempat Search Berada */
-            .search-card-bg { 
-                background: #FFFFFF; border-radius: 12px; padding: 25px; 
-                box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #E2E8F0;
-            }
+            /* 2. Kotak Putih Tempat Search */
+            .search-card-bg { background: #FFFFFF; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #E2E8F0; }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .search-desc { font-size: 0.85rem; color: #64748B; margin-bottom: 0; font-family: 'Poppins', sans-serif !important;}
-            .search-spacer { height: 75px; } /* Diperbesar agar input punya ruang lega di dalam kotak */
+            .search-spacer { height: 70px; } /* Ruang untuk input */
             
             /* 3. Ilustrasi Kanan */
             .hero-illustration { width: 35%; display: flex; justify-content: center; align-items: center;}
 
-            /* 4. POSISI INPUT STREAMLIT (Diatur presisi ke tengah kotak putih) */
+            /* 4. POSISI INPUT STREAMLIT (Hanya target Kolom ke-1) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -110px !important;
-                margin-left: 65px !important;
-                width: calc(60% - 95px) !important;
-                position: relative; z-index: 10; 
-                margin-bottom: 80px !important; /* MENDORONG AKSES CEPAT KE BAWAH! */
-                gap: 8px !important; align-items: center !important;
+                margin-top: -105px !important; margin-left: 65px !important; width: calc(60% - 95px) !important;
+                position: relative; z-index: 10; gap: 10px !important; align-items: center !important;
             }
             
-            /* 5. Desain Kolom Teks Pencarian */
+            /* Desain Teks Input */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
-                height: 50px !important; border-radius: 8px !important;
-                border: 1px solid #E2E8F0 !important; background: #F8FAFC !important;
+                height: 48px !important; border-radius: 8px !important; border: 1px solid #E2E8F0 !important; background: #F8FAFC !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
                 border-color: #009DFF !important; background: #FFFFFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.15) !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
-            /* 6. MENGHANCURKAN VIRUS WINDOWS XP (Trik Sulap Font Ikon) */
+            /* Desain Tombol "Cari" Biru Elegan */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
-                height: 50px !important; border-radius: 8px !important; width: 100% !important; 
+                height: 48px !important; border-radius: 8px !important; width: 100% !important; 
                 background-color: #009DFF !important; color: white !important; border: none !important;
-                display: flex; align-items: center; justify-content: center;
             }
-            /* Kita menyuruh CSS merender kata 'search' menjadi gambar ikon Material UI modern */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button p {
-                font-family: 'Material Symbols Rounded', sans-serif !important;
-                font-size: 1.5rem !important; color: white !important; font-weight: normal !important;
+                font-size: 1rem !important; font-weight: 600 !important; color: white !important; font-family: 'Poppins', sans-serif !important;
             }
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {
-                background-color: #0077CC !important;
+
+            /* 5. PENYEMBUH TULISAN GAJAH (Akses Cepat) */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
+                height: 70px !important; background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important;
+                border-radius: 12px !important; color: #0F172A !important; transition: all 0.2s ease !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+            }
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) button p {
+                font-size: 0.95rem !important; font-weight: 600 !important; font-family: 'Poppins', sans-serif !important;
+            }
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) button:hover {
+                border-color: #009DFF !important; color: #009DFF !important; box-shadow: 0 5px 15px rgba(0, 157, 255, 0.08) !important;
             }
             </style>
             """, unsafe_allow_html=True)
@@ -1132,40 +1127,45 @@ def halaman_utama():
 </div>
 """, unsafe_allow_html=True)
 
-            # FORM PENCARIAN (Emoji Windows XP saya buang, diganti kata "search" yang disulap CSS)
+            # FORM PENCARIAN (Bebas Windows XP, Bebas Error Merah)
             col_in, col_btn = st.columns([5, 1.2])
             with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
             with col_btn:
-                btn_cari = st.button("search", key="btn_cari_beranda") # Kata ini akan berubah jadi ikon modern berkat CSS!
+                btn_cari = st.button("Cari", key="btn_cari_beranda")
 
             if user_input or btn_cari:
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
 
+            # PEMBATAS ANTI-NYUNDUL (Mendorong Akses Cepat ke bawah dengan paksa)
+            st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+
             # =========================================================
-            # AKSES CEPAT (Ikon Petir Dihapus)
+            # AKSES CEPAT (Aman, Rapih, Teks Normal)
             # =========================================================
             st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("🤖 Pencarian AI", use_container_width=True):
+                if st.button("🤖 Pencarian AI Cerdas", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
             with col2:
-                if st.button("📁 Jelajah Kode", use_container_width=True):
+                if st.button("📁 Jelajah Katalog Manual", use_container_width=True):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
             with col3:
                 if st.button("🕒 Riwayat Pencarian", use_container_width=True):
                     ganti_halaman('Riwayat')
                     st.rerun()
+                    
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
             # TABEL RIWAYAT
             st.markdown("""
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="section-title">Riwayat Pencarian Terakhir</div>
+                <div class="section-title" style="margin-top:0;">Riwayat Pencarian Terakhir</div>
                 <div style="color:#009DFF; font-size:0.85rem; font-weight:600; cursor:pointer;">Lihat semua &gt;</div>
             </div>
             """, unsafe_allow_html=True)
@@ -1324,4 +1324,3 @@ if not st.session_state.get('logged_in', False):
     halaman_login()
 else:
     halaman_utama()
-        
