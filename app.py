@@ -60,31 +60,22 @@ def baca_riwayat_csv(nama_user):
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
-
     st.markdown("""
 <div class="sikap-wrapper">
-
-    <div class="sikap-title">
-    SIKAP
-    </div>
-
-    <div class="sikap-subtitle">
-    Sistem Informasi Klasifikasi Arsip Pintar
-    </div>
-
+    <div class="sikap-title">SIKAP</div>
+    <div class="sikap-subtitle">Sistem Informasi Klasifikasi Arsip Pintar</div>
 </div>
 """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([0.6, 2.8, 0.6])
+    col1, col2, col3 = st.columns([0.8, 2.4, 0.8])
 
     with col2:
         with st.form("form_login"):
-
             st.markdown("""
-            <div class="login-title">
-            Selamat Datang
+            <div class="login-header-container">
+                <div class="icon-user-badge">👤</div>
+                <div class="login-title">Selamat Datang</div>
             </div>
-
             <div class="login-subtitle">
             Masuk untuk mengakses sistem klasifikasi arsip<br>
             secara cepat, akurat, dan pintar.
@@ -106,6 +97,12 @@ def halaman_login():
                 "Masuk",
                 use_container_width=True
             )
+            
+            st.markdown("""
+            <div class="login-footer">
+                🛡️ Aman &bull; Cepat &bull; Akurat
+            </div>
+            """, unsafe_allow_html=True)
 
             if submit:
                 is_valid, role, nama = validasi_login(user_input, pwd_input)
@@ -115,7 +112,6 @@ def halaman_login():
                     st.session_state['role'] = role
                     st.session_state['nama'] = nama
                     st.rerun()
-
                 else:
                     st.error("Username atau Password salah!")
 
@@ -243,363 +239,127 @@ def ekstrak_inti_surat(teks_user):
 # --- UI & CSS CUSTOM ---
 st.markdown("""
 <style>
-
-/* ============================= */
 /* BACKGROUND GLOBAL */
-/* ============================= */
-
 .stApp {
-
-    background:
-        radial-gradient(circle at top left, rgba(0,191,255,0.15), transparent 35%),
-        radial-gradient(circle at bottom right, rgba(0,140,255,0.12), transparent 35%),
-        linear-gradient(135deg, #020617 0%, #071028 40%, #020617 100%);
-
+    background: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%),
+                linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
     min-height: 100vh;
 }
 
-/* ============================= */
-/* WRAPPER */
-/* ============================= */
-
-.sikap-wrapper{
-
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-
-    margin-top:10px;
-    margin-bottom:30px;
+/* TITLE & WRAPPER */
+.sikap-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+.sikap-title {
+    font-size: 5.5rem;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #21E6C1 0%, #009DFF 50%, #1E88FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    filter: drop-shadow(0 0 15px rgba(0,194,255,0.2));
+}
+.sikap-subtitle {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #E2E8F0;
+    text-align: center;
+    margin-top: 5px;
 }
 
-/* ============================= */
-/* TITLE */
-/* ============================= */
-
-.sikap-title{
-
-    font-size:7rem;
-
-    font-weight:900;
-
-    line-height:1;
-
-    letter-spacing:3px;
-
-    background: linear-gradient(
-        90deg,
-        #21E6C1 0%,
-        #00C2FF 50%,
-        #1E88FF 100%
-    );
-
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-
-    font-family:'Segoe UI',sans-serif;
-
-    text-align:center;
-
-    margin:0;
-    padding:0;
-
-    filter:drop-shadow(0 0 18px rgba(0,194,255,0.25));
-}
-
-/* ============================= */
-/* SUBTITLE */
-/* ============================= */
-
-.sikap-subtitle{
-
-    font-size:1.1rem;
-
-    font-weight:500;
-
-    color:#E2E8F0;
-
-    text-align:center;
-
-    margin-top:8px;
-
-    letter-spacing:0.5px;
-}
-
-/* ============================= */
 /* LOGIN CARD */
-/* ============================= */
-
-div[data-testid="stForm"]{
-
-    background: rgba(10,20,40,0.72);
-
-    border:1px solid rgba(0,194,255,0.35);
-
-    border-radius:34px;
-
-    padding:45px 40px;
-
-    backdrop-filter: blur(14px);
-
-    box-shadow:
-        0 0 0 1px rgba(255,255,255,0.03),
-        0 0 40px rgba(0,150,255,0.12),
-        0 20px 60px rgba(0,0,0,0.55);
-
-    max-width:760px;
-
-    margin:auto;
-
-    position:relative;
-
-    overflow:hidden;
+div[data-testid="stForm"] {
+    background: rgba(10, 20, 40, 0.4);
+    border: 1px solid rgba(0, 194, 255, 0.25);
+    border-radius: 24px;
+    padding: 40px 35px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 15px 50px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
 }
 
-/* ============================= */
-/* TEXT SELAMAT DATANG */
-/* ============================= */
-
-.login-title{
-
-    text-align:center;
-
-    font-size:2.2rem;
-
-    font-weight:800;
-
-    color:white;
-
-    margin-top:25px;
-
-    margin-bottom:10px;
+/* TEXT DALAM FORM */
+.login-header-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+.icon-user-badge {
+    background: rgba(0, 157, 255, 0.1);
+    border: 1px solid #009DFF;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 1.5rem;
+}
+.login-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+}
+.login-subtitle {
+    text-align: center;
+    font-size: 0.95rem;
+    color: #94A3B8;
+    margin-bottom: 30px;
+    line-height: 1.5;
 }
 
-.login-subtitle{
-
-    text-align:center;
-
-    font-size:1.05rem;
-
-    line-height:1.7;
-
-    color:#CBD5E1;
-
-    margin-bottom:30px;
+/* INPUT FIELD */
+.stTextInput label {
+    color: #E2E8F0 !important;
+    font-weight: 500 !important;
+}
+.stTextInput input {
+    background: rgba(0,0,0,0.3) !important;
+    border: 1px solid rgba(120,180,255,0.2) !important;
+    border-radius: 14px !important;
+    height: 55px !important;
+    color: white !important;
+}
+.stTextInput input:focus {
+    border: 1px solid #009DFF !important;
+    box-shadow: 0 0 10px rgba(0, 157, 255, 0.2) !important;
 }
 
-/* ============================= */
-/* LABEL */
-/* ============================= */
-
-.stTextInput label{
-
-    color:white !important;
-
-    font-size:1rem !important;
-
-    font-weight:600 !important;
+/* BUTTON MASUK */
+.stFormSubmitButton > button {
+    width: 100%;
+    height: 55px;
+    border: none !important;
+    border-radius: 14px !important;
+    margin-top: 10px;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: white !important;
+    background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
+    transition: all .2s ease;
+}
+.stFormSubmitButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,140,255,0.4);
 }
 
-/* ============================= */
-/* INPUT */
-/* ============================= */
-
-.stTextInput{
-
-    position:relative;
+/* FOOTER AMAN CEPAT AKURAT */
+.login-footer {
+    text-align: center;
+    color: #64748B;
+    font-size: 0.9rem;
+    margin-top: 25px;
+    font-weight: 500;
 }
 
-.stTextInput input{
-
-    background: rgba(0,0,0,0.28) !important;
-
-    border:1px solid rgba(120,180,255,0.28) !important;
-
-    border-radius:18px !important;
-
-    height:64px !important;
-
-    padding-left:20px !important;
-
-    padding-right:50px !important;
-
-    color:white !important;
-
-    font-size:1.05rem !important;
-
-    transition:all .25s ease;
-
-    box-shadow:none !important;
+div[data-baseweb="input"] {
+    border: none !important;
+    background: transparent !important;
 }
-
-/* ============================= */
-/* PLACEHOLDER */
-/* ============================= */
-
-.stTextInput input::placeholder{
-
-    color:#94A3B8 !important;
-}
-
-/* ============================= */
-/* FOCUS */
-/* ============================= */
-
-.stTextInput input:focus{
-
-    border:1px solid #35C9FF !important;
-
-    box-shadow:
-        0 0 0 1px rgba(53,201,255,0.3),
-        0 0 20px rgba(53,201,255,0.15) !important;
-}
-
-/* ============================= */
-/* BUTTON */
-/* ============================= */
-
-.stFormSubmitButton > button{
-
-    width:100%;
-
-    height:64px;
-
-    border:none !important;
-
-    border-radius:18px !important;
-
-    margin-top:15px;
-
-    font-size:1.2rem !important;
-
-    font-weight:800 !important;
-
-    color:white !important;
-
-    background:
-        linear-gradient(
-            90deg,
-            #009DFF 0%,
-            #0084FF 50%,
-            #0A6CFF 100%
-        ) !important;
-
-    box-shadow:
-        0 10px 30px rgba(0,140,255,0.35);
-
-    transition:all .25s ease;
-}
-
-/* ============================= */
-/* BUTTON HOVER */
-/* ============================= */
-
-.stFormSubmitButton > button:hover{
-
-    transform:translateY(-2px);
-
-    box-shadow:
-        0 14px 35px rgba(0,140,255,0.45);
-}
-
-/* ============================= */
-/* HERO BOX */
-/* ============================= */
-
-.hero-box{
-
-    width:100%;
-
-    padding:24px 28px;
-
-    border-radius:24px;
-
-    background: rgba(10,20,40,0.65);
-
-    border:1px solid rgba(0,194,255,0.18);
-
-    backdrop-filter: blur(12px);
-
-    margin-bottom:25px;
-
-    box-shadow:
-        0 10px 35px rgba(0,0,0,0.25);
-}
-
-.hero-text{
-
-    text-align:center;
-
-    font-size:1.05rem;
-
-    line-height:1.8;
-
-    font-weight:500;
-
-    color:#E2E8F0;
-}
-
-/* ============================= */
-/* TAB */
-/* ============================= */
-
-.stTabs [data-baseweb="tab-list"]{
-
-    gap:12px;
-}
-
-.stTabs [data-baseweb="tab"]{
-
-    background:rgba(255,255,255,0.04);
-
-    border-radius:14px;
-
-    padding:12px 22px;
-
-    color:white;
-
-    font-weight:600;
-}
-
-.stTabs [aria-selected="true"]{
-
-    background:
-        linear-gradient(
-            135deg,
-            #009DFF,
-            #00C2FF
-        ) !important;
-
-    color:white !important;
-
-    box-shadow:
-        0 8px 20px rgba(0,160,255,0.25);
-}
-
-/* ============================= */
-/* HILANGKAN BORDER STREAMLIT */
-/* ============================= */
-
-div[data-baseweb="input"],
-div[data-baseweb="base-input"]{
-
-    border:none !important;
-
-    background:transparent !important;
-
-    box-shadow:none !important;
-}
-
-/* ============================= */
-/* TEXT */
-/* ============================= */
-
-html, body{
-
-    color:white;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
