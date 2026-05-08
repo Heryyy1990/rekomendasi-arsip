@@ -74,7 +74,7 @@ Sistem Informasi Klasifikasi Arsip Pintar
 </div>
 """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([0.6, 2.8, 0.6])
     with col2:
         with st.form("form_login"):
             user_input = st.text_input("Username")
@@ -510,6 +510,32 @@ div[data-baseweb="base-input"] {
     border: none !important;
 
     box-shadow: none !important;
+}
+
+/* SAMAKAN LEBAR PASSWORD DENGAN USERNAME */
+
+[data-testid="stTextInput"] {
+
+    width: 100% !important;
+}
+
+[data-testid="stTextInput"] > div {
+
+    width: 100% !important;
+}
+
+[data-testid="stTextInput"] input {
+
+    width: 100% !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* KHUSUS PASSWORD */
+
+[data-testid="stTextInput"] div:has(input[type="password"]) input {
+
+    padding-right: 48px !important;
 }
 
 </style>
