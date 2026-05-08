@@ -424,7 +424,7 @@ div[data-testid="stForm"] {
 }
 
 /* ============================= */
-/* INPUT BOX - FIX VERTICAL CENTER */
+/* INPUT BOX */
 /* ============================= */
 div[data-baseweb="input"], 
 div[data-baseweb="base-input"] {
@@ -488,43 +488,28 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
 }
 
 /* ============================= */
-/* BUTTON MASUK (PREMIUM & ELEGAN) */
+/* BUTTON MASUK (BERSIH & CENTER) */
 /* ============================= */
 .stFormSubmitButton > button {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 15px !important;
+    display: block !important; /* Kembali ke block biasa agar centering lebih natural */
     width: 100% !important;
     height: 58px !important; 
     border: none !important;
     border-radius: 12px !important;
     margin-top: 25px !important;
     
-    /* Font Elegan: Putih bersih, Bold 700 (bukan Black 900 yg kegendutan) */
     font-family: 'Poppins', sans-serif !important;
     font-size: 1.2rem !important; 
     font-weight: 700 !important; 
-    letter-spacing: 4px !important; /* Rahasia elegannya di sini, spasi direnggangkan */
+    letter-spacing: 4px !important; 
     text-transform: uppercase !important; 
+    text-align: center !important; /* Paksa teks ke tengah */
     
-    color: #FFFFFF !important; /* Balik ke Putih Permanen biar elegan */
+    color: #FFFFFF !important; 
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
     transition: all .25s ease !important;
-    box-shadow: 0 8px 20px rgba(0, 140, 255, 0.3) !important; /* Glow shadow biru */
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important; /* Efek timbul tipis di teks */
-}
-
-/* Ikon Gembok di tombol kembali ke Putih */
-.stFormSubmitButton > button::before {
-    content: "";
-    display: inline-block;
-    width: 22px;
-    height: 22px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); /* Shadow tipis di ikon juga */
+    box-shadow: 0 8px 20px rgba(0, 140, 255, 0.3) !important; 
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important; 
 }
 
 .stFormSubmitButton > button:hover {
@@ -541,23 +526,22 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
 }
 
 /* ============================= */
-/* FIX RESPONSIVE HP (ANTI 3 BARIS) */
+/* FIX RESPONSIVE HP */
 /* ============================= */
-@media screen and (max-width: 480px) { /* Target layar HP sempit */
+@media screen and (max-width: 480px) { 
     div[data-testid="stForm"] {
-        padding: 30px 12px !important; /* Lebarkan form agar teks bisa napas */
+        padding: 30px 12px !important; 
     }
     
     .login-title {
         font-size: 1.5rem !important;
     }
     
-    /* Pemaksaan ukuran font agar kalimat panjang muat di 2 baris */
     .login-subtitle {
-        font-size: 0.72rem !important; /* Dikecilkan lagi khusus untuk HP */
+        font-size: 0.72rem !important; 
         margin-bottom: 25px !important;
         line-height: 1.5 !important;
-        letter-spacing: -0.2px !important; /* Rapatkan sedikit antar huruf */
+        letter-spacing: -0.2px !important; 
     }
     
     input[type="text"], input[type="password"] {
