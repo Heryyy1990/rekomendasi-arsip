@@ -67,53 +67,52 @@ def halaman_login():
 </div>
 """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([0.8, 2.4, 0.8])
+    # KITA HAPUS st.columns! Langsung panggil form-nya.
+    # CSS nanti yang akan membuat form ini berada di tengah dan responsif.
+    with st.form("form_login"):
+        st.markdown("""
+        <div class="login-header-container">
+            <div class="icon-user-badge">👤</div>
+            <div class="login-title">Selamat Datang</div>
+        </div>
+        <div class="login-subtitle">
+        Masuk untuk mengakses sistem klasifikasi arsip<br>
+        secara cepat, akurat, dan pintar.
+        </div>
+        """, unsafe_allow_html=True)
 
-    with col2:
-        with st.form("form_login"):
-            st.markdown("""
-            <div class="login-header-container">
-                <div class="icon-user-badge">👤</div>
-                <div class="login-title">Selamat Datang</div>
-            </div>
-            <div class="login-subtitle">
-            Masuk untuk mengakses sistem klasifikasi arsip<br>
-            secara cepat, akurat, dan pintar.
-            </div>
-            """, unsafe_allow_html=True)
+        user_input = st.text_input(
+            "Username",
+            placeholder="Masukkan username Anda"
+        )
 
-            user_input = st.text_input(
-                "Username",
-                placeholder="Masukkan username Anda"
-            )
+        pwd_input = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Masukkan password Anda"
+        )
 
-            pwd_input = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Masukkan password Anda"
-            )
+        submit = st.form_submit_button(
+            "Masuk",
+            use_container_width=True
+        )
+        
+        st.markdown("""
+        <div class="login-footer">
+            🛡️ Aman &bull; Cepat &bull; Akurat
+        </div>
+        """, unsafe_allow_html=True)
 
-            submit = st.form_submit_button(
-                "Masuk",
-                use_container_width=True
-            )
-            
-            st.markdown("""
-            <div class="login-footer">
-                🛡️ Aman &bull; Cepat &bull; Akurat
-            </div>
-            """, unsafe_allow_html=True)
+        if submit:
+            is_valid, role, nama = validasi_login(user_input, pwd_input)
 
-            if submit:
-                is_valid, role, nama = validasi_login(user_input, pwd_input)
-
-                if is_valid:
-                    st.session_state['logged_in'] = True
-                    st.session_state['role'] = role
-                    st.session_state['nama'] = nama
-                    st.rerun()
-                else:
-                    st.error("Username atau Password salah!")
+            if is_valid:
+                st.session_state['logged_in'] = True
+                st.session_state['role'] = role
+                st.session_state['nama'] = nama
+                st.rerun()
+            else:
+                st.error("Username atau Password salah!")
 
 # 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
 try:
@@ -239,24 +238,66 @@ def ekstrak_inti_surat(teks_user):
 # --- UI & CSS CUSTOM ---
 st.markdown("""
 <style>
-/* BACKGROUND GLOBAL */
-.stApp {
-    background: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%),
-                linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
-    min-height: 100vh;
+/* ============================= */
+/* VARIABEL TEMA TERANG (DEFAULT) */
+/* ============================= */
+:root {
+    --bg-app: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --card-border: rgba(0, 157, 255, 0.2);
+    --card-shadow: 0 15px 40px rgba(0, 150, 255, 0.1);
+    --text-title: #0F172A;
+    --text-subtitle: #64748B;
+    --input-bg: rgba(255, 255, 255, 0.8);
+    --input-border: rgba(148, 163, 184, 0.4);
+    --input-focus-bg: #FFFFFF;
+    --icon-bg: rgba(0, 157, 255, 0.05);
+    --icon-border: #009DFF;
 }
 
-/* TITLE & WRAPPER */
+/* ============================= */
+/* VARIABEL TEMA GELAP (OTOMATIS) */
+/* ============================= */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-app: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%), linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
+        --card-bg: rgba(10, 20, 40, 0.5);
+        --card-border: rgba(0, 194, 255, 0.25);
+        --card-shadow: 0 15px 50px rgba(0,0,0,0.6);
+        --text-title: #FFFFFF;
+        --text-subtitle: #94A3B8;
+        --input-bg: rgba(255, 255, 255, 0.05);
+        --input-border: rgba(120, 180, 255, 0.3);
+        --input-focus-bg: rgba(0, 157, 255, 0.05);
+        --icon-bg: rgba(0, 157, 255, 0.1);
+        --icon-border: #009DFF;
+    }
+}
+
+/* ============================= */
+/* BACKGROUND GLOBAL */
+/* ============================= */
+.stApp {
+    background: var(--bg-app) !important;
+    min-height: 100vh;
+    transition: background 0.3s ease;
+}
+
+/* ============================= */
+/* TITLE & WRAPPER (RESPONSIF) */
+/* ============================= */
 .sikap-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-top: 2rem;
+    margin-top: 10vh;
     margin-bottom: 2rem;
+    padding: 0 15px;
 }
+
 .sikap-title {
-    font-size: 5.5rem;
+    font-size: clamp(3.5rem, 8vw, 5.5rem) !important;
     font-weight: 900;
     line-height: 1.1;
     letter-spacing: 2px;
@@ -266,22 +307,30 @@ st.markdown("""
     text-align: center;
     filter: drop-shadow(0 0 15px rgba(0,194,255,0.2));
 }
+
 .sikap-subtitle {
-    font-size: 1.1rem;
+    font-size: clamp(0.9rem, 3vw, 1.1rem) !important;
     font-weight: 500;
-    color: #E2E8F0;
+    color: var(--text-subtitle);
     text-align: center;
     margin-top: 5px;
+    transition: color 0.3s ease;
 }
 
+/* ============================= */
 /* LOGIN CARD */
+/* ============================= */
 div[data-testid="stForm"] {
-    background: rgba(10, 20, 40, 0.4);
-    border: 1px solid rgba(0, 194, 255, 0.25);
-    border-radius: 24px;
-    padding: 40px 35px;
-    backdrop-filter: blur(16px);
-    box-shadow: 0 15px 50px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
+    background: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 24px !important;
+    padding: 35px 25px !important;
+    backdrop-filter: blur(16px) !important;
+    box-shadow: var(--card-shadow), inset 0 0 0 1px rgba(255,255,255,0.05) !important;
+    
+    max-width: 450px !important; 
+    margin: 0 auto !important;
+    transition: all 0.3s ease;
 }
 
 /* TEXT DALAM FORM */
@@ -289,76 +338,93 @@ div[data-testid="stForm"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px;
+    gap: 12px;
     margin-bottom: 10px;
 }
 .icon-user-badge {
-    background: rgba(0, 157, 255, 0.1);
-    border: 1px solid #009DFF;
+    background: var(--icon-bg);
+    border: 1px solid var(--icon-border);
     border-radius: 12px;
-    padding: 8px 12px;
-    font-size: 1.5rem;
+    padding: 6px 10px;
+    font-size: 1.2rem;
+    transition: background 0.3s ease;
 }
 .login-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-title);
+    transition: color 0.3s ease;
 }
 .login-subtitle {
     text-align: center;
-    font-size: 0.95rem;
-    color: #94A3B8;
-    margin-bottom: 30px;
+    font-size: 0.9rem;
+    color: var(--text-subtitle);
+    margin-bottom: 25px;
     line-height: 1.5;
+    transition: color 0.3s ease;
 }
 
+/* ============================= */
 /* INPUT FIELD */
+/* ============================= */
 .stTextInput label {
-    color: #E2E8F0 !important;
+    color: var(--text-title) !important;
     font-weight: 500 !important;
-}
-.stTextInput input {
-    background: rgba(0,0,0,0.3) !important;
-    border: 1px solid rgba(120,180,255,0.2) !important;
-    border-radius: 14px !important;
-    height: 55px !important;
-    color: white !important;
-}
-.stTextInput input:focus {
-    border: 1px solid #009DFF !important;
-    box-shadow: 0 0 10px rgba(0, 157, 255, 0.2) !important;
+    font-size: 0.95rem !important;
+    transition: color 0.3s ease;
 }
 
-/* BUTTON MASUK */
-.stFormSubmitButton > button {
-    width: 100%;
-    height: 55px;
+div[data-baseweb="input"], 
+div[data-baseweb="base-input"] {
+    background: transparent !important;
     border: none !important;
-    border-radius: 14px !important;
-    margin-top: 10px;
+}
+
+input[type="text"], input[type="password"] {
+    background: var(--input-bg) !important;
+    border: 1px solid var(--input-border) !important;
+    border-radius: 12px !important;
+    height: 50px !important;
+    color: var(--text-title) !important;
+    padding: 0 15px !important;
+    font-size: 1rem !important;
+    box-shadow: none !important;
+    transition: all 0.3s ease !important;
+}
+
+input[type="text"]:focus, input[type="password"]:focus {
+    border: 1px solid #009DFF !important;
+    background: var(--input-focus-bg) !important;
+    box-shadow: 0 0 12px rgba(0, 157, 255, 0.2) !important;
+}
+
+/* ============================= */
+/* BUTTON MASUK */
+/* ============================= */
+.stFormSubmitButton > button {
+    width: 100% !important;
+    height: 50px !important;
+    border: none !important;
+    border-radius: 12px !important;
+    margin-top: 15px !important;
     font-size: 1.1rem !important;
     font-weight: 700 !important;
-    color: white !important;
+    color: white !important; /* Tombol tetap putih teksnya */
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
-    transition: all .2s ease;
+    transition: all .2s ease !important;
 }
 .stFormSubmitButton > button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,140,255,0.4);
+    box-shadow: 0 8px 20px rgba(0,140,255,0.4) !important;
 }
 
-/* FOOTER AMAN CEPAT AKURAT */
 .login-footer {
     text-align: center;
-    color: #64748B;
-    font-size: 0.9rem;
-    margin-top: 25px;
+    color: var(--text-subtitle);
+    font-size: 0.85rem;
+    margin-top: 20px;
     font-weight: 500;
-}
-
-div[data-baseweb="input"] {
-    border: none !important;
-    background: transparent !important;
+    transition: color 0.3s ease;
 }
 </style>
 """, unsafe_allow_html=True)
