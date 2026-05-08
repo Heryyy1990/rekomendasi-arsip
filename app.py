@@ -268,6 +268,7 @@ st.markdown("""
 
 * {
     font-family: 'Poppins', sans-serif !important;
+    box-sizing: border-box !important;
 }
 
 :root {
@@ -282,6 +283,7 @@ st.markdown("""
     --input-focus-bg: #FFFFFF;
     --icon-bg: rgba(0, 157, 255, 0.08);
     --icon-border: rgba(0, 157, 255, 0.5);
+    --btn-text-color: #0F172A; /* Hitam tegas untuk tombol di Light Mode */
 }
 
 /* ============================= */
@@ -300,6 +302,7 @@ st.markdown("""
         --input-focus-bg: rgba(0, 157, 255, 0.05);
         --icon-bg: rgba(0, 157, 255, 0.1);
         --icon-border: #009DFF;
+        --btn-text-color: #FFFFFF; /* Putih bersih untuk tombol di Dark Mode */
     }
 }
 
@@ -322,7 +325,7 @@ st.markdown("""
 }
 
 .sikap-title {
-    font-size: clamp(4.5rem, 9vw, 6.5rem) !important;
+    font-size: clamp(3.5rem, 8vw, 6.5rem) !important;
     font-weight: 900;
     line-height: 1.1;
     letter-spacing: 6px !important; 
@@ -334,7 +337,7 @@ st.markdown("""
 }
 
 .sikap-subtitle {
-    font-size: clamp(0.95rem, 3vw, 1.15rem) !important;
+    font-size: clamp(0.85rem, 3vw, 1.15rem) !important;
     font-weight: 700 !important;
     color: var(--text-subtitle);
     text-align: center;
@@ -368,7 +371,7 @@ st.markdown("""
 }
 
 /* ============================= */
-/* LOGIN CARD */
+/* LOGIN CARD - FIX MOBILE */
 /* ============================= */
 div[data-testid="stForm"] {
     background: var(--card-bg) !important;
@@ -377,6 +380,9 @@ div[data-testid="stForm"] {
     padding: 40px 30px !important;
     backdrop-filter: blur(16px) !important;
     box-shadow: var(--card-shadow) !important;
+    
+    /* Memastikan max width dan otomatis menyusut di HP */
+    width: 100% !important;
     max-width: 460px !important; 
     margin: 0 auto !important;
 }
@@ -398,7 +404,7 @@ div[data-testid="stForm"] {
     justify-content: center;
 }
 .login-title {
-    font-size: 2.1rem;
+    font-size: clamp(1.6rem, 5vw, 2.1rem) !important;
     font-weight: 800 !important;
     color: var(--text-title);
     letter-spacing: -0.5px;
@@ -422,7 +428,7 @@ div[data-testid="stForm"] {
 }
 
 /* ============================= */
-/* INPUT BOX - FIX POSISI IKON & TEKS */
+/* INPUT BOX - FIX CENTER PRESISI */
 /* ============================= */
 div[data-baseweb="input"], 
 div[data-baseweb="base-input"] {
@@ -446,9 +452,12 @@ div[data-baseweb="input"]:focus-within {
 }
 
 input[type="text"], input[type="password"] {
-    height: 56px !important; /* Ditinggikan sedikit biar lega */
-    padding-left: 55px !important; /* Dorong teks ke kanan menjauhi ikon */
-    padding-right: 15px !important;
+    height: 56px !important; 
+    line-height: 56px !important; /* Memaksa teks persis di tengah secara vertikal */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 50px !important; /* Ruang lega untuk ikon */
+    padding-right: 40px !important; /* Ruang lega untuk ikon mata di kanan */
     color: var(--text-title) !important;
     font-weight: 600 !important;
     font-size: 1rem !important;
@@ -457,16 +466,14 @@ input[type="text"], input[type="password"] {
     outline: none !important;
     box-shadow: none !important;
     background-repeat: no-repeat !important;
-    background-position: 18px center !important; /* Ikon didorong agak ke kanan dari pinggir */
+    background-position: 16px 50% !important; /* 50% memastikan ikon center vertikal sempurna */
     background-size: 20px !important;
 }
 
-/* Suntik ikon User ke Username */
 input[aria-label="Username"] {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>') !important;
 }
 
-/* Suntik ikon Lock ke Password */
 input[aria-label="Password"] {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') !important;
 }
@@ -476,23 +483,19 @@ input[type="text"]::placeholder, input[type="password"]::placeholder {
     font-weight: 500 !important;
 }
 
+/* Fix Ikon Mata Streamlit */
 div[data-testid="stTextInputPassword"] button {
     color: #009DFF !important;
     background: transparent !important;
-    padding-right: 10px !important;
+    padding-right: 12px !important;
 }
 
-/* ============================= */
-/* MENGHILANGKAN PRESS ENTER TEXT */
-/* ============================= */
-div[data-testid="InputInstructions"], 
-.st-emotion-cache-12oz5g7, 
-small {
+div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
     display: none !important;
 }
 
 /* ============================= */
-/* BUTTON MASUK FIRM & BOLD */
+/* BUTTON MASUK (TEGAS & ADAPTIF) */
 /* ============================= */
 .stFormSubmitButton > button {
     display: flex !important;
@@ -505,27 +508,29 @@ small {
     border-radius: 12px !important;
     margin-top: 20px !important;
     
-    /* Setting font MASUK yang baru */
-    font-size: 1.15rem !important; 
-    font-weight: 800 !important; 
-    letter-spacing: 1.5px !important; /* Spasi direnggangkan */
-    text-transform: uppercase !important; /* Memaksa jadi KAPITAL */
+    /* Font sangat tegas */
+    font-family: 'Arial Black', 'Impact', 'Poppins', sans-serif !important;
+    font-size: 1.25rem !important; 
+    font-weight: 900 !important; 
+    letter-spacing: 2px !important; 
+    text-transform: uppercase !important; 
     
-    color: white !important;
+    /* Warna mengikuti tema */
+    color: var(--btn-text-color) !important;
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
     transition: all .25s ease !important;
     box-shadow: 0 4px 15px rgba(0, 157, 255, 0.2) !important;
 }
 
-/* Suntik ikon Gembok putih ke dalam tombol */
+/* Ikon Gembok di dalam tombol menggunakan trik Masking agar warnanya dinamis mengikuti teks */
 .stFormSubmitButton > button::before {
     content: "";
     display: inline-block;
     width: 20px;
     height: 20px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
+    background-color: var(--btn-text-color);
+    -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') no-repeat center / contain;
+    mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') no-repeat center / contain;
 }
 
 .stFormSubmitButton > button:hover {
@@ -539,6 +544,34 @@ small {
     font-size: 0.95rem;
     margin-top: 25px;
     font-weight: 500;
+}
+
+/* ============================= */
+/* FIX RESPONSIVE UNTUK MOBILE */
+/* ============================= */
+@media screen and (max-width: 768px) {
+    div[data-testid="stForm"] {
+        padding: 30px 20px !important;
+    }
+    
+    .sikap-wrapper {
+        margin-top: 4vh;
+    }
+
+    .login-title {
+        font-size: 1.6rem !important;
+    }
+    
+    .login-subtitle {
+        font-size: 0.85rem !important;
+        margin-bottom: 20px !important;
+    }
+    
+    input[type="text"], input[type="password"] {
+        font-size: 0.95rem !important;
+        padding-left: 45px !important;
+        background-position: 12px 50% !important;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
