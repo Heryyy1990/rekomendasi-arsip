@@ -215,7 +215,10 @@ st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="ðŸ—
 st.markdown("""
 <style>
 
-/* ===== TITLE UTAMA ===== */
+/* ============================= */
+/* WRAPPER JUDUL */
+/* ============================= */
+
 .sikap-wrapper{
     display:flex;
     flex-direction:column;
@@ -225,17 +228,19 @@ st.markdown("""
     margin-bottom:40px;
 }
 
+/* ============================= */
+/* TITLE */
+/* ============================= */
+
 .sikap-title {
+
     font-size: 5.3rem;
     font-weight: 900;
     line-height: 1;
+
     letter-spacing: 4px;
 
-    background: linear-gradient(
-        45deg,
-        #00BFA5,
-        #0288D1
-    );
+    background: linear-gradient(45deg, #00BFA5, #0288D1);
 
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -248,12 +253,14 @@ st.markdown("""
     text-align:center;
 }
 
-/* ===== SUBTITLE ===== */
+/* ============================= */
+/* SUBTITLE */
+/* ============================= */
+
 .sikap-subtitle {
 
-    width: fit-content;
-
     font-size: 1.15rem;
+
     font-weight: 600;
 
     text-align:center;
@@ -262,11 +269,7 @@ st.markdown("""
 
     margin-top: 8px;
 
-    background: linear-gradient(
-        45deg,
-        #FF512F,
-        #DD2476
-    );
+    background: linear-gradient(45deg, #FF512F, #DD2476);
 
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -274,10 +277,13 @@ st.markdown("""
     white-space: nowrap;
 }
 
-/* ===== FORM LOGIN ===== */
+/* ============================= */
+/* CARD LOGIN */
+/* ============================= */
+
 div[data-testid="stForm"] {
 
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.04);
 
     padding: 35px;
 
@@ -289,9 +295,14 @@ div[data-testid="stForm"] {
 
     box-shadow:
         0 8px 32px rgba(0,0,0,0.15);
+
+    margin-top: 10px;
 }
 
-/* ===== INPUT ===== */
+/* ============================= */
+/* INPUT */
+/* ============================= */
+
 .stTextInput input {
 
     border-radius: 14px !important;
@@ -305,6 +316,10 @@ div[data-testid="stForm"] {
     transition: all .25s ease;
 }
 
+/* ============================= */
+/* INPUT FOCUS */
+/* ============================= */
+
 .stTextInput input:focus {
 
     border: 1px solid #0288D1 !important;
@@ -313,8 +328,10 @@ div[data-testid="stForm"] {
         0 0 0 3px rgba(2,136,209,.15) !important;
 }
 
-/* ===== TOMBOL MASUK ===== */
-.stButton > button,
+/* ============================= */
+/* TOMBOL MASUK */
+/* ============================= */
+
 .stFormSubmitButton > button {
 
     width: 100%;
@@ -345,8 +362,10 @@ div[data-testid="stForm"] {
     transition: all .25s ease;
 }
 
-/* ===== HOVER BUTTON ===== */
-.stButton > button:hover,
+/* ============================= */
+/* HOVER BUTTON */
+/* ============================= */
+
 .stFormSubmitButton > button:hover {
 
     transform: translateY(-2px);
