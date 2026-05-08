@@ -264,11 +264,11 @@ st.markdown("""
 
     text-align:center;
 
-    letter-spacing: 1.2px;
+    letter-spacing: 0.8px;
 
     margin-top: 2px;
 
-    margin-left: 6px;
+    margin-left: 2px;
 
     background: linear-gradient(
         45deg,
