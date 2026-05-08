@@ -63,13 +63,13 @@ def halaman_login():
     st.markdown("""
 <div class="sikap-wrapper">
 
-    <div class="sikap-title">
-        SIKAP
-    </div>
+<div class="sikap-title">
+SIKAP
+</div>
 
-    <div class="sikap-subtitle">
-        Sistem Informasi Klasifikasi Arsip Pintar
-    </div>
+<div class="sikap-subtitle">
+Sistem Informasi Klasifikasi Arsip Pintar
+</div>
 
 </div>
 """, unsafe_allow_html=True)
