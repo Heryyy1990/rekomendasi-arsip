@@ -78,7 +78,7 @@ Sistem Informasi Klasifikasi Arsip Pintar
     with col2:
         with st.form("form_login"):
             user_input = st.text_input("Username")
-            pwd_input = st.text_input("Password", type="password")
+            pwd_input = st.text_input("Password", type="password", label_visibility="visible")
             submit = st.form_submit_button("Masuk", use_container_width=True)
             
             if submit:
@@ -536,6 +536,37 @@ div[data-baseweb="base-input"] {
 [data-testid="stTextInput"] div:has(input[type="password"]) input {
 
     padding-right: 48px !important;
+}
+
+/* FIX PASSWORD ICON MOBILE */
+
+[data-testid="stTextInput"] div[data-baseweb="base-input"] {
+
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+
+    border-radius: 16px !important;
+}
+
+/* ICON MATA */
+
+[data-testid="stTextInput"] button {
+
+    margin-right: 12px !important;
+
+    background: transparent !important;
+
+    border: none !important;
+
+    box-shadow: none !important;
+}
+
+/* INPUT PASSWORD */
+
+[data-testid="stTextInput"] input[type="password"] {
+
+    padding-right: 12px !important;
 }
 
 </style>
