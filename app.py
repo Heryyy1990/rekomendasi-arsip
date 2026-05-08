@@ -993,7 +993,7 @@ def halaman_utama():
         background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
         border-radius: 20px;
         padding: 40px;
-        margin-bottom: 10px; /* Jarak dirapatkan dengan input */
+        margin-bottom: 25px;
         box-shadow: 0 4px 15px rgba(0, 157, 255, 0.05);
         display: flex;
         justify-content: space-between;
@@ -1010,38 +1010,21 @@ def halaman_utama():
     .hero-subtitle {
         font-size: 0.95rem;
         color: #475569;
-        margin-bottom: 25px;
-    }
-    
-    /* Search Box di dalam Banner (Bebas Bocor) */
-    .search-box-container {
-        background: #FFFFFF;
-        padding: 20px;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
-        margin-bottom: 0; /* Rapihkan jarak */
-    }
-    .search-box-title {
-        font-weight: 700;
-        color: #0F172A;
-        margin-bottom: 5px;
-        font-size: 1.05rem;
-    }
-    .search-box-desc {
-        color: #64748B;
-        font-size: 0.85rem;
+        margin-bottom: 0;
     }
 
-    /* Input Streamlit Custom untuk Search Box */
+    /* Input Streamlit Custom (Aman & Tidak Bocor) */
     div[data-testid="stTextInput"] div[data-baseweb="input"] {
-        background: #F8FAFC !important;
+        background: #FFFFFF !important;
         border: 2px solid #E2E8F0 !important;
-        border-radius: 8px !important;
-        height: 55px !important;
+        border-radius: 12px !important;
+        height: 60px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03) !important;
+        transition: all 0.3s ease;
     }
     div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
         border-color: #009DFF !important;
-        box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.1) !important;
+        box-shadow: 0 0 0 3px rgba(0, 157, 255, 0.15) !important;
     }
     div[data-testid="stTextInput"] input {
         font-size: 1rem !important;
@@ -1054,7 +1037,7 @@ def halaman_utama():
         color: #0F172A;
         font-size: 1.2rem;
         margin-bottom: 15px;
-        margin-top: 10px;
+        margin-top: 25px;
     }
     .card-row {
         display: flex;
@@ -1125,7 +1108,6 @@ def halaman_utama():
             """, unsafe_allow_html=True)
             
             st.caption("MENU UTAMA")
-            # Tombol Navigasi Asli menggunakan on_click
             st.button("🏠 Beranda", use_container_width=True, type="primary" if st.session_state.page == 'Beranda' else "secondary", on_click=ganti_halaman, args=('Beranda',))
             st.button("🤖 Pencarian AI (Cerdas)", use_container_width=True, type="primary" if st.session_state.page == 'Pencarian AI' else "secondary", on_click=ganti_halaman, args=('Pencarian AI',))
             st.button("📁 Jelajah Kode Klasifikasi", use_container_width=True, type="primary" if st.session_state.page == 'Jelajah Kode' else "secondary", on_click=ganti_halaman, args=('Jelajah Kode',))
@@ -1136,7 +1118,6 @@ def halaman_utama():
             
             st.divider()
             
-            # Profil User
             st.markdown(f"""
             <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#F8FAFC; border-radius:10px; border:1px solid #E2E8F0;">
                 <div style="width:35px; height:35px; background:#E0F2FE; color:#009DFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
@@ -1160,35 +1141,30 @@ def halaman_utama():
         
         # --- HALAMAN 1: BERANDA ---
         if st.session_state.page == 'Beranda':
-            # Banner dirapatkan kodenya agar tidak bocor jadi teks
             st.markdown(f"""
             <div class="hero-banner">
                 <div class="hero-content">
                     <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
                     <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
-                    <div class="search-box-container">
-                        <div class="search-box-title">Cari kode klasifikasi arsip</div>
-                        <div class="search-box-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
-                    </div>
                 </div>
-                <div style="width: 30%; opacity: 0.9;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" width="100%" style="filter: hue-rotate(190deg) opacity(0.8);">
+                <div style="width: 25%; opacity: 0.85;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" width="100%">
                 </div>
+            </div>
+            
+            <div style="margin-bottom: 5px;">
+                <div style="font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 3px;">Cari kode klasifikasi arsip</div>
+                <div style="color: #64748B; font-size: 0.85rem;">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Input menyatu dengan banner
-            st.markdown('<div style="margin-top: -35px; margin-bottom: 60px; max-width: 60%; margin-left: 60px; position: relative; z-index: 10;">', unsafe_allow_html=True)
-            user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini (Contoh: permohonan cuti tahunan)...", label_visibility="collapsed")
-            st.markdown('</div>', unsafe_allow_html=True)
+            user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini (Contoh: permohonan cuti tahunan pegawai)...", label_visibility="collapsed")
 
             if user_input:
-                # Mengarahkan langsung ke halaman Pencarian AI jika user mengetik di Beranda
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
 
-            # Akses Cepat
             st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
             st.markdown("""
             <div class="card-row">
@@ -1207,7 +1183,6 @@ def halaman_utama():
             </div>
             """, unsafe_allow_html=True)
 
-            # Tabel Riwayat Singkat
             st.markdown('<div class="section-title">Riwayat Pencarian Terakhir</div>', unsafe_allow_html=True)
             if not st.session_state.search_history:
                 st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
@@ -1226,7 +1201,6 @@ def halaman_utama():
             st.markdown('<div class="section-title">🤖 Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
             st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
-            # Ambil nilai sementara jika user mengetik dari Beranda
             default_val = st.session_state.pop('temp_search', '') 
             user_input = st.text_input("Ketik perihal surat:", value=default_val, placeholder="Contoh: penyusunan rencana kerja anggaran...")
 
@@ -1258,7 +1232,6 @@ def halaman_utama():
                 uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
                 with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
                     st.caption("Pohon hierarki dirender di sini...") 
-                    # Logika render_tree Anda bisa dipanggil di sini
 
         # --- HALAMAN 4: RIWAYAT ---
         elif st.session_state.page == 'Riwayat':
