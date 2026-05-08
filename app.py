@@ -807,6 +807,14 @@ Sistem Informasi Klasifikasi Arsip Pintar
 </div>
 """, unsafe_allow_html=True)
 
+    st.markdown("""
+<div class="hero-box">
+    <div class="hero-text">
+        🔍 Sistem klasifikasi arsip cerdas berbasis AI untuk membantu identifikasi kode arsip secara cepat, akurat, dan modern.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
     try:
         df = load_data()
         
