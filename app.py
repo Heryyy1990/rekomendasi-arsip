@@ -957,7 +957,6 @@ def halaman_utama():
     
     /* Transparankan header agar tombol Hamburger tetap muncul dan bisa diklik */
     header[data-testid="stHeader"] { background: transparent !important; }
-    .block-container { padding-top: 2rem !important; max-width: 1100px !important; }
 
     /* --- SIDEBAR --- */
     [data-testid="stSidebar"] {
