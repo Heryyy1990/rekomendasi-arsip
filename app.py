@@ -242,17 +242,21 @@ st.markdown("""
 /* VARIABEL TEMA TERANG (DEFAULT) */
 /* ============================= */
 :root {
-    --bg-app: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
-    --card-bg: rgba(255, 255, 255, 0.85);
-    --card-border: rgba(0, 157, 255, 0.2);
-    --card-shadow: 0 15px 40px rgba(0, 150, 255, 0.1);
+    /* Latar belakang diberi sedikit nuansa biru es agar form putihnya menonjol */
+    --bg-app: radial-gradient(circle at top right, #E0F2FE 0%, transparent 40%), 
+              linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --card-border: rgba(0, 157, 255, 0.15);
+    --card-shadow: 0 20px 40px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.8);
     --text-title: #0F172A;
-    --text-subtitle: #64748B;
-    --input-bg: rgba(255, 255, 255, 0.8);
-    --input-border: rgba(148, 163, 184, 0.4);
+    --text-subtitle: #475569;
+    
+    /* Input di light mode diberi warna abu-abu kebiruan super muda */
+    --input-bg: #F8FAFC; 
+    --input-border: rgba(0, 157, 255, 0.25);
     --input-focus-bg: #FFFFFF;
-    --icon-bg: rgba(0, 157, 255, 0.05);
-    --icon-border: #009DFF;
+    --icon-bg: rgba(0, 157, 255, 0.08);
+    --icon-border: rgba(0, 157, 255, 0.4);
 }
 
 /* ============================= */
@@ -260,7 +264,8 @@ st.markdown("""
 /* ============================= */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-app: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%), linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
+        --bg-app: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%), 
+                  linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
         --card-bg: rgba(10, 20, 40, 0.5);
         --card-border: rgba(0, 194, 255, 0.25);
         --card-shadow: 0 15px 50px rgba(0,0,0,0.6);
@@ -284,14 +289,14 @@ st.markdown("""
 }
 
 /* ============================= */
-/* TITLE & WRAPPER (RESPONSIF) */
+/* TITLE & WRAPPER */
 /* ============================= */
 .sikap-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-top: 10vh;
+    margin-top: 8vh;
     margin-bottom: 2rem;
     padding: 0 15px;
 }
@@ -314,7 +319,38 @@ st.markdown("""
     color: var(--text-subtitle);
     text-align: center;
     margin-top: 5px;
+    padding-bottom: 25px; /* Jarak untuk garis bawah */
+    position: relative;
     transition: color 0.3s ease;
+}
+
+/* ============================= */
+/* GARIS BIRU + TITIK GLOWING DI TENGAH */
+/* ============================= */
+.sikap-subtitle::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;
+    height: 1.5px;
+    /* Gradasi agar ujung kiri dan kanannya memudar */
+    background: linear-gradient(90deg, transparent, #009DFF, transparent); 
+}
+
+.sikap-subtitle::before {
+    content: "";
+    position: absolute;
+    bottom: -1.5px; /* Menempatkan titik pas di atas garis */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #00C2FF;
+    box-shadow: 0 0 10px 2px rgba(0, 194, 255, 0.8);
+    z-index: 1;
 }
 
 /* ============================= */
@@ -326,7 +362,7 @@ div[data-testid="stForm"] {
     border-radius: 24px !important;
     padding: 35px 25px !important;
     backdrop-filter: blur(16px) !important;
-    box-shadow: var(--card-shadow), inset 0 0 0 1px rgba(255,255,255,0.05) !important;
+    box-shadow: var(--card-shadow) !important;
     
     max-width: 450px !important; 
     margin: 0 auto !important;
@@ -347,7 +383,7 @@ div[data-testid="stForm"] {
     border-radius: 12px;
     padding: 6px 10px;
     font-size: 1.2rem;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
 }
 .login-title {
     font-size: 1.8rem;
@@ -369,7 +405,7 @@ div[data-testid="stForm"] {
 /* ============================= */
 .stTextInput label {
     color: var(--text-title) !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     font-size: 0.95rem !important;
     transition: color 0.3s ease;
 }
@@ -392,6 +428,10 @@ input[type="text"], input[type="password"] {
     transition: all 0.3s ease !important;
 }
 
+input[type="text"]::placeholder, input[type="password"]::placeholder {
+    color: #94A3B8 !important;
+}
+
 input[type="text"]:focus, input[type="password"]:focus {
     border: 1px solid #009DFF !important;
     background: var(--input-focus-bg) !important;
@@ -409,7 +449,7 @@ input[type="text"]:focus, input[type="password"]:focus {
     margin-top: 15px !important;
     font-size: 1.1rem !important;
     font-weight: 700 !important;
-    color: white !important; /* Tombol tetap putih teksnya */
+    color: white !important;
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
     transition: all .2s ease !important;
 }
