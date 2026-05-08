@@ -10,6 +10,10 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 from thefuzz import process, fuzz
 from groq import Groq
 
+# --- KONFIGURASI HALAMAN ---
+st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
+
+
 
 # --- INISIALISASI SESSION STATE LOGIN & HISTORY ---
 if 'logged_in' not in st.session_state:
@@ -208,9 +212,6 @@ def ekstrak_inti_surat(teks_user):
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
         return teks_user
         
-# --- KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
-
 # --- UI & CSS CUSTOM ---
 st.markdown("""
 <style>
