@@ -984,8 +984,16 @@ def halaman_utama():
         box-shadow: none !important; transform: none !important; font-family: 'Poppins', sans-serif !important;
     }
     section[data-testid="stSidebar"] .stButton button:hover { background-color: #F8FAFC !important; color: #0F172A !important; }
+    
+    /* PAKSA WARNA BIRU UNTUK TOMBOL AKTIF (Melawan tema merah bawaan) */
+    button[kind="primary"] {
+        background-color: #009DFF !important; 
+        border-color: #009DFF !important; 
+        color: white !important;
+        font-weight: 700 !important;
+    }
     section[data-testid="stSidebar"] .stButton button[kind="primary"] {
-        background-color: #E0F2FE !important; color: #009DFF !important; font-weight: 700 !important;
+        background-color: #E0F2FE !important; color: #009DFF !important;
     }
 
     /* UMUM */
@@ -1066,37 +1074,35 @@ def halaman_utama():
             .hero-illustration { width: 35%; display: flex; justify-content: center; }
             .hero-illustration svg { width: 100%; max-width: 250px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.05)); }
 
-            /* TRIK 1: Menarik Baris Pencarian (Kolom ke-1) masuk ke dalam Banner */
+            /* TRIK 1: Posisi Input & Tombol Pencarian */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
                 margin-top: -95px !important;
                 margin-left: 65px !important;
-                width: calc(60% - 90px) !important;
+                width: calc(60% - 95px) !important;
                 position: relative; z-index: 10; margin-bottom: 40px !important;
-                gap: 10px !important;
+                gap: 8px !important;
             }
             
-            /* Styling Input Pencarian */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
-                height: 52px !important; border-radius: 8px !important;
+                height: 50px !important; border-radius: 8px !important;
                 border: 1px solid #E2E8F0 !important; background: #F8FAFC !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
                 border-color: #009DFF !important; background: #FFFFFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.15) !important;
             }
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important; }
-            
-            /* Styling Tombol Biru Pencarian */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important;}
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
-                height: 52px !important; border-radius: 8px !important; width: 100% !important;
+                height: 50px !important; border-radius: 8px !important; width: 100% !important; font-size: 1.2rem !important;
             }
 
-            /* TRIK 2: Menyulap Tombol Akses Cepat (Kolom ke-2) menjadi Kartu Putih */
+            /* TRIK 2: Tombol Akses Cepat (Ikon di Atas, Teks di Bawah) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
-                height: 80px !important; border-radius: 12px !important; background-color: #FFFFFF !important;
+                height: 100px !important; border-radius: 12px !important; background-color: #FFFFFF !important;
                 border: 1px solid #E2E8F0 !important; color: #0F172A !important;
-                font-family: 'Poppins', sans-serif !important; font-weight: 600 !important; font-size: 0.95rem !important;
+                font-family: 'Poppins', sans-serif !important; font-weight: 600 !important; font-size: 0.9rem !important;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; transition: all 0.2s ease !important;
-                display: flex; justify-content: center; align-items: center; white-space: pre-wrap !important;
+                white-space: pre-wrap !important; /* Mengizinkan teks turun ke bawah */
+                line-height: 1.4 !important; display: block !important; padding-top: 15px !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(2) button:hover {
                 border-color: #009DFF !important; color: #009DFF !important;
@@ -1135,37 +1141,35 @@ def halaman_utama():
 </div>
 """, unsafe_allow_html=True)
 
-            # FORM PENCARIAN (Input dan Tombol Biru Sejajar)
-            col_in, col_btn = st.columns([5, 1])
+            # FORM PENCARIAN
+            col_in, col_btn = st.columns([5, 1.2])
             with col_in:
-                # KTP ditambahkan: key="input_beranda" (Error Merah Hilang!)
-                user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat/dokumen...", label_visibility="collapsed", key="input_beranda")
+                user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
             with col_btn:
                 btn_cari = st.button("🔍", type="primary", use_container_width=True)
 
             if user_input or btn_cari:
-                # Logika kalau user tekan Enter atau klik tombol biru
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
 
-            # KARTU AKSES CEPAT
+            # KARTU AKSES CEPAT (Format Ikon Atas, Teks Bawah)
             st.markdown('<div class="section-title">⚡ Akses Cepat</div>', unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                if st.button("🤖 Pencarian Cerdas", use_container_width=True):
+                if st.button("🤖\nPencarian AI", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
             with col2:
-                if st.button("📁 Jelajah Katalog", use_container_width=True):
+                if st.button("📁\nJelajah Kode", use_container_width=True):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
             with col3:
-                if st.button("📄 Dokumen Surat", use_container_width=True):
+                if st.button("📄\nDokumen Surat", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
             with col4:
-                if st.button("🕒 Riwayat Anda", use_container_width=True):
+                if st.button("🕒\nRiwayat Anda", use_container_width=True):
                     ganti_halaman('Riwayat')
                     st.rerun()
 
@@ -1196,8 +1200,6 @@ def halaman_utama():
             st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
             default_val = st.session_state.pop('temp_search', '') 
-            
-            # KTP ditambahkan: key="input_halaman_ai" (Error Merah Hilang!)
             user_input = st.text_input("Ketik perihal surat:", value=default_val, placeholder="Contoh: penyusunan rencana kerja anggaran...", key="input_halaman_ai")
 
             if user_input:
