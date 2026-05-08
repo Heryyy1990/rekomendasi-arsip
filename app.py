@@ -235,11 +235,13 @@ st.markdown("""
 
 .sikap-title {
 
-    font-size: 5.3rem;
+    font-size: 6rem;
+
     font-weight: 900;
+
     line-height: 1;
 
-    letter-spacing: 4px;
+    letter-spacing: 2px;
 
     background: linear-gradient(45deg, #00BFA5, #0288D1);
 
@@ -254,28 +256,24 @@ st.markdown("""
     text-align:center;
 }
 
-/* ============================= */
-/* SUBTITLE */
-/* ============================= */
-
 .sikap-subtitle {
 
-    font-size: 1.15rem;
+    font-size: 0.95rem;
 
     font-weight: 600;
 
     text-align:center;
 
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 
-    margin-top: 8px;
+    margin-top: 2px;
 
     background: linear-gradient(45deg, #FF512F, #DD2476);
 
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 
-    white-space: nowrap;
+    white-space: normal;
 }
 
 /* ============================= */
