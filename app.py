@@ -67,7 +67,7 @@ def halaman_login():
 </div>
 """, unsafe_allow_html=True)
 
-    # SVG Icon elegan pengganti emoji monyet
+    # SVG Icon elegan untuk lencana di atas "Selamat Datang"
     svg_user = """
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -108,6 +108,17 @@ def halaman_login():
             🛡️ <b>Aman &bull; Cepat &bull; Akurat</b>
         </div>
         """, unsafe_allow_html=True)
+
+        if submit:
+            is_valid, role, nama = validasi_login(user_input, pwd_input)
+
+            if is_valid:
+                st.session_state['logged_in'] = True
+                st.session_state['role'] = role
+                st.session_state['nama'] = nama
+                st.rerun()
+            else:
+                st.error("Username atau Password salah!")
 
         if submit:
             is_valid, role, nama = validasi_login(user_input, pwd_input)
@@ -259,7 +270,7 @@ st.markdown("""
     --text-title: #0F172A;
     --text-subtitle: #475569;
     --input-bg: #F8FAFC; 
-    --input-border: rgba(0, 157, 255, 0.4); /* Ditebalkan */
+    --input-border: rgba(0, 157, 255, 0.4); 
     --input-focus-bg: #FFFFFF;
     --icon-bg: rgba(0, 157, 255, 0.08);
     --icon-border: rgba(0, 157, 255, 0.5);
@@ -277,7 +288,7 @@ st.markdown("""
         --text-title: #FFFFFF;
         --text-subtitle: #94A3B8;
         --input-bg: rgba(255, 255, 255, 0.05);
-        --input-border: rgba(120, 180, 255, 0.4); /* Ditebalkan */
+        --input-border: rgba(120, 180, 255, 0.4); 
         --input-focus-bg: rgba(0, 157, 255, 0.05);
         --icon-bg: rgba(0, 157, 255, 0.1);
         --icon-border: #009DFF;
@@ -303,10 +314,10 @@ st.markdown("""
 }
 
 .sikap-title {
-    font-size: clamp(4.5rem, 9vw, 6.5rem) !important; /* Diperbesar */
+    font-size: clamp(4.5rem, 9vw, 6.5rem) !important;
     font-weight: 900;
     line-height: 1.1;
-    letter-spacing: 6px !important; /* Diperlebar / Lebih ke samping */
+    letter-spacing: 6px !important; 
     background: linear-gradient(90deg, #21E6C1 0%, #009DFF 50%, #1E88FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -316,7 +327,7 @@ st.markdown("""
 
 .sikap-subtitle {
     font-size: clamp(0.95rem, 3vw, 1.15rem) !important;
-    font-weight: 700 !important; /* Ditebalkan */
+    font-weight: 700 !important;
     color: var(--text-subtitle);
     text-align: center;
     margin-top: 5px;
@@ -324,13 +335,12 @@ st.markdown("""
     position: relative;
 }
 
-/* Garis Biru sama panjang dengan teks */
 .sikap-subtitle::after {
     content: "";
     position: absolute;
     bottom: 0;
     left: 0; 
-    width: 100%; /* 100% mengikuti panjang teks subtitle! */
+    width: 100%; 
     height: 1.5px;
     background: linear-gradient(90deg, transparent, #009DFF, transparent); 
 }
@@ -381,7 +391,7 @@ div[data-testid="stForm"] {
 }
 .login-title {
     font-size: 2rem;
-    font-weight: 800 !important; /* Ditebalkan */
+    font-weight: 800 !important;
     color: var(--text-title);
 }
 .login-subtitle {
@@ -397,23 +407,29 @@ div[data-testid="stForm"] {
 /* ============================= */
 .stTextInput label {
     color: var(--text-title) !important;
-    font-weight: 800 !important; /* Ditebalkan */
+    font-weight: 800 !important;
     font-size: 1rem !important;
     margin-bottom: 8px !important;
 }
 
 /* ============================= */
-/* INPUT BOX - FIX PANJANG & KEPOTONG */
+/* INPUT BOX - FIX OVERLAY JENGKELIN */
 /* ============================= */
-/* Kita tembak bungkusannya agar ikon mata masuk ke dalam border */
+/* Bersihkan semua background dan border bawaan Streamlit di dalam-dalamnya */
 div[data-baseweb="input"], 
 div[data-baseweb="base-input"] {
-    background: var(--input-bg) !important;
-    border: 2px solid var(--input-border) !important; /* Outline 2px, lebih kentara */
-    border-radius: 12px !important;
-    min-height: 50px !important; /* Mengatasi teks kepotong */
-    transition: all 0.3s ease !important;
+    background: transparent !important;
+    border: none !important;
     box-shadow: none !important;
+}
+
+/* Kita hanya taruh border di lapisan terluar saja biar rapi */
+div[data-baseweb="input"] {
+    background: var(--input-bg) !important;
+    border: 2px solid var(--input-border) !important;
+    border-radius: 12px !important;
+    transition: all 0.3s ease !important;
+    overflow: hidden !important; /* Mencegah background meluber */
 }
 
 div[data-baseweb="input"]:focus-within {
@@ -422,28 +438,42 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 12px rgba(0, 157, 255, 0.25) !important;
 }
 
-/* Input teksnya dibuat tembus pandang */
+/* Styling kolom teksnya */
 input[type="text"], input[type="password"] {
-    background: transparent !important;
-    border: none !important;
-    height: 100% !important;
+    height: 52px !important;
+    padding-left: 45px !important; /* Ruang untuk ikon di kiri */
+    padding-right: 15px !important;
     color: var(--text-title) !important;
-    padding: 0 15px !important;
+    font-weight: 600 !important;
     font-size: 1.05rem !important;
-    font-weight: 600 !important; /* Teks input ditebalkan */
-    box-shadow: none !important;
+    background-color: transparent !important;
+    border: none !important;
     outline: none !important;
+    box-shadow: none !important;
+    background-repeat: no-repeat !important;
+    background-position: 15px center !important;
+    background-size: 20px !important;
+}
+
+/* Suntik ikon User ke Username */
+input[aria-label="Username"] {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>') !important;
+}
+
+/* Suntik ikon Lock ke Password */
+input[aria-label="Password"] {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') !important;
 }
 
 input[type="text"]::placeholder, input[type="password"]::placeholder {
     color: #94A3B8 !important;
-    font-weight: 400 !important;
+    font-weight: 500 !important;
 }
 
-input[type="text"]:focus, input[type="password"]:focus {
+/* Fix Ikon Mata Streamlit biar nyatu dan gak ada kotak abu-abunya */
+div[data-testid="stTextInputPassword"] button {
+    color: #009DFF !important;
     background: transparent !important;
-    border: none !important;
-    box-shadow: none !important; 
 }
 
 /* ============================= */
@@ -456,20 +486,36 @@ small {
 }
 
 /* ============================= */
-/* BUTTON MASUK */
+/* BUTTON MASUK + IKON GEMBOK PUTIH */
 /* ============================= */
 .stFormSubmitButton > button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
     width: 100% !important;
     height: 52px !important;
     border: none !important;
     border-radius: 12px !important;
     margin-top: 15px !important;
-    font-size: 1.2rem !important; /* Diperbesar */
-    font-weight: 800 !important; /* Ditebalkan maksimal */
+    font-size: 1.2rem !important; 
+    font-weight: 800 !important; 
     color: white !important;
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
     transition: all .2s ease !important;
 }
+
+/* Suntik ikon Gembok putih ke dalam tombol */
+.stFormSubmitButton > button::before {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
 .stFormSubmitButton > button:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0,140,255,0.4) !important;
@@ -480,7 +526,7 @@ small {
     color: var(--text-subtitle);
     font-size: 0.9rem;
     margin-top: 20px;
-    font-weight: 600;
+    font-weight: 700;
 }
 </style>
 """, unsafe_allow_html=True)
