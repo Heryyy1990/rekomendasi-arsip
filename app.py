@@ -316,21 +316,38 @@ div[data-testid="stForm"] {
 
     border-radius: 16px !important;
 
-    border: 1px solid rgba(255,255,255,0.12) !important;
+    border: 1px solid rgba(120,120,120,0.25) !important;
 
     padding: 14px 16px !important;
 
     font-size: 1rem !important;
 
-    background: rgba(255,255,255,0.04) !important;
+    background: transparent !important;
 
-    color: white !important;
+    color: inherit !important;
+
+    caret-color: currentColor !important;
 
     outline: none !important;
 
     box-shadow: none !important;
 
     transition: all .25s ease;
+}
+
+/* Placeholder adaptif */
+
+.stTextInput input::placeholder {
+    color: rgba(140,140,140,0.85) !important;
+}
+
+/* Autofill browser */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-text-fill-color: inherit !important;
+    transition: background-color 9999s ease-in-out 0s;
 }
 
 /* ============================= */
