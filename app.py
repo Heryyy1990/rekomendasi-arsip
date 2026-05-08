@@ -78,7 +78,11 @@ Sistem Informasi Klasifikasi Arsip Pintar
     with col2:
         with st.form("form_login"):
             user_input = st.text_input("Username")
-            pwd_input = st.text_input("Password", type="password", label_visibility="visible")
+            pwd_input = st.text_input(
+                "Password", 
+                type="password", 
+                label_visibility="visible"
+            )
             submit = st.form_submit_button("Masuk", use_container_width=True)
             
             if submit:
