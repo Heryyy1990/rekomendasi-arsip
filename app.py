@@ -283,7 +283,7 @@ st.markdown("""
     --input-focus-bg: #FFFFFF;
     --icon-bg: rgba(0, 157, 255, 0.08);
     --icon-border: rgba(0, 157, 255, 0.5);
-    --btn-text-color: #0F172A; /* Hitam tegas untuk tombol di Light Mode */
+    --btn-text-color: #0F172A; 
 }
 
 /* ============================= */
@@ -302,7 +302,7 @@ st.markdown("""
         --input-focus-bg: rgba(0, 157, 255, 0.05);
         --icon-bg: rgba(0, 157, 255, 0.1);
         --icon-border: #009DFF;
-        --btn-text-color: #FFFFFF; /* Putih bersih untuk tombol di Dark Mode */
+        --btn-text-color: #FFFFFF; 
     }
 }
 
@@ -371,7 +371,7 @@ st.markdown("""
 }
 
 /* ============================= */
-/* LOGIN CARD - FIX MOBILE */
+/* LOGIN CARD */
 /* ============================= */
 div[data-testid="stForm"] {
     background: var(--card-bg) !important;
@@ -380,8 +380,6 @@ div[data-testid="stForm"] {
     padding: 40px 30px !important;
     backdrop-filter: blur(16px) !important;
     box-shadow: var(--card-shadow) !important;
-    
-    /* Memastikan max width dan otomatis menyusut di HP */
     width: 100% !important;
     max-width: 460px !important; 
     margin: 0 auto !important;
@@ -428,7 +426,7 @@ div[data-testid="stForm"] {
 }
 
 /* ============================= */
-/* INPUT BOX - FIX CENTER PRESISI */
+/* INPUT BOX - FIX VERTICAL CENTER */
 /* ============================= */
 div[data-baseweb="input"], 
 div[data-baseweb="base-input"] {
@@ -443,6 +441,7 @@ div[data-baseweb="input"] {
     border-radius: 12px !important;
     transition: all 0.3s ease !important;
     overflow: hidden !important; 
+    min-height: 56px !important; /* Kunci tinggi pembungkus */
 }
 
 div[data-baseweb="input"]:focus-within {
@@ -451,13 +450,11 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 15px rgba(0, 157, 255, 0.2) !important;
 }
 
+/* MENGHAPUS LINE-HEIGHT & PAKAI PADDING AGAR CENTER PRESISI */
 input[type="text"], input[type="password"] {
     height: 56px !important; 
-    line-height: 56px !important; /* Memaksa teks persis di tengah secara vertikal */
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    padding-left: 50px !important; /* Ruang lega untuk ikon */
-    padding-right: 40px !important; /* Ruang lega untuk ikon mata di kanan */
+    padding: 15px 45px 15px 55px !important; /* Padding seimbang atas-bawah */
+    line-height: 1.2 !important; /* Jarak aman font */
     color: var(--text-title) !important;
     font-weight: 600 !important;
     font-size: 1rem !important;
@@ -466,7 +463,7 @@ input[type="text"], input[type="password"] {
     outline: none !important;
     box-shadow: none !important;
     background-repeat: no-repeat !important;
-    background-position: 16px 50% !important; /* 50% memastikan ikon center vertikal sempurna */
+    background-position: 18px center !important; /* Ikon center vertikal sempurna */
     background-size: 20px !important;
 }
 
@@ -483,11 +480,11 @@ input[type="text"]::placeholder, input[type="password"]::placeholder {
     font-weight: 500 !important;
 }
 
-/* Fix Ikon Mata Streamlit */
+/* Fix Ikon Mata Streamlit agar sejajar */
 div[data-testid="stTextInputPassword"] button {
     color: #009DFF !important;
     background: transparent !important;
-    padding-right: 12px !important;
+    padding-right: 15px !important;
 }
 
 div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
@@ -495,7 +492,7 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
 }
 
 /* ============================= */
-/* BUTTON MASUK (TEGAS & ADAPTIF) */
+/* BUTTON MASUK (ELEGAN & TEGAS) */
 /* ============================= */
 .stFormSubmitButton > button {
     display: flex !important;
@@ -503,31 +500,30 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
     justify-content: center !important;
     gap: 12px !important;
     width: 100% !important;
-    height: 56px !important;
+    height: 58px !important; /* Ditinggikan sedikit biar lega */
     border: none !important;
     border-radius: 12px !important;
     margin-top: 20px !important;
     
-    /* Font sangat tegas */
-    font-family: 'Arial Black', 'Impact', 'Poppins', sans-serif !important;
-    font-size: 1.25rem !important; 
-    font-weight: 900 !important; 
-    letter-spacing: 2px !important; 
+    /* Kembali ke POPPINS, tebal, dan elegan */
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 1.35rem !important; /* Lebih besar dari sebelumnya */
+    font-weight: 800 !important; 
+    letter-spacing: 1.5px !important; 
     text-transform: uppercase !important; 
     
-    /* Warna mengikuti tema */
-    color: var(--btn-text-color) !important;
+    color: var(--btn-text-color) !important; /* Hitam tegas di Terang, Putih di Gelap */
     background: linear-gradient(90deg, #009DFF 0%, #0A6CFF 100%) !important;
     transition: all .25s ease !important;
     box-shadow: 0 4px 15px rgba(0, 157, 255, 0.2) !important;
 }
 
-/* Ikon Gembok di dalam tombol menggunakan trik Masking agar warnanya dinamis mengikuti teks */
+/* Ikon Gembok otomatis ikut warna teks (Hitam/Putih) */
 .stFormSubmitButton > button::before {
     content: "";
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     background-color: var(--btn-text-color);
     -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') no-repeat center / contain;
     mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') no-repeat center / contain;
@@ -547,11 +543,11 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
 }
 
 /* ============================= */
-/* FIX RESPONSIVE UNTUK MOBILE */
+/* FIX RESPONSIVE HP (ANTI 3 BARIS) */
 /* ============================= */
 @media screen and (max-width: 768px) {
     div[data-testid="stForm"] {
-        padding: 30px 20px !important;
+        padding: 30px 15px !important; /* Lebarkan area di layar HP */
     }
     
     .sikap-wrapper {
@@ -562,15 +558,16 @@ div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
         font-size: 1.6rem !important;
     }
     
+    /* Dikecilkan ukurannya agar muat persis 2 baris, tidak jadi 3 */
     .login-subtitle {
-        font-size: 0.85rem !important;
+        font-size: 0.8rem !important;
         margin-bottom: 20px !important;
+        line-height: 1.4 !important;
     }
     
     input[type="text"], input[type="password"] {
         font-size: 0.95rem !important;
-        padding-left: 45px !important;
-        background-position: 12px 50% !important;
+        padding-left: 50px !important;
     }
 }
 </style>
