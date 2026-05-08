@@ -1046,11 +1046,13 @@ def halaman_utama():
             
             st.markdown("""
             <style>
-            /* 1. Desain Banner Biru Utama */
+            /* 1. Desain Banner Biru (DIRAMPINGKAN AGAR TIDAK KEBESARAN) */
             .hero-banner {
-                background: linear-gradient(135deg, #F4F9FF 0%, #E6F0F9 100%); border-radius: 16px; padding: 40px; 
+                background: linear-gradient(135deg, #F4F9FF 0%, #E6F0F9 100%); 
+                border-radius: 16px; 
+                padding: 35px 40px 65px 40px; /* Bawahnya dikurangi agar tidak memakan layar */
                 display: flex; align-items: center; justify-content: space-between; border: 1px solid #E2E8F0;
-                margin-bottom: -65px; padding-bottom: 100px; /* Trik agar input bisa naik tanpa menyentuh garis */
+                margin-bottom: -35px; /* Margin dinaikkan agar proporsional */
             }
             .hero-content { width: 60%; }
             .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
@@ -1066,10 +1068,12 @@ def halaman_utama():
             /* 3. Ilustrasi Kanan */
             .hero-illustration { width: 35%; display: flex; justify-content: center; align-items: center;}
 
-            /* 4. POSISI INPUT STREAMLIT (Hanya target Kolom ke-1) */
+            /* 4. POSISI INPUT STREAMLIT (KOLOM 1) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -105px !important; margin-left: 65px !important; width: calc(60% - 95px) !important;
+                margin-top: -75px !important; /* Ditarik pas masuk ke kotak putih */
+                margin-left: 65px !important; width: calc(60% - 95px) !important;
                 position: relative; z-index: 10; gap: 10px !important; align-items: center !important;
+                margin-bottom: 40px !important; /* MENDORONG AKSES CEPAT DENGAN KUAT */
             }
             
             /* Desain Teks Input */
@@ -1081,26 +1085,33 @@ def halaman_utama():
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
-            /* Desain Tombol "Cari" Biru Elegan */
+            /* 5. ANIMASI KACA PEMBESAR */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
                 height: 48px !important; border-radius: 8px !important; width: 100% !important; 
                 background-color: #009DFF !important; color: white !important; border: none !important;
+                font-size: 1.2rem !important; transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
             }
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button p {
-                font-size: 1rem !important; font-weight: 600 !important; color: white !important; font-family: 'Poppins', sans-serif !important;
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {
+                background-color: #0077CC !important;
+                transform: translateY(-3px) !important; /* Efek terangkat manis! */
+                box-shadow: 0 5px 15px rgba(0, 157, 255, 0.3) !important;
             }
 
-            /* 5. PENYEMBUH TULISAN GAJAH (Akses Cepat) */
+            /* 6. AKSES CEPAT (KOLOM 2) - ANTI GEPENG, ANTI NYUNDUL */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) {
+                margin-top: 10px !important; /* Memastikan tidak menabrak pencarian */
+            }
             div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
-                height: 70px !important; background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important;
+                height: 65px !important; background-color: #FFFFFF !important; border: 1px solid #E2E8F0 !important;
                 border-radius: 12px !important; color: #0F172A !important; transition: all 0.2s ease !important;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important; display: flex; justify-content: center; align-items: center;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(2) button p {
-                font-size: 0.95rem !important; font-weight: 600 !important; font-family: 'Poppins', sans-serif !important;
+                font-size: 0.95rem !important; font-weight: 600 !important; font-family: 'Poppins', sans-serif !important; margin: 0 !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(2) button:hover {
                 border-color: #009DFF !important; color: #009DFF !important; box-shadow: 0 5px 15px rgba(0, 157, 255, 0.08) !important;
+                transform: translateY(-2px) !important; /* Animasi angkat ringan di menu akses cepat */
             }
             </style>
             """, unsafe_allow_html=True)
@@ -1127,44 +1138,40 @@ def halaman_utama():
 </div>
 """, unsafe_allow_html=True)
 
-            # FORM PENCARIAN (Bebas Windows XP, Bebas Error Merah)
+            # FORM PENCARIAN (Kembali menggunakan 🔍)
             col_in, col_btn = st.columns([5, 1.2])
             with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
             with col_btn:
-                btn_cari = st.button("Cari", key="btn_cari_beranda")
+                btn_cari = st.button("🔍", key="btn_cari_beranda")
 
             if user_input or btn_cari:
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
 
-            # PEMBATAS ANTI-NYUNDUL (Mendorong Akses Cepat ke bawah dengan paksa)
-            st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
-
             # =========================================================
-            # AKSES CEPAT (Aman, Rapih, Teks Normal)
+            # AKSES CEPAT (Aman, Rapih, Anti Tabrak)
             # =========================================================
-            st.markdown('<div class="section-title">Akses Cepat</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title" style="margin-top: 15px;">Akses Cepat</div>', unsafe_allow_html=True)
+            
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("🤖 Pencarian AI Cerdas", use_container_width=True):
+                if st.button("🤖 Pencarian Cerdas", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
             with col2:
-                if st.button("📁 Jelajah Katalog Manual", use_container_width=True):
+                if st.button("📁 Jelajah Katalog", use_container_width=True):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
             with col3:
                 if st.button("🕒 Riwayat Pencarian", use_container_width=True):
                     ganti_halaman('Riwayat')
                     st.rerun()
-                    
-            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
             # TABEL RIWAYAT
             st.markdown("""
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 25px;">
                 <div class="section-title" style="margin-top:0;">Riwayat Pencarian Terakhir</div>
                 <div style="color:#009DFF; font-size:0.85rem; font-weight:600; cursor:pointer;">Lihat semua &gt;</div>
             </div>
@@ -1318,9 +1325,9 @@ def halaman_utama():
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memuat data: {e}")
 
+
 # --- 5. PENGATUR HALAMAN (ROUTER) ---
 if not st.session_state.get('logged_in', False):
-    # Memanggil fungsi halaman_login() yang harusnya sudah Anda letakkan di bagian atas file
     halaman_login()
 else:
     halaman_utama()
