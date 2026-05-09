@@ -1159,7 +1159,7 @@ def halaman_utama():
                 st.rerun()
                 
             # =========================================================
-            # 5. AKSES CEPAT (TARIKAN EKSTRIM MARGIN NEGATIF)
+            # 5. AKSES CEPAT (FINAL DENGAN ANIMASI SIBLING)
             # =========================================================
             
             st.markdown("""
@@ -1170,7 +1170,7 @@ def halaman_utama():
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
             
             /* ========================================================= */
-            /* JURUS TARIKAN KE ATAS (Sama seperti kolom pencarian)      */
+            /* JURUS TARIKAN KE ATAS                                     */
             /* ========================================================= */
             
             /* 1. Tarik wadah tombol yang jatuh di bawah kartu NAIK KE ATAS (-170px) */
@@ -1190,10 +1190,14 @@ def halaman_utama():
                 border: none !important;
             }
             
-            /* 3. Hidupkan animasinya lewat Kolom agar tidak terblokir tombol gaib */
-            div[data-testid="column"]:has(.card-container):hover .saas-card {
+            /* ========================================================= */
+            /* 3. PERBAIKAN ANIMASI (Trik Sibling)                       */
+            /* ========================================================= */
+            /* "Jika tombol gaib sedang di-hover, angkat kartu yang ada sebelumnya!" */
+            .element-container:has(+ .element-container:hover) .saas-card,
+            div[data-testid="column"]:hover .saas-card {
                 border-color: #009DFF !important; 
-                box-shadow: 0 10px 25px rgba(0, 157, 255, 0.1) !important; 
+                box-shadow: 0 10px 25px rgba(0, 157, 255, 0.2) !important; 
                 transform: translateY(-5px) !important;
             }
 
@@ -1204,7 +1208,8 @@ def halaman_utama():
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s ease;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+                transition: all 0.3s ease !important; /* Paksa transisi agar mulus */
                 z-index: 1;
             }
 
@@ -1241,7 +1246,6 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol diperlebar dan diubah teksnya jadi spasi kosong
                 if st.button(" ", key="btn_akses_ai", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
