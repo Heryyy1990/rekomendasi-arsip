@@ -1159,15 +1159,56 @@ def halaman_utama():
                 st.rerun()
                 
             # =========================================================
-            # AKSES CEPAT (DESAIN IDENTIK GAMBAR + TOMBOL GAIB)
+            # 5. AKSES CEPAT (KARTU MENU)
             # =========================================================
-            st.markdown('<div class="section-title" style="margin-top: 10px;">⚡ Akses Cepat</div>', unsafe_allow_html=True)
             
-            # Kita gunakan 3 kolom saja karena 'Perihal Surat' dihapus
+            # CSS Khusus untuk Kartu Akses Cepat
+            st.markdown("""
+            <style>
+            .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
+            .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
+            
+            /* Trik Tombol Gaib */
+            .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+            .card-container div[data-testid="stButton"] button { width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; }
+
+            /* Desain Visual Kartu */
+            .saas-card {
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
+                padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s ease;
+                z-index: 1; /* Di bawah tombol gaib */
+            }
+            .card-container:hover .saas-card {
+                border-color: #009DFF; box-shadow: 0 10px 25px rgba(0, 157, 255, 0.1); transform: translateY(-5px);
+            }
+
+            /* Ikon Lingkaran Kiri */
+            .saas-icon-box {
+                width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+            }
+            .bg-blue { background-color: #F0F9FF; color: #009DFF; }
+            .bg-orange { background-color: #FFF7ED; color: #F97316; }
+            .bg-purple { background-color: #FAF5FF; color: #A855F7; }
+
+            /* Area Teks Kanan */
+            .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
+            .saas-card-title { font-weight: 700; color: #0F172A; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
+            .saas-card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
+            
+            /* Panah Kanan Bawah */
+            .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
+            </style>
+            """, unsafe_allow_html=True)
+
+            st.markdown('<div class="section-title">⚡ Akses Cepat</div>', unsafe_allow_html=True)
+            
+            # Membuat 3 Kolom untuk Menu
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # 1. Gambar UI Kartu nya (HTML Murni)
                 st.markdown("""
                 <div class="card-container">
                     <div class="saas-card">
@@ -1180,7 +1221,7 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # 2. Tombol Gaib yang ditimpa CSS (opacity 0) di atas kartu
+                # Tombol Gaib Streamlit
                 if st.button("btn_ai", key="btn_akses_ai"):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
@@ -1192,12 +1233,13 @@ def halaman_utama():
                         <div class="saas-icon-box bg-orange"><span class="material-symbols-rounded">folder</span></div>
                         <div class="saas-card-content">
                             <div class="saas-card-title">Jelajah Kode Klasifikasi</div>
-                            <div class="saas-card-desc">Telusuri dan jelajahi struktur kode klasifikasi.</div>
+                            <div class="saas-card-desc">Telusuri dan jelajahi struktur hierarki arsip.</div>
                             <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
                         </div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+                # Tombol Gaib Streamlit
                 if st.button("btn_jelajah", key="btn_akses_jelajah"):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
@@ -1215,10 +1257,10 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+                # Tombol Gaib Streamlit
                 if st.button("btn_riwayat", key="btn_akses_riwayat"):
                     ganti_halaman('Riwayat')
                     st.rerun()
-
 
             # TABEL RIWAYAT
             st.markdown("""
