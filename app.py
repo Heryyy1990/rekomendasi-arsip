@@ -1045,10 +1045,6 @@ def halaman_utama():
             .sidebar-divider { height: 1px; background-color: rgba(255,255,255,0.2); margin: 20px 0; }
             .sidebar-title-menu { color: #93C5FD !important; font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px; padding-left: 5px; text-transform: uppercase; font-family: 'Poppins', sans-serif;}
             
-            /* Fix logo & title text color in sidebar */
-            .sidebar-logo { background: #FFFFFF !important; color: #009DFF !important; }
-            .sidebar-title { color: #FFFFFF !important; }
-            
             /* Tombol Keluar Default */
             [data-testid="stSidebar"] button[kind="secondary"] {
                 color: #0F172A !important; background: #FFFFFF !important; border: none !important; font-weight: 700 !important; font-family: 'Poppins', sans-serif !important; border-radius: 8px !important; margin-top: 10px !important;
@@ -1056,15 +1052,47 @@ def halaman_utama():
             [data-testid="stSidebar"] button[kind="secondary"]:hover {
                 background: #F1F5F9 !important; transform: translateY(-2px);
             }
+
+            /* ========================================================= */
+            /* 5. TARIKAN HEADER & LOGO "S" FUTURISTIK                   */
+            /* ========================================================= */
+            [data-testid="stSidebarHeader"] { display: none !important; } /* Hilangkan jarak kosong bawaan st */
+            
+            .sidebar-title-container { 
+                margin-top: -45px !important; /* Tarik lurus sejajar dengan banner biru utama */
+                display: flex; align-items: center; gap: 14px; 
+                padding: 0 0 15px 0;
+            }
+            
+            .sidebar-logo { 
+                background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%) !important; 
+                width: 44px !important; height: 44px !important; 
+                border-radius: 12px !important; 
+                display: flex; align-items: center; justify-content: center; 
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15), inset 0 -3px 0 rgba(226, 232, 240, 1) !important;
+            }
+            .sidebar-title { color: #FFFFFF !important; font-weight: 900 !important; letter-spacing: 1px !important; font-size: 1.8rem !important; margin: 0 !important;}
             </style>
             """, unsafe_allow_html=True)
 
+            # HTML Logo Modern (Menggunakan SVG Vector)
             st.markdown("""
             <div class="sidebar-title-container">
-                <div class="sidebar-logo">S</div>
+                <div class="sidebar-logo">
+                    <svg viewBox="0 0 24 24" width="26" height="26" style="filter: drop-shadow(0px 2px 3px rgba(0,157,255,0.4));">
+                        <defs>
+                            <linearGradient id="gradS" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00C6FF;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#0072FF;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <!-- Gambar S Modern -->
+                        <path d="M16,7 A4,4 0 0,0 12,3 A4,4 0 0,0 8,7 C8,9.5 16,10.5 16,13 A4,4 0 0,1 12,17 A4,4 0 0,1 8,13" fill="none" stroke="url(#gradS)" stroke-width="4" stroke-linecap="round"/>
+                    </svg>
+                </div>
                 <h1 class="sidebar-title">SIKAP</h1>
             </div>
-            <p style="color:#E2E8F0 !important; font-size:0.75rem; margin-top:-15px; margin-bottom:30px;">Sistem Informasi Klasifikasi<br>Arsip Pintar</p>
+            <p style="color:#93C5FD !important; font-size:0.75rem; margin-top:-15px; margin-bottom:30px; font-weight:500;">Sistem Informasi Klasifikasi<br>Arsip Pintar</p>
             """, unsafe_allow_html=True)
             
             # --- KELOMPOK MENU UTAMA ---
