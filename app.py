@@ -1047,7 +1047,7 @@ def halaman_utama():
 
         # ================= MAIN CONTENT (ROUTING) =================
             
-            if st.session_state.page == 'Beranda':
+        if st.session_state.page == 'Beranda':
             
             # CSS KHUSUS BERANDA (Bersih dari bug spacer)
             st.markdown("""
