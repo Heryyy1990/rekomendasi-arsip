@@ -827,8 +827,8 @@ def get_badge_html(kode, uraian, level):
     indent = level * 30 
     
     return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
-           f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);'>" \
-           f"<strong>📁 {kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8;'>({label})</i>" \
+           f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 14px; border-radius: 16px; font-weight: normal; font-size: 0.95em; display: inline-flex; align-items: center; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
+           f"<span class='material-symbols-rounded' style='font-size: 1.15em; margin-right: 6px;'>folder</span><strong>{kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8; margin-left: 6px;'>({label})</i>" \
            f"</span></div>"
 
 # --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
@@ -849,7 +849,7 @@ def get_hierarchy(kode_target, df):
 def smart_classify(user_input, df, top_n=3):
     # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
     inti_dari_llm = ekstrak_inti_surat(user_input)
-    st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
+    # st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
     
     # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
     clean_input = preprocess_text(inti_dari_llm)
@@ -1411,7 +1411,7 @@ def halaman_utama():
                     
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
-            st.markdown('<div class="section-title">🤖 Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">smart_toy</span> Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
             st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
             # =========================================================
@@ -1526,7 +1526,7 @@ def halaman_utama():
                             res = df.iloc[idx]
                             rekomendasi_kode.append(res['kode']) # Tangkap kodenya
                             
-                            with st.expander(f"🏅 KODE {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
+                            with st.expander(f"❯ KODE {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
                                 st.markdown(f"<div style='font-size:1.15rem; font-weight:700; color:#009DFF; margin-bottom:15px; line-height:1.4;'>{res['uraian'].title()}</div>", unsafe_allow_html=True)
                                 st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#64748B; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;'>JALUR HIERARKI KODE:</div>", unsafe_allow_html=True)
                                 hierarki = get_hierarchy(res['kode'], df)
@@ -1534,7 +1534,8 @@ def halaman_utama():
                                     st.markdown(h, unsafe_allow_html=True)
                                     
                         # --- FITUR FEEDBACK (PILIH KODE TERBAIK) ---
-                        st.markdown('<div class="feedback-wrapper"><div class="feedback-title">🎯 Bantu SIKAP Belajar! Mana kode yang paling tepat menurut Anda?</div>', unsafe_allow_html=True)
+                        # --- FITUR FEEDBACK (PILIH KODE TERBAIK) ---
+                        st.markdown('<div class="feedback-wrapper"><div class="feedback-title" style="display:flex; justify-content:center; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.4rem;">fact_check</span> Bantu SIKAP Belajar! Mana kode yang paling tepat menurut Anda?</div>', unsafe_allow_html=True)
                         
                         # Buat kolom tombol secara dinamis sesuai jumlah rekomendasi AI
                         cols = st.columns(len(rekomendasi_kode))
