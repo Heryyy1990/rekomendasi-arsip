@@ -1261,7 +1261,7 @@ def halaman_utama():
             /* Gaya baru untuk teks "Selamat Datang" */
             .hero-welcome-text { 
                 font-size: 2rem; 
-                font-weight: 600; 
+                font-weight: 900; 
                 color: #009DFF; 
                 text-transform: uppercase; 
                 letter-spacing: 3px;
@@ -1271,7 +1271,7 @@ def halaman_utama():
             /* Gaya baru untuk Nama Panjang Pengguna */
             .hero-user-name { 
                 font-size: clamp(0.8rem, 5vw, 2rem); 
-                font-weight: 900; 
+                font-weight: 600; 
                 color: #0F172A; 
                 line-height: 1.1;
                 margin-bottom: 15px;
