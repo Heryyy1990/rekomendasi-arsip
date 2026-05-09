@@ -1049,60 +1049,73 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Banner Centered, Tanpa Deskripsi AI, Posisi Input Naik)
+            # CSS KHUSUS BERANDA (Banner Diperkecil, Kotak Biru Elegan Shiny, Posisi Input Disesuaikan)
             st.markdown("""
             <style>
-            /* 1. Desain Banner Biru Utama */
+            /* 1. Desain Banner Biru Utama (Ukuran diperkecil) */
             .hero-banner {
                 background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); 
                 border-radius: 16px; 
-                padding: 40px 20px; 
+                padding: 25px 20px; /* Padding atas-bawah dipangkas */
                 display: flex; 
                 flex-direction: column;
                 align-items: center; 
                 text-align: center; 
                 border: 1px solid #BAE6FD;
-                margin-bottom: -30px; 
-                padding-bottom: 60px; 
+                margin-bottom: -15px; 
+                padding-bottom: 45px; /* Ketinggian dikurangi drastis */
             }
             .hero-content { width: 100%; max-width: 700px; margin: 0 auto; }
-            .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
+            .hero-title { font-size: 2rem; font-weight: 800; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .hero-title span { color: #009DFF; }
-            .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
+            .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 20px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
             
-            /* 2. Desain Kotak Putih Tempat Search */
+            /* 2. Desain Kotak Tempat Search (Warna Biru Elegan & Shiny) */
             .search-card-bg { 
-                background: #FFFFFF; border-radius: 12px; padding: 25px; 
-                box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #E2E8F0;
+                /* Gradasi biru gelap dengan efek shiny dari shadow */
+                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); 
+                border-radius: 12px; 
+                padding: 20px 25px; 
+                box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.2); 
+                border: 1px solid #1D4ED8;
+                width: 100%;
+                max-width: 600px; /* Lebar difokuskan ke tengah */
+                margin: 0 auto;
             }
-            .search-title { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
+            .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important; text-shadow: 0 2px 4px rgba(0,0,0,0.3);}
+            .search-spacer { height: 50px; } /* Ruang penahan untuk input */
             
-            /* Penahan ruang agar kolom input tidak keluar dari background putih */
-            .search-spacer { height: 65px; } 
-            
-            /* 3. POSISI INPUT STREAMLIT (Ditarik jauh lebih naik ke dalam kotak putih) */
+            /* 3. POSISI INPUT STREAMLIT (Ditengah dan digeser sedikit ke kanan) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -105px !important; /* Nilai tarikan digandakan agar naik pas di bawah judul */
+                margin-top: -85px !important; /* Disesuaikan dengan tinggi kotak biru baru */
                 margin-left: auto !important; 
                 margin-right: auto !important;
+                transform: translateX(5px); /* Menggeser posisi 'agak lebih ke kanan' secara presisi */
                 width: 100% !important; 
-                max-width: 650px !important; 
-                position: relative; z-index: 10; margin-bottom: 50px !important; align-items: center !important;
+                max-width: 580px !important; 
+                position: relative; z-index: 10; margin-bottom: 40px !important; align-items: center !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
-                height: 48px !important; border-radius: 8px !important; border: 1px solid #E2E8F0 !important; background: #F8FAFC !important;
+                height: 48px !important; border-radius: 8px !important; border: 1px solid #E2E8F0 !important; background: #FFFFFF !important;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
-                border-color: #009DFF !important; background: #FFFFFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.15) !important;
+                border-color: #009DFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.2) !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
                 height: 48px !important; border-radius: 8px !important; width: 100% !important; 
-                background-color: #009DFF !important; color: white !important; border: none !important; font-size: 1.2rem !important;
+                /* Warna tombol diubah ke cyan/biru terang agar kontras dan membaur mewah di atas background gelap */
+                background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
+                color: white !important; border: none !important; font-size: 1.2rem !important;
+                box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important;
+            }
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {
+                transform: translateY(-1px); box-shadow: 0 6px 12px rgba(0, 114, 255, 0.4) !important;
             }
 
             /* ============================================================== */
-            /* 4. KARTU AKSES CEPAT (Tetap sama) */
+            /* 4. KARTU AKSES CEPAT */
             /* ============================================================== */
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
             .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
@@ -1131,7 +1144,7 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA (Deskripsi AI dihapus)
+            # HTML BANNER UTAMA
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
@@ -1145,7 +1158,7 @@ def halaman_utama():
 </div>
 """, unsafe_allow_html=True)
 
-            # FORM PENCARIAN (Input dan Tombol Biru)
+            # FORM PENCARIAN
             col_in, col_btn = st.columns([5, 1])
             with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
