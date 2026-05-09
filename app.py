@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 import os
+import plotly.express as px
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -1717,8 +1718,160 @@ def halaman_utama():
 
         # --- HALAMAN 5: ADMIN PANEL ---
         elif st.session_state.page == 'Admin':
-            st.markdown('<div class="section-title">⚙️ Panel Administrator</div>', unsafe_allow_html=True)
-            st.warning("Area terbatas. Mengelola database pengguna dan log sistem.")
+            # Judul Halaman Utama Admin
+            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">admin_panel_settings</span> Panel Administrator SIKAP</div>', unsafe_allow_html=True)
+            
+            # --- FUNGSI BANTUAN KHUSUS ADMIN ---
+            def admin_load_csv(file_name, sep=','):
+                if os.path.exists(file_name):
+                    try:
+                        return pd.read_csv(file_name, sep=sep, dtype=str)
+                    except:
+                        return pd.read_csv(file_name, sep=';', dtype=str)
+                return pd.DataFrame()
+
+            def admin_save_csv(df, file_name, sep=','):
+                df.to_csv(file_name, index=False, sep=sep)
+                st.toast(f"Data berhasil disimpan ke {file_name}!", icon="✅")
+
+            # --- KOMPONEN UI KUSTOM (MATERIAL DESIGN) ---
+            def modern_alert(icon, text, color="#009DFF", bg="#E0F2FE"):
+                st.markdown(f"""
+                <div style="background: {bg}; border-left: 4px solid {color}; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display:flex; align-items:flex-start; gap:12px;">
+                    <span class="material-symbols-rounded" style="color:{color}; font-size:1.4rem; margin-top:2px;">{icon}</span>
+                    <div style="color: #334155; font-size: 0.9rem; font-weight: 500; line-height: 1.5;">{text}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            def metric_card(icon, title, value, color="#009DFF", bg="#E0F2FE"):
+                return f"""
+                <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 20px; border-radius: 16px; display:flex; align-items:center; gap:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                    <div style="background: {bg}; width: 54px; height: 54px; border-radius: 14px; display:flex; align-items:center; justify-content:center;">
+                        <span class="material-symbols-rounded" style="color:{color}; font-size:2rem;">{icon}</span>
+                    </div>
+                    <div>
+                        <div style="color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:4px;">{title}</div>
+                        <div style="color: #0F172A; font-size: 1.6rem; font-weight: 800; line-height: 1;">{value}</div>
+                    </div>
+                </div>
+                """
+
+            # --- TAB MENU ADMIN ---
+            tab_dash, tab_user, tab_data, tab_log = st.tabs([
+                "Dashboard Statistik", 
+                "Manajemen Pengguna", 
+                "Manajemen Klasifikasi", 
+                "Log Monitoring"
+            ])
+
+            # ==========================================
+            # TAB 1: DASHBOARD STATISTIK (DENGAN PLOTLY)
+            # ==========================================
+            with tab_dash:
+                st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px; margin-top:10px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.6rem;">analytics</span> Ringkasan Sistem</div>', unsafe_allow_html=True)
+                
+                df_users = admin_load_csv('pengguna.csv')
+                df_dataset = admin_load_csv('klasifikasi_arsip_emas.csv')
+                df_logs = admin_load_csv('riwayat_pencarian.csv')
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(metric_card("group", "Pengguna", f"{len(df_users)}", "#3B82F6", "#DBEAFE"), unsafe_allow_html=True)
+                with col2:
+                    st.markdown(metric_card("folder_managed", "Klasifikasi", f"{len(df_dataset)}", "#10B981", "#D1FAE5"), unsafe_allow_html=True)
+                with col3:
+                    st.markdown(metric_card("manage_search", "Total Pencarian", f"{len(df_logs)}", "#F59E0B", "#FEF3C7"), unsafe_allow_html=True)
+                
+                st.write("<br>", unsafe_allow_html=True)
+                
+                if not df_logs.empty and 'nama' in df_logs.columns:
+                    st.markdown('<div style="font-weight:700; color:#0F172A; margin-bottom:15px; font-family:Poppins;">Aktivitas Pencarian per Pengguna</div>', unsafe_allow_html=True)
+                    
+                    # Persiapan Data untuk Plotly
+                    log_counts = df_logs['nama'].value_counts().reset_index()
+                    log_counts.columns = ['Nama Pengguna', 'Total Pencarian']
+                    
+                    # Grafik Plotly Modern
+                    fig = px.bar(
+                        log_counts, 
+                        x='Nama Pengguna', 
+                        y='Total Pencarian',
+                        text='Total Pencarian',
+                        color_discrete_sequence=['#009DFF']
+                    )
+                    
+                    fig.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=0, r=0, t=20, b=0),
+                        xaxis=dict(showgrid=False, title=None, tickfont=dict(family='Poppins')),
+                        yaxis=dict(showgrid=True, gridcolor='#F1F5F9', title=None, tickfont=dict(family='Poppins'))
+                    )
+                    
+                    fig.update_traces(
+                        textposition='outside', 
+                        textfont=dict(family='Poppins', size=13, color='#0F172A'),
+                        marker_layer="above"
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    modern_alert("info", "Belum ada data aktivitas untuk divisualisasikan.", "#64748B", "#F1F5F9")
+
+            # ==========================================
+            # TAB 2: CRUD PENGGUNA
+            # ==========================================
+            with tab_user:
+                st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px; margin-top:10px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.6rem;">manage_accounts</span> Pengaturan Akun</div>', unsafe_allow_html=True)
+                modern_alert("lightbulb", "Gunakan tabel di bawah untuk mengelola akun. Klik <b>+</b> untuk menambah baris, atau pilih baris dan tekan <b>Delete</b> untuk menghapus.", "#009DFF", "#E0F2FE")
+                
+                df_users = admin_load_csv('pengguna.csv')
+                if df_users.empty:
+                    df_users = pd.DataFrame(columns=["username", "password", "role", "nama_lengkap"])
+                    
+                edited_users = st.data_editor(df_users, num_rows="dynamic", use_container_width=True, key="edit_user")
+                
+                if st.button("💾 Perbarui Data Pengguna", type="primary", use_container_width=True):
+                    admin_save_csv(edited_users, 'pengguna.csv')
+
+            # ==========================================
+            # TAB 3: CRUD DATASET KLASIFIKASI
+            # ==========================================
+            with tab_data:
+                st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px; margin-top:10px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.6rem;">dataset</span> Master Data Klasifikasi</div>', unsafe_allow_html=True)
+                modern_alert("warning", "<b>Peringatan:</b> Perubahan pada tabel ini akan langsung memengaruhi logika klasifikasi AI dan menu Jelajah Kode.", "#F59E0B", "#FEF3C7")
+                
+                df_dataset = admin_load_csv('klasifikasi_arsip_emas.csv')
+                if df_dataset.empty:
+                    df_dataset = pd.DataFrame(columns=["kode", "uraian"])
+                    
+                edited_dataset = st.data_editor(df_dataset, num_rows="dynamic", use_container_width=True, key="edit_data", height=500)
+                
+                if st.button("💾 Perbarui Master Klasifikasi", type="primary", use_container_width=True):
+                    admin_save_csv(edited_dataset, 'klasifikasi_arsip_emas.csv')
+                    st.cache_data.clear() # Membersihkan cache agar data baru langsung dimuat di halaman utama
+                    st.success("Data berhasil diperbarui dan cache sistem telah dibersihkan.")
+
+            # ==========================================
+            # TAB 4: LOG MONITORING
+            # ==========================================
+            with tab_log:
+                st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px; margin-top:10px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.6rem;">monitoring</span> Jejak Audit Pencarian</div>', unsafe_allow_html=True)
+                
+                df_logs = admin_load_csv('riwayat_pencarian.csv')
+                if not df_logs.empty:
+                    st.dataframe(df_logs.iloc[::-1], use_container_width=True)
+                    
+                    csv_log = df_logs.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Ekspor Seluruh Log (CSV)",
+                        data=csv_log,
+                        file_name=f'audit_sikap_{datetime.now().strftime("%Y%m%d")}.csv',
+                        mime='text/csv',
+                        use_container_width=True
+                    )
+                else:
+                    modern_alert("hourglass_empty", "Belum ada riwayat pencarian terekam.", "#64748B", "#F1F5F9")
 
         # --- HALAMAN 6: PETUNJUK PENGGUNAAN ---
         elif st.session_state.page == 'Petunjuk':
