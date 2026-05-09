@@ -1502,9 +1502,6 @@ def halaman_utama():
             st.markdown('<div class="section-title">⚙️ Panel Administrator</div>', unsafe_allow_html=True)
             st.warning("Area terbatas. Mengelola database pengguna dan log sistem.")
 
-    except Exception as e:
-        st.error(f"Terjadi kesalahan saat memuat data: {e}")
-
         # --- HALAMAN 6: PETUNJUK PENGGUNAAN ---
         elif st.session_state.page == 'Petunjuk':
             st.markdown('<div class="section-title">📖 Petunjuk Penggunaan SIKAP</div>', unsafe_allow_html=True)
@@ -1521,6 +1518,9 @@ def halaman_utama():
                 <strong>Status:</strong> Rilis Perdana
             </div>
             """, unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat memuat data: {e}")
 
 # --- 5. PENGATUR HALAMAN (ROUTER) ---
 if not st.session_state.get('logged_in', False):
