@@ -1428,15 +1428,15 @@ def halaman_utama():
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
-            /* 2. Percantik Header Expander & PERBAIKI TULISAN OVERLAP ("arr") */
+            /* 2. Percantik Header Expander (VERSI AMAN TANPA OVERLAY) */
             div[data-testid="stExpander"] summary {
                 padding: 15px 20px !important;
                 background: #F8FAFC !important;
                 border-bottom: 1px solid #E2E8F0 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: space-between !important;
+                /* Hapus display: flex agar teks tersembunyi Streamlit tidak bangkit lagi */
             }
+            
+            /* Percantik teks judulnya */
             div[data-testid="stExpander"] summary p {
                 font-weight: 700 !important;
                 color: #0F172A !important;
@@ -1444,11 +1444,13 @@ def halaman_utama():
                 font-family: 'Poppins', sans-serif !important;
                 margin: 0 !important;
             }
-            
-            /* JURUS PAMUNGKAS ANTI-HANTU (Membunuh teks 'arrow') */
-            /* 1. Kembalikan font panah ke font asli sistem (Jangan pakai Material Symbols) */
-            div[data-testid="stExpander"] summary svg {
-                font-family: sans-serif !important;
+
+            /* PAKSA HILANG SEMUA TEKS SILUMAN (Screen Reader) DI SEKITAR PANAH */
+            div[data-testid="stExpander"] summary span[data-testid="stExpanderToggleIcon"] text,
+            div[data-testid="stExpander"] summary span.visually-hidden {
+                display: none !important;
+                font-size: 0 !important;
+                color: transparent !important;
             }
             
             /* 2. Sembunyikan elemen teks apapun yang menyusup di dalam SVG panah */
