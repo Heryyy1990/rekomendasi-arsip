@@ -1049,7 +1049,7 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-           # CSS KHUSUS BERANDA (Tarikan Ke Atas 2x Lipat, Posisi Lebih Ke Kanan)
+           # CSS KHUSUS BERANDA (Kunci Kanan, Paksa Naik dengan Properti TOP)
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
@@ -1062,8 +1062,8 @@ def halaman_utama():
                 align-items: center; 
                 text-align: center; 
                 border: 1px solid #BAE6FD;
-                margin-bottom: -15px; 
-                padding-bottom: 80px; /* Diperbesar ekstra agar sangat aman dari bocor bawah */
+                margin-bottom: 0px; 
+                padding-bottom: 70px; 
             }
             .hero-content { width: 100%; max-width: 700px; margin: 0 auto; }
             .hero-title { font-size: 2rem; font-weight: 800; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
@@ -1083,32 +1083,41 @@ def halaman_utama():
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important; text-shadow: 0 2px 4px rgba(0,0,0,0.3);}
             
-            /* PENYELAMAT: Ruang kosong raksasa agar background biru benar-benar turun ke bawah */
-            .search-spacer { height: 110px; } 
+            /* Ruang kosong penahan di dalam background biru */
+            .search-spacer { height: 95px; } 
             
-            /* 3. POSISI INPUT STREAMLIT (Tarik 2x lebih naik, dorong lebih ke kanan) */
+            /* 3. POSISI INPUT STREAMLIT (PAKSA NAIK DENGAN TOP) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -160px !important; /* DITARIK NAIK 2X LIPAT */
-                margin-left: auto !important; 
-                margin-right: auto !important;
-                transform: translateX(25px); /* DIGESER LEBIH KE KANAN AGAR CENTERED */
+                position: relative !important; 
+                z-index: 999 !important; 
+                /* Geser ke kanan (DIKUNCI KARENA SUDAH PAS) */
+                transform: translateX(25px) !important; 
+                
+                /* INI SENJATA PAMUNGKASNYA: Paksa ditarik ke atas secara visual */
+                top: -130px !important; 
+                
                 width: 100% !important; 
                 max-width: 580px !important; 
-                position: relative; z-index: 10; margin-bottom: 40px !important; align-items: center !important;
+                margin-left: auto !important; 
+                margin-right: auto !important;
+                /* Tarik area Akses Cepat di bawahnya agar ikut naik menutup celah kosong */
+                margin-bottom: -110px !important; 
+                align-items: center !important;
             }
+            
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
                 height: 48px !important; border-radius: 8px !important; border: 1px solid #E2E8F0 !important; background: #FFFFFF !important;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
-                border-color: #009DFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.2) !important;
+                border-color: #009DFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.3) !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
             /* 4. DESAIN TOMBOL DAN ICON MODERN + ANIMASI FLOATING */
             @keyframes floatHover {
                 0% { transform: translate(-50%, -50%); }
-                50% { transform: translate(-50%, -65%); }
+                50% { transform: translate(-50%, -70%); }
                 100% { transform: translate(-50%, -50%); }
             }
 
@@ -1134,7 +1143,7 @@ def halaman_utama():
             }
             
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {
-                box-shadow: 0 6px 12px rgba(0, 114, 255, 0.4) !important;
+                box-shadow: 0 6px 15px rgba(0, 114, 255, 0.5) !important;
             }
 
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover::before {
