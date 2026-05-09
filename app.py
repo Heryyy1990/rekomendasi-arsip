@@ -1049,16 +1049,23 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Banner & Kartu Akses Cepat Baru)
+            # CSS KHUSUS BERANDA (Banner Centered & Tanpa Logo)
             st.markdown("""
             <style>
-            /* 1. Desain Banner Biru Utama */
+            /* 1. Desain Banner Biru Utama (Dikecilkan & Rata Tengah) */
             .hero-banner {
-                background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border-radius: 16px; padding: 40px; 
-                display: flex; align-items: center; justify-content: space-between; border: 1px solid #BAE6FD;
-                margin-bottom: -60px; padding-bottom: 80px; 
+                background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); 
+                border-radius: 16px; 
+                padding: 40px 20px; /* Padding kiri-kanan agar pas */
+                display: flex; 
+                flex-direction: column;
+                align-items: center; /* Memaksa konten ke tengah */
+                text-align: center; /* Teks rata tengah */
+                border: 1px solid #BAE6FD;
+                margin-bottom: -30px; /* Margin diperkecil agar tidak ada sisa ruang kosong */
+                padding-bottom: 60px; /* Padding bawah dikurangi */
             }
-            .hero-content { width: 60%; }
+            .hero-content { width: 100%; max-width: 700px; margin: 0 auto; }
             .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
             .hero-title span { color: #009DFF; }
             .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
@@ -1070,15 +1077,15 @@ def halaman_utama():
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .search-desc { font-size: 0.85rem; color: #64748B; margin-bottom: 0; font-family: 'Poppins', sans-serif !important;}
-            .search-spacer { height: 60px; } 
+            .search-spacer { height: 40px; } /* Diperkecil agar input pencarian naik */
             
-            /* 3. Ilustrasi Kanan */
-            .hero-illustration { width: 35%; display: flex; justify-content: center; }
-            .hero-illustration img { width: 100%; max-width: 220px; filter: drop-shadow(0 10px 15px rgba(0, 157, 255, 0.2)); opacity: 0.9; }
-
-            /* 4. POSISI INPUT STREAMLIT (Ditarik naik ke kotak putih) */
+            /* 3. POSISI INPUT STREAMLIT (Ditarik naik & diletakkan di tengah) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -85px !important; margin-left: 65px !important; width: calc(60% - 90px) !important;
+                margin-top: -85px !important; /* Ditarik ke atas menimpa kotak putih */
+                margin-left: auto !important; /* Margin auto untuk centering */
+                margin-right: auto !important;
+                width: 100% !important; 
+                max-width: 650px !important; /* Menyesuaikan lebar dengan kotak putih */
                 position: relative; z-index: 10; margin-bottom: 50px !important; align-items: center !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
@@ -1094,27 +1101,21 @@ def halaman_utama():
             }
 
             /* ============================================================== */
-            /* 5. KARTU AKSES CEPAT (DESAIN BARU SESUAI GAMBAR) */
+            /* 4. KARTU AKSES CEPAT (Sama seperti sebelumnya) */
             /* ============================================================== */
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
-            
-            /* Trik Tombol Gaib */
             .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
             .card-container div[data-testid="stButton"] button { width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; }
-
-            /* Desain Visual Kartu */
             .saas-card {
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s ease;
-                z-index: 1; /* Di bawah tombol gaib */
+                z-index: 1; 
             }
             .card-container:hover .saas-card {
                 border-color: #009DFF; box-shadow: 0 8px 20px rgba(0, 157, 255, 0.08); transform: translateY(-3px);
             }
-
-            /* Ikon Lingkaran Kiri */
             .saas-icon-box {
                 width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
@@ -1122,18 +1123,14 @@ def halaman_utama():
             .bg-blue { background-color: #F0F9FF; color: #009DFF; }
             .bg-orange { background-color: #FFF7ED; color: #F97316; }
             .bg-purple { background-color: #FAF5FF; color: #A855F7; }
-
-            /* Area Teks Kanan */
             .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
             .saas-card-title { font-weight: 700; color: #0F172A; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .saas-card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
-            
-            /* Panah Kanan Bawah */
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA
+            # HTML BANNER UTAMA (Tanpa Gambar & Centered)
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
@@ -1144,9 +1141,6 @@ def halaman_utama():
             <div class="search-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
             <div class="search-spacer"></div>
         </div>
-    </div>
-    <div class="hero-illustration">
-        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135692.png" alt="Arsip Illustration">
     </div>
 </div>
 """, unsafe_allow_html=True)
