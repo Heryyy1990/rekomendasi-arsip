@@ -1284,27 +1284,6 @@ def halaman_utama():
                     ganti_halaman('Riwayat')
                     st.rerun()
                     
-         # TABEL RIWAYAT
-            st.markdown("""
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="section-title">Riwayat Pencarian Terakhir</div>
-                <div style="color:#009DFF; font-size:0.85rem; font-weight:600; cursor:pointer;">Lihat semua &gt;</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if not st.session_state.search_history:
-                st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
-                
-            if st.session_state.search_history:
-                history_data = {"WAKTU": [], "KATA KUNCI": [], "METODE": []}
-                for riwayat in reversed(st.session_state.search_history[-3:]):
-                    history_data["WAKTU"].append("Baru Saja")
-                    history_data["KATA KUNCI"].append(riwayat)
-                    history_data["METODE"].append("AI (Cerdas)")
-                st.dataframe(history_data, use_container_width=True, hide_index=True)
-            else:
-                st.info("Belum ada riwayat pencarian.")
-
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
             st.markdown('<div class="section-title">🤖 Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
