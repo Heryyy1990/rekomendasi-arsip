@@ -1250,15 +1250,42 @@ def halaman_utama():
             /* 1. Desain Banner Biru Utama */
             .hero-banner {
                 background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); 
-                border-radius: 16px; 
-                padding: 30px 20px 40px 20px; 
+                border-radius: 24px; 
+                padding: 50px 20px; 
                 display: flex; flex-direction: column; align-items: center; text-align: center; 
-                border: 1px solid #BAE6FD; margin-bottom: 0px; 
+                border: 1px solid #BAE6FD;
+                margin-bottom: 0px; 
             }
-            .hero-content { width: 100%; max-width: 700px; margin: 0 auto; }
-            .hero-title { font-size: 2rem; font-weight: 800; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
-            .hero-title span { color: #009DFF; }
-            .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; font-family: 'Poppins', sans-serif !important;}
+            .hero-content { width: 100%; max-width: 850px; margin: 0 auto; }
+            
+            /* Gaya baru untuk teks "Selamat Datang" */
+            .hero-welcome-text { 
+                font-size: 1.1rem; 
+                font-weight: 600; 
+                color: #009DFF; 
+                text-transform: uppercase; 
+                letter-spacing: 3px;
+                margin-bottom: 8px;
+            }
+            
+            /* Gaya baru untuk Nama Panjang Pengguna */
+            .hero-user-name { 
+                font-size: clamp(1.8rem, 5vw, 3rem); 
+                font-weight: 900; 
+                color: #0F172A; 
+                line-height: 1.1;
+                margin-bottom: 15px;
+                word-break: break-word; 
+            }
+            
+            .hero-subtitle { 
+                font-size: 1rem; 
+                color: #475569; 
+                margin-bottom: 30px;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
             
             /* 2. Desain Kotak Tempat Search */
             .search-card-bg { 
@@ -1332,7 +1359,8 @@ def halaman_utama():
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
-        <div class="hero-title">Selamat datang, <span>{nama_user.split()[0]}</span></div>
+        <div class="hero-welcome-text">Selamat Datang</div>
+        <div class="hero-user-name">{nama_user}</div>
         <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
         <div class="search-card-bg">
             <div class="search-title">Cari kode klasifikasi arsip</div>
