@@ -1159,32 +1159,55 @@ def halaman_utama():
                 st.rerun()
                 
             # =========================================================
-            # 5. AKSES CEPAT (KARTU MENU)
+            # 5. AKSES CEPAT (TARIKAN EKSTRIM MARGIN NEGATIF)
             # =========================================================
             
-            # CSS Khusus untuk Kartu Akses Cepat
             st.markdown("""
             <style>
             .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
+            
+            /* Wadah utama kartu */
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
             
-            /* Trik Tombol Gaib */
-            .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
-            .card-container div[data-testid="stButton"] button { width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; }
+            /* ========================================================= */
+            /* JURUS TARIKAN KE ATAS (Sama seperti kolom pencarian)      */
+            /* ========================================================= */
+            
+            /* 1. Tarik wadah tombol yang jatuh di bawah kartu NAIK KE ATAS (-170px) */
+            .element-container:has(.card-container) + .element-container {
+                margin-top: -170px !important; 
+                position: relative !important;
+                z-index: 10 !important;
+            }
+            
+            /* 2. Jadikan tombolnya transparan dan tingginya sama dengan kartu */
+            .element-container:has(.card-container) + .element-container button {
+                height: 160px !important;
+                width: 100% !important;
+                opacity: 0 !important;
+                cursor: pointer !important;
+                background: transparent !important;
+                border: none !important;
+            }
+            
+            /* 3. Hidupkan animasinya lewat Kolom agar tidak terblokir tombol gaib */
+            div[data-testid="column"]:has(.card-container):hover .saas-card {
+                border-color: #009DFF !important; 
+                box-shadow: 0 10px 25px rgba(0, 157, 255, 0.1) !important; 
+                transform: translateY(-5px) !important;
+            }
 
-            /* Desain Visual Kartu */
+            /* ========================================================= */
+            /* DESAIN VISUAL KARTU                                       */
+            /* ========================================================= */
             .saas-card {
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s ease;
-                z-index: 1; /* Di bawah tombol gaib */
-            }
-            .card-container:hover .saas-card {
-                border-color: #009DFF; box-shadow: 0 10px 25px rgba(0, 157, 255, 0.1); transform: translateY(-5px);
+                z-index: 1;
             }
 
-            /* Ikon Lingkaran Kiri */
             .saas-icon-box {
                 width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
@@ -1193,19 +1216,16 @@ def halaman_utama():
             .bg-orange { background-color: #FFF7ED; color: #F97316; }
             .bg-purple { background-color: #FAF5FF; color: #A855F7; }
 
-            /* Area Teks Kanan */
             .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
             .saas-card-title { font-weight: 700; color: #0F172A; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .saas-card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
-            
-            /* Panah Kanan Bawah */
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
             </style>
             """, unsafe_allow_html=True)
 
             st.markdown('<div class="section-title">⚡ Akses Cepat</div>', unsafe_allow_html=True)
             
-            # Membuat 3 Kolom untuk Menu
+            # Membuat 3 Kolom
             col1, col2, col3 = st.columns(3)
             
             with col1:
@@ -1221,8 +1241,8 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol Gaib Streamlit
-                if st.button("btn_ai", key="btn_akses_ai"):
+                # Tombol diperlebar dan diubah teksnya jadi spasi kosong
+                if st.button(" ", key="btn_akses_ai", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
 
@@ -1239,8 +1259,7 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol Gaib Streamlit
-                if st.button("btn_jelajah", key="btn_akses_jelajah"):
+                if st.button("  ", key="btn_akses_jelajah", use_container_width=True):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
 
@@ -1257,8 +1276,7 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol Gaib Streamlit
-                if st.button("btn_riwayat", key="btn_akses_riwayat"):
+                if st.button("   ", key="btn_akses_riwayat", use_container_width=True):
                     ganti_halaman('Riwayat')
                     st.rerun()
                     
