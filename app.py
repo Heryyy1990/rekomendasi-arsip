@@ -1008,38 +1008,124 @@ def halaman_utama():
         # ================= SIDEBAR NAVIGASI =================
         with st.sidebar:
             st.markdown("""
+            <style>
+            /* 1. Ubah Background Sidebar Jadi Biru Gelap Gradasi */
+            [data-testid="stSidebar"] {
+                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%) !important;
+                border-right: none !important;
+            }
+            [data-testid="stSidebar"] * {
+                color: white !important;
+            }
+            
+            /* 2. Desain Wadah Menu HTML */
+            .sidebar-menu {
+                height: 48px; display: flex; align-items: center; gap: 15px; 
+                padding: 0 15px; border-radius: 8px; margin-bottom: 5px;
+                color: #FFFFFF !important; font-weight: 500; font-family: 'Poppins', sans-serif;
+                transition: all 0.3s ease !important;
+            }
+            .sidebar-menu span.material-symbols-rounded { font-size: 1.4rem; }
+
+            /* 3. Trik Tarik Tombol Gaib ke Atas */
+            [data-testid="stSidebar"] .element-container:has(.sidebar-menu) + .element-container {
+                margin-top: -53px !important; position: relative !important; z-index: 10 !important;
+            }
+            [data-testid="stSidebar"] .element-container:has(.sidebar-menu) + .element-container button {
+                height: 48px !important; width: 100% !important; opacity: 0 !important;
+                cursor: pointer !important; background: transparent !important; border: none !important;
+            }
+
+            /* 4. Efek Hover (Bergeser ke Kanan) */
+            [data-testid="stSidebar"] .element-container:has(+ .element-container:hover) .sidebar-menu {
+                background-color: rgba(255, 255, 255, 0.15) !important; transform: translateX(8px);
+            }
+            
+            /* Divider dan Judul Menu */
+            .sidebar-divider { height: 1px; background-color: rgba(255,255,255,0.2); margin: 20px 0; }
+            .sidebar-title-menu { color: #93C5FD !important; font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px; padding-left: 5px; text-transform: uppercase; font-family: 'Poppins', sans-serif;}
+            
+            /* Fix logo & title text color in sidebar */
+            .sidebar-logo { background: #FFFFFF !important; color: #009DFF !important; }
+            .sidebar-title { color: #FFFFFF !important; }
+            
+            /* Tombol Keluar Default */
+            [data-testid="stSidebar"] button[kind="secondary"] {
+                color: #0F172A !important; background: #FFFFFF !important; border: none !important; font-weight: 700 !important; font-family: 'Poppins', sans-serif !important; border-radius: 8px !important; margin-top: 10px !important;
+            }
+            [data-testid="stSidebar"] button[kind="secondary"]:hover {
+                background: #F1F5F9 !important; transform: translateY(-2px);
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            st.markdown("""
             <div class="sidebar-title-container">
                 <div class="sidebar-logo">S</div>
                 <h1 class="sidebar-title">SIKAP</h1>
             </div>
-            <p style="color:#64748B; font-size:0.75rem; margin-top:-15px; margin-bottom:30px;">Sistem Informasi Klasifikasi<br>Arsip Pintar</p>
+            <p style="color:#E2E8F0 !important; font-size:0.75rem; margin-top:-15px; margin-bottom:30px;">Sistem Informasi Klasifikasi<br>Arsip Pintar</p>
             """, unsafe_allow_html=True)
             
-            st.caption("MENU UTAMA")
-            st.button("🏠 Beranda", use_container_width=True, type="primary" if st.session_state.page == 'Beranda' else "secondary", on_click=ganti_halaman, args=('Beranda',))
-            st.button("🤖 Pencarian AI (Cerdas)", use_container_width=True, type="primary" if st.session_state.page == 'Pencarian AI' else "secondary", on_click=ganti_halaman, args=('Pencarian AI',))
-            st.button("📁 Jelajah Kode Klasifikasi", use_container_width=True, type="primary" if st.session_state.page == 'Jelajah Kode' else "secondary", on_click=ganti_halaman, args=('Jelajah Kode',))
-            st.button("🕒 Riwayat Pencarian", use_container_width=True, type="primary" if st.session_state.page == 'Riwayat' else "secondary", on_click=ganti_halaman, args=('Riwayat',))
-            
+            # --- KELOMPOK MENU UTAMA ---
+            st.markdown('<div class="sidebar-title-menu">🧭 Menu Utama</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">home</span><span>Beranda</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_beranda", use_container_width=True):
+                ganti_halaman('Beranda')
+                st.rerun()
+
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">smart_toy</span><span>Pencarian AI</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_ai", use_container_width=True):
+                ganti_halaman('Pencarian AI')
+                st.rerun()
+
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">folder</span><span>Jelajah Kode</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_jelajah", use_container_width=True):
+                ganti_halaman('Jelajah Kode')
+                st.rerun()
+
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">schedule</span><span>Riwayat</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_riwayat", use_container_width=True):
+                ganti_halaman('Riwayat')
+                st.rerun()
+
             if role_user == 'admin':
-                st.button("⚙️ Panel Admin", use_container_width=True, type="primary" if st.session_state.page == 'Admin' else "secondary", on_click=ganti_halaman, args=('Admin',))
+                st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">admin_panel_settings</span><span>Panel Admin</span></div>', unsafe_allow_html=True)
+                if st.button(" ", key="sb_admin", use_container_width=True):
+                    ganti_halaman('Admin')
+                    st.rerun()
+
+            # --- KELOMPOK LAINNYA ---
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="sidebar-title-menu">📌 Lainnya</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">menu_book</span><span>Petunjuk Penggunaan</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_petunjuk", use_container_width=True):
+                ganti_halaman('Petunjuk')
+                st.rerun()
+
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">info</span><span>Tentang SIKAP</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_tentang", use_container_width=True):
+                ganti_halaman('Tentang')
+                st.rerun()
+                
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
-            st.divider()
-            
+            # Profil User & Tombol Keluar
             st.markdown(f"""
-            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#F8FAFC; border-radius:10px; border:1px solid #E2E8F0;">
-                <div style="width:35px; height:35px; background:#E0F2FE; color:#009DFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
+            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:rgba(255,255,255,0.1); border-radius:10px; border:1px solid rgba(255,255,255,0.2);">
+                <div style="width:35px; height:35px; background:#FFFFFF; color:#009DFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
                     {nama_user[0:2].upper()}
                 </div>
                 <div>
-                    <div style="font-size:0.85rem; font-weight:700; color:#0F172A;">{nama_user}</div>
-                    <div style="font-size:0.7rem; color:#64748B;">{role_user.title()}</div>
+                    <div style="font-size:0.85rem; font-weight:700; color:#FFFFFF;">{nama_user}</div>
+                    <div style="font-size:0.7rem; color:#E2E8F0;">{role_user.title()}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            st.write("")
-            if st.button("Keluar", use_container_width=True):
+            if st.button("🚪 Keluar", use_container_width=True):
                 st.session_state['logged_in'] = False
                 st.session_state['role'] = None
                 st.session_state['nama'] = ""
@@ -1418,6 +1504,23 @@ def halaman_utama():
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memuat data: {e}")
+
+        # --- HALAMAN 6: PETUNJUK PENGGUNAAN ---
+        elif st.session_state.page == 'Petunjuk':
+            st.markdown('<div class="section-title">📖 Petunjuk Penggunaan SIKAP</div>', unsafe_allow_html=True)
+            st.info("Halaman panduan dan tata cara penggunaan aplikasi akan segera hadir di sini. Harap bersabar ya!")
+
+        # --- HALAMAN 7: TENTANG SIKAP ---
+        elif st.session_state.page == 'Tentang':
+            st.markdown('<div class="section-title">ℹ️ Tentang SIKAP</div>', unsafe_allow_html=True)
+            st.write("SIKAP (Sistem Informasi Klasifikasi Arsip Pintar) adalah inovasi digital cerdas yang dirancang untuk membantu aparatur pemerintah daerah dalam mengklasifikasikan dan menemukan kode arsip secara presisi, cepat, dan modern.")
+            
+            st.markdown("""
+            <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: #FFFFFF; border-left: 4px solid #009DFF; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                <strong>Versi Aplikasi:</strong> Ver. 1.0<br>
+                <strong>Status:</strong> Rilis Perdana
+            </div>
+            """, unsafe_allow_html=True)
 
 # --- 5. PENGATUR HALAMAN (ROUTER) ---
 if not st.session_state.get('logged_in', False):
