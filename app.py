@@ -826,10 +826,19 @@ def get_badge_html(kode, uraian, level):
     
     indent = level * 30 
     
+    # PERUBAHAN: Flexbox Split agar teks panjang rapi & rata (justify)
     return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
-           f"<span style='background-color: {warna_bg}; color: #ffffff; padding: 6px 14px; border-radius: 16px; font-weight: normal; font-size: 0.95em; display: inline-flex; align-items: center; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
-           f"<span class='material-symbols-rounded' style='font-size: 1.15em; margin-right: 6px;'>folder</span><strong>{kode}</strong> &nbsp;|&nbsp; {uraian} <i style='opacity: 0.8; margin-left: 6px;'>({label})</i>" \
-           f"</span></div>"
+           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
+           f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'>" \
+           f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span>" \
+           f"<strong style='margin-top: 2px;'>{kode}</strong>" \
+           f"<span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span>" \
+           f"</div>" \
+           f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>" \
+           f"{uraian} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i>" \
+           f"</div>" \
+           f"</div>" \
+           f"</div>"
 
 # --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
 def get_hierarchy(kode_target, df):
@@ -1658,23 +1667,28 @@ def halaman_utama():
                             titik_count = str(k).count('.')
                             actual_level = titik_count if titik_count < 4 else 3
                             
-                            # PERUBAHAN WARNA MUDA & DESAIN MODERN
                             warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B"]
                             warna_bg = warna_level[actual_level]
                             levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
                             label = levels_name[actual_level]
                             
-                            badge_style = f"background-color: {warna_bg}; color: #ffffff; padding: 6px 14px; border-radius: 16px; font-weight: normal; font-size: 0.95em; display: inline-flex; align-items: center; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);"
-                            icon_html = "<span class='material-symbols-rounded' style='font-size: 1.15em; margin-right: 6px;'>folder</span>"
+                            # KUNCI PERBAIKAN: Flexbox Split agar teks panjang rapi & rata (justify)
+                            badge_style = f"background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);"
+                            
+                            # Ruangan Kiri (Ikon & Kode) - Dikunci mati
+                            icon_code_html = f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'><span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span><strong style='margin-top: 2px;'>{k}</strong><span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span></div>"
+                            
+                            # Ruangan Kanan (Uraian Teks) - Bebas melebar & Justify
+                            text_html = f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>{u} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i></div>"
                             
                             html = ""
                             if children:
-                                html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="{badge_style}"><strong>{icon_html}{k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8; margin-left: 6px;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
+                                html += f'<details class="anak-cucu" style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><div style="{badge_style}">{icon_code_html}{text_html}</div></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #CBD5E1; padding-top: 8px;">'
                                 for c in children:
                                     html += render_tree(c)
                                 html += '</div></details>'
                             else:
-                                html += f'<div style="margin-bottom: 8px;"><span style="{badge_style}"><strong>{icon_html}{k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8; margin-left: 6px;">({label})</i></span></div>'
+                                html += f'<div style="margin-bottom: 8px;"><div style="{badge_style}">{icon_code_html}{text_html}</div></div>'
                             return html
                             
                         if p in nodes:
