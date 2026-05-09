@@ -1811,7 +1811,7 @@ def halaman_utama():
                     fig.update_traces(
                         textposition='outside', 
                         textfont=dict(family='Poppins', size=13, color='#0F172A'),
-                        marker_layer="above"
+                        cliponaxis=False # <--- PENGGANTI YANG BENAR
                     )
                     
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
