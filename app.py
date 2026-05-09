@@ -1112,17 +1112,23 @@ def halaman_utama():
                 height: 54px !important; border-radius: 8px !important; width: 100% !important; 
                 background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
                 border: none !important; font-size: 0 !important; color: transparent !important; position: relative;
+                box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
+                box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important;
+                transition: all 0.3s ease; /* Transisi agar mulus */
+            }
+
+            /* 👇 INI KUNCINYA: Animasi dipasang DI SINI (di kotaknya), bukan di ::before */
+            div[data-testid="stHorizontalBlock"]:has(input) button:hover {
+                animation: floatButton 1.5s ease-in-out infinite !important;
+                box-shadow: 0 8px 18px rgba(0, 114, 255, 0.5) !important; /* Bayangan membesar saat tombol naik */
             }
             
+            /* SVG Icon ditanam MATI di tengah tombol (tidak ada animasi di sini) */
             div[data-testid="stHorizontalBlock"]:has(input) button::before {
                 content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 width: 20px; height: 20px;
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
-                background-size: cover; transition: all 0.3s ease;
-            }
-            
-            div[data-testid="stHorizontalBlock"]:has(input) button:hover::before {
-                animation: floatHover 1.5s ease-in-out infinite;
+                background-size: cover; 
             }
             </style>
             """, unsafe_allow_html=True)
