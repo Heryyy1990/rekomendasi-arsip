@@ -821,7 +821,7 @@ def get_badge_html(kode, uraian, level):
     levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
     label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
     
-    warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100", "#4A148C"]
+    warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
     indent = level * 30 
@@ -1422,7 +1422,7 @@ def halaman_utama():
             /* 1. Bersihkan Kotak Expander (Hasil Pencarian) */
             div[data-testid="stExpander"] {
                 border: 1px solid #E2E8F0 !important;
-                border-radius: 12px !important;
+                border-radius: 16px !important;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.02) !important;
                 background: #FFFFFF !important;
                 margin-bottom: 15px !important;
@@ -1434,6 +1434,7 @@ def halaman_utama():
                 padding: 15px 20px !important;
                 background: #F8FAFC !important;
                 border-bottom: 1px solid #E2E8F0 !important;
+                border-radius: 16px 16px 0 0 !important;
                 
                 /* JURUS PAMUNGKAS: Jadikan semua ukuran teks di sini 0 agar teks hantu lenyap */
                 font-size: 0px !important; 
