@@ -1159,35 +1159,41 @@ def halaman_utama():
                 st.rerun()
                 
             # =========================================================
-            # 5. AKSES CEPAT (JALUR KASAR - PASTI BERHASIL)
+            # 5. AKSES CEPAT (GRID OVERLAP - DIJAMIN BERTUMPUK)
             # =========================================================
             
             st.markdown("""
             <style>
             .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
             
-            /* 1. Target baris kedua (Akses Cepat), jadikan kolomnya sebagai kurungan */
-            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="column"] {
-                position: relative !important; 
+            /* ========================================================= */
+            /* TRIK GRID OVERLAP (KARTU DAN TOMBOL DISATUKAN PAKSA)      */
+            /* ========================================================= */
+            
+            /* 1. Jadikan Kolom sebagai Grid 1x1 */
+            div[data-testid="column"]:has(.saas-card) {
+                display: grid !important;
+                align-items: stretch !important;
             }
             
-            /* 2. Tarik paksa tombol ke atas menutupi kolom */
-            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="stButton"] {
-                position: absolute !important;
-                top: 0 !important; left: 0 !important;
-                width: 100% !important; height: 160px !important;
-                z-index: 10 !important; margin: 0 !important;
+            /* 2. Paksa SEMUA isi kolom (Kartu HTML & Tombol Streamlit) masuk ke sel Grid yang sama persis */
+            div[data-testid="column"]:has(.saas-card) > div {
+                grid-row: 1 !important;
+                grid-column: 1 !important;
             }
             
-            /* 3. Bikin tombolnya 100% tembus pandang */
-            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="stButton"] button {
-                width: 100% !important; height: 160px !important;
-                opacity: 0 !important; cursor: pointer !important; 
-                background: transparent !important; border: none !important;
+            /* 3. Tombolnya dijadikan Tembus Pandang dan dipaksa membesar selebar kartu */
+            div[data-testid="column"]:has(.saas-card) button {
+                opacity: 0 !important; 
+                width: 100% !important; 
+                height: 160px !important; 
+                z-index: 99 !important; 
+                cursor: pointer !important;
+                margin: 0 !important;
             }
 
-            /* 4. Efek Animasi Hover (Kartu Terangkat) diikat ke Kolom */
-            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="column"]:hover .saas-card {
+            /* 4. Nyalakan lagi animasinya saat kursor menyentuh kotak grid ini */
+            div[data-testid="column"]:has(.saas-card):hover .saas-card {
                 border-color: #009DFF !important; 
                 box-shadow: 0 10px 25px rgba(0, 157, 255, 0.1) !important; 
                 transform: translateY(-5px) !important;
@@ -1197,11 +1203,12 @@ def halaman_utama():
             /* DESAIN VISUAL KARTU AKSES CEPAT                           */
             /* ========================================================= */
             .saas-card {
-                height: 160px; margin-bottom: 10px;
+                height: 160px; /* Tinggi disamakan dengan tombol */
                 background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s ease;
                 position: relative; z-index: 1;
+                margin-bottom: 0px !important; /* Margin dimatikan agar pas di grid */
             }
 
             .saas-icon-box {
@@ -1235,7 +1242,6 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Teks sengaja saya hapus jadi Spasi Kosong agar tidak ada lagi tulisan jelek yang bocor!
                 if st.button(" ", key="btn_akses_ai", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
@@ -1251,7 +1257,6 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Teks sengaja saya hapus
                 if st.button("  ", key="btn_akses_jelajah", use_container_width=True):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
@@ -1267,7 +1272,6 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Teks sengaja saya hapus
                 if st.button("   ", key="btn_akses_riwayat", use_container_width=True):
                     ganti_halaman('Riwayat')
                     st.rerun()
