@@ -1465,39 +1465,32 @@ def halaman_utama():
                 gap: 10px;
             }
             
-            /* 4. Desain Kotak Feedback (Pilih Rekomendasi) */
-            .feedback-wrapper {
-                background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%);
-                border: 2px solid rgba(0, 157, 255, 0.6); /* <--- OUTLINE BIRU KEKINIAN */
-                border-radius: 16px;
-                padding: 25px 20px;
-                text-align: center;
-                margin-top: 35px;
-                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1); /* <--- GLOW BIRU HALUS */
-            }
+            /* 4. Desain Area Feedback (Tanpa Wrapper HTML agar tidak bentrok) */
             .feedback-title {
-                font-size: 0.95rem;
+                font-size: 1rem;
                 font-weight: 700;
                 color: #0F172A;
+                margin-top: 40px;
                 margin-bottom: 20px;
+                text-align: center;
                 font-family: 'Poppins', sans-serif !important;
             }
-            /* Desain Tombol Pilihan Feedback */
-            .feedback-wrapper button {
-                border-radius: 16px !important; /* <--- SUDUT MEMBULAT SAMA (16px) */
+            
+            /* JURUS JITU: Target langsung tombol Streamlit yang ada di dalam kolom */
+            div[data-testid="stHorizontalBlock"] button {
+                border-radius: 16px !important; /* <--- SUDUT MEMBULAT 16px */
                 font-weight: 700 !important;
-                border: 2px solid rgba(0, 157, 255, 0.6) !important; /* <--- OUTLINE BIRU PADA TOMBOL */
-                background: #FFFFFF !important;
+                border: 2px solid rgba(0, 157, 255, 0.6) !important; /* <--- OUTLINE BIRU */
+                background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%) !important;
                 color: #009DFF !important;
-                height: 50px !important;
-                box-shadow: 0 4px 10px rgba(0, 157, 255, 0.1) !important; /* Glow tipis di tombol */
+                height: 55px !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; /* Glow tipis */
                 transition: all 0.3s ease !important;
             }
-            .feedback-wrapper button:hover {
+            div[data-testid="stHorizontalBlock"] button:hover {
                 border-color: #009DFF !important;
-                background: #F0F9FF !important;
                 transform: translateY(-3px);
-                box-shadow: 0 6px 15px rgba(0, 157, 255, 0.25) !important; /* Glow menguat saat di-hover */
+                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important; /* Glow menguat saat kursor mendekat */
             }
             </style>
             """, unsafe_allow_html=True)
@@ -1537,8 +1530,7 @@ def halaman_utama():
                                     st.markdown(h, unsafe_allow_html=True)
                                     
                         # --- FITUR FEEDBACK (PILIH KODE TERBAIK) ---
-                        # --- FITUR FEEDBACK (PILIH KODE TERBAIK) ---
-                        st.markdown('<div class="feedback-wrapper"><div class="feedback-title" style="display:flex; justify-content:center; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.4rem;">fact_check</span> Bantu SIKAP Belajar! Mana kode yang paling tepat menurut Anda?</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="feedback-title" style="display:flex; justify-content:center; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.5rem;">fact_check</span> Bantu SIKAP Belajar! Mana kode yang paling tepat menurut Anda?</div>', unsafe_allow_html=True)
                         
                         # Buat kolom tombol secara dinamis sesuai jumlah rekomendasi AI
                         cols = st.columns(len(rekomendasi_kode))
