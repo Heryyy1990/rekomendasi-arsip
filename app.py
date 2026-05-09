@@ -1468,12 +1468,12 @@ def halaman_utama():
             /* 4. Desain Kotak Feedback (Pilih Rekomendasi) */
             .feedback-wrapper {
                 background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%);
-                border: 1px dashed #BAE6FD;
+                border: 2px solid rgba(0, 157, 255, 0.6); /* <--- OUTLINE BIRU KEKINIAN */
                 border-radius: 16px;
                 padding: 25px 20px;
                 text-align: center;
                 margin-top: 35px;
-                box-shadow: 0 4px 10px rgba(0, 157, 255, 0.05);
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1); /* <--- GLOW BIRU HALUS */
             }
             .feedback-title {
                 font-size: 0.95rem;
@@ -1484,18 +1484,20 @@ def halaman_utama():
             }
             /* Desain Tombol Pilihan Feedback */
             .feedback-wrapper button {
-                border-radius: 10px !important;
+                border-radius: 16px !important; /* <--- SUDUT MEMBULAT SAMA (16px) */
                 font-weight: 700 !important;
-                border: 2px solid #E2E8F0 !important;
+                border: 2px solid rgba(0, 157, 255, 0.6) !important; /* <--- OUTLINE BIRU PADA TOMBOL */
                 background: #FFFFFF !important;
                 color: #009DFF !important;
                 height: 50px !important;
+                box-shadow: 0 4px 10px rgba(0, 157, 255, 0.1) !important; /* Glow tipis di tombol */
                 transition: all 0.3s ease !important;
             }
             .feedback-wrapper button:hover {
                 border-color: #009DFF !important;
                 background: #F0F9FF !important;
-                transform: translateY(-2px);
+                transform: translateY(-3px);
+                box-shadow: 0 6px 15px rgba(0, 157, 255, 0.25) !important; /* Glow menguat saat di-hover */
             }
             </style>
             """, unsafe_allow_html=True)
