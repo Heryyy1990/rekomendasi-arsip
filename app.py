@@ -1046,10 +1046,6 @@ def halaman_utama():
                 st.rerun()
 
         # ================= MAIN CONTENT (ROUTING) =================
-        
-        if st.session_state.page == 'Beranda':
-            
-           if st.session_state.page == 'Beranda':
             
             if st.session_state.page == 'Beranda':
             
