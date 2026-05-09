@@ -1049,7 +1049,7 @@ def halaman_utama():
             
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Taktik Sniper :has)
+            # CSS KHUSUS BERANDA (Tarikan Ekstrim)
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
@@ -1069,20 +1069,21 @@ def halaman_utama():
             .search-card-bg { 
                 background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); 
                 border-radius: 12px; 
-                padding: 20px 25px 60px 25px; 
+                /* PERHATIAN: Padding bawah dilebarkan jadi 85px agar input punya tempat bersandar */
+                padding: 20px 25px 85px 25px; 
                 box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3); border: 1px solid #1D4ED8;
                 width: 100%; max-width: 600px; margin: 0 auto;
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; font-family: 'Poppins', sans-serif !important;}
             
             /* ========================================================= */
-            /* TAKTIK SNIPER: Cari baris yang berisi kotak input!        */
+            /* 3. TAKTIK SNIPER: TARIKAN EKSTRIM (-120px)                */
             /* ========================================================= */
             div[data-testid="stHorizontalBlock"]:has(input) {
-                /* PAKSA NAIK! Ubah angka -80px jika masih kurang pas */
-                margin-top: -80px !important; 
+                /* INI DIA KUNCINYA: Tarik paksa ke atas dua kali lipat lebih kuat */
+                margin-top: -120px !important; 
                 
-                /* Posisi Kanan */
+                /* Posisi Kanan (Sudah pas, kita biarkan) */
                 transform: translateX(10px) !important; 
                 
                 width: 100% !important; max-width: 580px !important; 
