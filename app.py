@@ -1049,7 +1049,7 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-           # CSS KHUSUS BERANDA (Kotak Biru Diperbesar, Icon SVG Modern + Animasi Floating)
+           # CSS KHUSUS BERANDA (Tarikan Ke Atas 2x Lipat, Posisi Lebih Ke Kanan)
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
@@ -1063,14 +1063,14 @@ def halaman_utama():
                 text-align: center; 
                 border: 1px solid #BAE6FD;
                 margin-bottom: -15px; 
-                padding-bottom: 65px; /* Diperbesar agar menampung kotak pencarian yang lebih panjang */
+                padding-bottom: 80px; /* Diperbesar ekstra agar sangat aman dari bocor bawah */
             }
             .hero-content { width: 100%; max-width: 700px; margin: 0 auto; }
             .hero-title { font-size: 2rem; font-weight: 800; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .hero-title span { color: #009DFF; }
             .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 20px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
             
-            /* 2. Desain Kotak Tempat Search (Diperbesar ke bawah agar muat) */
+            /* 2. Desain Kotak Tempat Search */
             .search-card-bg { 
                 background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); 
                 border-radius: 12px; 
@@ -1083,15 +1083,15 @@ def halaman_utama():
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important; text-shadow: 0 2px 4px rgba(0,0,0,0.3);}
             
-            /* PENYELAMAT: Spacer diperbesar drastis agar kotak biru memanjang ke bawah membungkus input */
-            .search-spacer { height: 85px; } 
+            /* PENYELAMAT: Ruang kosong raksasa agar background biru benar-benar turun ke bawah */
+            .search-spacer { height: 110px; } 
             
-            /* 3. POSISI INPUT STREAMLIT (Tarik naik ke dalam kotak presisi) */
+            /* 3. POSISI INPUT STREAMLIT (Tarik 2x lebih naik, dorong lebih ke kanan) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -100px !important; /* Tarikan disesuaikan dengan spacer baru */
+                margin-top: -160px !important; /* DITARIK NAIK 2X LIPAT */
                 margin-left: auto !important; 
                 margin-right: auto !important;
-                transform: translateX(5px); 
+                transform: translateX(25px); /* DIGESER LEBIH KE KANAN AGAR CENTERED */
                 width: 100% !important; 
                 max-width: 580px !important; 
                 position: relative; z-index: 10; margin-bottom: 40px !important; align-items: center !important;
@@ -1108,7 +1108,7 @@ def halaman_utama():
             /* 4. DESAIN TOMBOL DAN ICON MODERN + ANIMASI FLOATING */
             @keyframes floatHover {
                 0% { transform: translate(-50%, -50%); }
-                50% { transform: translate(-50%, -65%); } /* Efek naik ke atas */
+                50% { transform: translate(-50%, -65%); }
                 100% { transform: translate(-50%, -50%); }
             }
 
@@ -1116,13 +1116,12 @@ def halaman_utama():
                 height: 48px !important; border-radius: 8px !important; width: 100% !important; 
                 background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
                 border: none !important; 
-                font-size: 0 !important; /* Sengaja menyembunyikan emoji 🔍 bawaan agar tidak terlihat kaku */
+                font-size: 0 !important; 
                 color: transparent !important; 
                 box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important;
                 position: relative;
             }
             
-            /* Suntik Icon Kaca Pembesar SVG Modern via CSS */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button::before {
                 content: "";
                 position: absolute;
@@ -1138,7 +1137,6 @@ def halaman_utama():
                 box-shadow: 0 6px 12px rgba(0, 114, 255, 0.4) !important;
             }
 
-            /* Terapkan animasi floating saat hover ke icon-nya */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover::before {
                 animation: floatHover 1.5s ease-in-out infinite;
             }
@@ -1192,7 +1190,6 @@ def halaman_utama():
             with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
             with col_btn:
-                # Biarkan tetap memanggil "🔍", karena CSS di atas akan otomatis mengubahnya menjadi SVG
                 btn_cari = st.button("🔍", key="btn_cari_beranda")
 
             if user_input or btn_cari:
