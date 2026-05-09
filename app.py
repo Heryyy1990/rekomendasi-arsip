@@ -1109,7 +1109,7 @@ def halaman_utama():
             }
 
             div[data-testid="stHorizontalBlock"]:has(input) button {
-                height: 52px !important; border-radius: 8px !important; width: 100% !important; 
+                height: 54px !important; border-radius: 8px !important; width: 100% !important; 
                 background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
                 border: none !important; font-size: 0 !important; color: transparent !important; position: relative;
             }
