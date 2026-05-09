@@ -1159,39 +1159,35 @@ def halaman_utama():
                 st.rerun()
                 
             # =========================================================
-            # 5. AKSES CEPAT (KARTU MENU DENGAN TOMBOL GAIB & ANIMASI)
+            # 5. AKSES CEPAT (JALUR KASAR - PASTI BERHASIL)
             # =========================================================
             
             st.markdown("""
             <style>
             .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
             
-            /* ========================================================= */
-            /* TAKTIK SNIPER: GABUNGKAN KARTU & TOMBOL GAIB              */
-            /* ========================================================= */
-            
-            /* 1. Cari kolom Streamlit yang berisi pembungkus kartu kita (.saas-card-wrapper) */
-            div[data-testid="column"]:has(.saas-card-wrapper) {
+            /* 1. Target baris kedua (Akses Cepat), jadikan kolomnya sebagai kurungan */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="column"] {
                 position: relative !important; 
             }
             
-            /* 2. Tarik paksa tombol Streamlit agar melayang menutupi seluruh area kolom tersebut */
-            div[data-testid="column"]:has(.saas-card-wrapper) div[data-testid="stButton"] {
+            /* 2. Tarik paksa tombol ke atas menutupi kolom */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="stButton"] {
                 position: absolute !important;
                 top: 0 !important; left: 0 !important;
-                width: 100% !important; height: 100% !important;
-                z-index: 10 !important; 
+                width: 100% !important; height: 160px !important;
+                z-index: 10 !important; margin: 0 !important;
             }
             
-            /* 3. Jadikan tombolnya 100% tembus pandang / gaib */
-            div[data-testid="column"]:has(.saas-card-wrapper) div[data-testid="stButton"] button {
-                width: 100% !important; height: 100% !important; min-height: 160px !important;
+            /* 3. Bikin tombolnya 100% tembus pandang */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="stButton"] button {
+                width: 100% !important; height: 160px !important;
                 opacity: 0 !important; cursor: pointer !important; 
                 background: transparent !important; border: none !important;
             }
 
-            /* 4. Kembalikan Efek Animasi Hover (Kartu Terangkat) */
-            div[data-testid="column"]:has(.saas-card-wrapper):hover .saas-card {
+            /* 4. Efek Animasi Hover (Kartu Terangkat) diikat ke Kolom */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="column"]:hover .saas-card {
                 border-color: #009DFF !important; 
                 box-shadow: 0 10px 25px rgba(0, 157, 255, 0.1) !important; 
                 transform: translateY(-5px) !important;
@@ -1200,13 +1196,12 @@ def halaman_utama():
             /* ========================================================= */
             /* DESAIN VISUAL KARTU AKSES CEPAT                           */
             /* ========================================================= */
-            .saas-card-wrapper { height: 160px; margin-bottom: 10px; }
             .saas-card {
-                width: 100%; height: 100%;
+                height: 160px; margin-bottom: 10px;
                 background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s ease;
-                position: relative; z-index: 1; /* Biarkan tombol gaib ada di atasnya */
+                position: relative; z-index: 1;
             }
 
             .saas-icon-box {
@@ -1230,55 +1225,50 @@ def halaman_utama():
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                # Perhatikan class "saas-card-wrapper" sebagai target sniper
                 st.markdown("""
-                <div class="saas-card-wrapper">
-                    <div class="saas-card">
-                        <div class="saas-icon-box bg-blue"><span class="material-symbols-rounded">smart_toy</span></div>
-                        <div class="saas-card-content">
-                            <div class="saas-card-title">Pencarian AI (Cerdas)</div>
-                            <div class="saas-card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
-                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
-                        </div>
+                <div class="saas-card">
+                    <div class="saas-icon-box bg-blue"><span class="material-symbols-rounded">smart_toy</span></div>
+                    <div class="saas-card-content">
+                        <div class="saas-card-title">Pencarian AI (Cerdas)</div>
+                        <div class="saas-card-desc">Temukan kode klasifikasi dengan bantuan AI.</div>
+                        <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol Streamlit (Otomatis ditarik gaib ke atas)
-                if st.button("btn_ai", key="btn_akses_ai"):
+                # Teks sengaja saya hapus jadi Spasi Kosong agar tidak ada lagi tulisan jelek yang bocor!
+                if st.button(" ", key="btn_akses_ai", use_container_width=True):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
 
             with col2:
                 st.markdown("""
-                <div class="saas-card-wrapper">
-                    <div class="saas-card">
-                        <div class="saas-icon-box bg-orange"><span class="material-symbols-rounded">folder</span></div>
-                        <div class="saas-card-content">
-                            <div class="saas-card-title">Jelajah Kode Klasifikasi</div>
-                            <div class="saas-card-desc">Telusuri dan jelajahi struktur hierarki arsip.</div>
-                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
-                        </div>
+                <div class="saas-card">
+                    <div class="saas-icon-box bg-orange"><span class="material-symbols-rounded">folder</span></div>
+                    <div class="saas-card-content">
+                        <div class="saas-card-title">Jelajah Kode Klasifikasi</div>
+                        <div class="saas-card-desc">Telusuri dan jelajahi struktur hierarki arsip.</div>
+                        <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("btn_jelajah", key="btn_akses_jelajah"):
+                # Teks sengaja saya hapus
+                if st.button("  ", key="btn_akses_jelajah", use_container_width=True):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
 
             with col3:
                 st.markdown("""
-                <div class="saas-card-wrapper">
-                    <div class="saas-card">
-                        <div class="saas-icon-box bg-purple"><span class="material-symbols-rounded">schedule</span></div>
-                        <div class="saas-card-content">
-                            <div class="saas-card-title">Riwayat Pencarian</div>
-                            <div class="saas-card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
-                            <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
-                        </div>
+                <div class="saas-card">
+                    <div class="saas-icon-box bg-purple"><span class="material-symbols-rounded">schedule</span></div>
+                    <div class="saas-card-content">
+                        <div class="saas-card-title">Riwayat Pencarian</div>
+                        <div class="saas-card-desc">Lihat riwayat pencarian yang telah dilakukan.</div>
+                        <div class="saas-card-arrow"><span class="material-symbols-rounded">arrow_forward</span></div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("btn_riwayat", key="btn_akses_riwayat"):
+                # Teks sengaja saya hapus
+                if st.button("   ", key="btn_akses_riwayat", use_container_width=True):
                     ganti_halaman('Riwayat')
                     st.rerun()
                     
