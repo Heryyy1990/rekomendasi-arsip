@@ -1159,7 +1159,7 @@ def halaman_utama():
                 st.rerun()
                 
             # =========================================================
-            # 5. AKSES CEPAT (KARTU MENU)
+            # 5. AKSES CEPAT (KARTU MENU DENGAN TOMBOL GAIB)
             # =========================================================
             
             # CSS Khusus untuk Kartu Akses Cepat
@@ -1168,9 +1168,28 @@ def halaman_utama():
             .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
             
-            /* Trik Tombol Gaib */
-            .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
-            .card-container div[data-testid="stButton"] button { width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; }
+            /* ======================================= */
+            /* TRIK TOMBOL GAIB STREAMLIT              */
+            /* ======================================= */
+            /* 1. Jadikan setiap kolom sebagai kurungan untuk tombolnya */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="column"] {
+                position: relative !important;
+            }
+            
+            /* 2. Tarik tombol Streamlit melayang ke atas menutupi seluruh isi kolom */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="stButton"] {
+                position: absolute !important;
+                top: 0 !important; left: 0 !important;
+                width: 100% !important; height: 100% !important;
+                z-index: 10 !important; margin: 0 !important;
+            }
+            
+            /* 3. Buat tombolnya 100% transparan (opacity 0) dan tinggi 160px pas dengan kartu */
+            div[data-testid="stHorizontalBlock"]:nth-of-type(2) div[data-testid="stButton"] button {
+                width: 100% !important; height: 160px !important; 
+                opacity: 0 !important; cursor: pointer !important; 
+                border: none !important; background: transparent !important;
+            }
 
             /* Desain Visual Kartu */
             .saas-card {
@@ -1180,7 +1199,9 @@ def halaman_utama():
                 box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s ease;
                 z-index: 1; /* Di bawah tombol gaib */
             }
-            .card-container:hover .saas-card {
+            
+            /* Efek Hover (Kartu terangkat) dipindahkan ke kolom agar tidak terhalang tombol gaib */
+            div[data-testid="column"]:hover .saas-card {
                 border-color: #009DFF; box-shadow: 0 10px 25px rgba(0, 157, 255, 0.1); transform: translateY(-5px);
             }
 
@@ -1221,7 +1242,7 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol Gaib Streamlit
+                # Tombol Streamlit (Akan ditarik gaib ke atas oleh CSS)
                 if st.button("btn_ai", key="btn_akses_ai"):
                     ganti_halaman('Pencarian AI')
                     st.rerun()
@@ -1239,7 +1260,6 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol Gaib Streamlit
                 if st.button("btn_jelajah", key="btn_akses_jelajah"):
                     ganti_halaman('Jelajah Kode')
                     st.rerun()
@@ -1257,7 +1277,6 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Tombol Gaib Streamlit
                 if st.button("btn_riwayat", key="btn_akses_riwayat"):
                     ganti_halaman('Riwayat')
                     st.rerun()
