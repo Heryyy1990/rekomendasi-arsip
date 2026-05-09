@@ -1049,7 +1049,9 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-           # CSS KHUSUS BERANDA (Kunci Kanan, Paksa Naik dengan Properti TOP)
+           if st.session_state.page == 'Beranda':
+            
+            # CSS KHUSUS BERANDA (Tanpa gangguan elemen bawah)
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
@@ -1083,25 +1085,19 @@ def halaman_utama():
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important; text-shadow: 0 2px 4px rgba(0,0,0,0.3);}
             
-            /* Ruang kosong penahan di dalam background biru */
-            .search-spacer { height: 95px; } 
+            /* Penahan di dalam background biru */
+            .search-spacer { height: 75px; } 
             
-            /* 3. POSISI INPUT STREAMLIT (PAKSA NAIK DENGAN TOP) */
+            /* 3. POSISI INPUT STREAMLIT (Sekarang bebas ditarik naik) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                position: relative !important; 
-                z-index: 999 !important; 
-                /* Geser ke kanan (DIKUNCI KARENA SUDAH PAS) */
-                transform: translateX(25px) !important; 
-                
-                /* INI SENJATA PAMUNGKASNYA: Paksa ditarik ke atas secara visual */
-                top: -130px !important; 
-                
+                margin-top: -95px !important; /* Tarikan ke atas (sekarang pasti berfungsi) */
+                transform: translateX(25px) !important; /* Posisi kanan yang sudah pas */
                 width: 100% !important; 
                 max-width: 580px !important; 
                 margin-left: auto !important; 
                 margin-right: auto !important;
-                /* Tarik area Akses Cepat di bawahnya agar ikut naik menutup celah kosong */
-                margin-bottom: -110px !important; 
+                position: relative; 
+                z-index: 10; 
                 align-items: center !important;
             }
             
@@ -1114,7 +1110,7 @@ def halaman_utama():
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
-            /* 4. DESAIN TOMBOL DAN ICON MODERN + ANIMASI FLOATING */
+            /* 4. DESAIN ICON KACA PEMBESAR MODERN + ANIMASI FLOATING */
             @keyframes floatHover {
                 0% { transform: translate(-50%, -50%); }
                 50% { transform: translate(-50%, -70%); }
@@ -1149,34 +1145,6 @@ def halaman_utama():
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover::before {
                 animation: floatHover 1.5s ease-in-out infinite;
             }
-
-            /* ============================================================== */
-            /* 5. KARTU AKSES CEPAT */
-            /* ============================================================== */
-            .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
-            .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
-            .card-container div[data-testid="stButton"] button { width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; }
-            .saas-card {
-                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
-                padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s ease;
-                z-index: 1; 
-            }
-            .card-container:hover .saas-card {
-                border-color: #009DFF; box-shadow: 0 8px 20px rgba(0, 157, 255, 0.08); transform: translateY(-3px);
-            }
-            .saas-icon-box {
-                width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
-                display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
-            }
-            .bg-blue { background-color: #F0F9FF; color: #009DFF; }
-            .bg-orange { background-color: #FFF7ED; color: #F97316; }
-            .bg-purple { background-color: #FAF5FF; color: #A855F7; }
-            .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
-            .saas-card-title { font-weight: 700; color: #0F172A; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
-            .saas-card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
-            .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
             </style>
             """, unsafe_allow_html=True)
 
@@ -1194,7 +1162,7 @@ def halaman_utama():
 </div>
 """, unsafe_allow_html=True)
 
-            # FORM PENCARIAN
+            # FORM PENCARIAN (Bebas tanpa gangguan kode lain di bawahnya)
             col_in, col_btn = st.columns([5, 1])
             with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
@@ -1205,7 +1173,6 @@ def halaman_utama():
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
-
             # =========================================================
             # AKSES CEPAT (DESAIN IDENTIK GAMBAR + TOMBOL GAIB)
             # =========================================================
