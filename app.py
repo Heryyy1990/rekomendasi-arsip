@@ -1428,15 +1428,19 @@ def halaman_utama():
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
-            /* 2. Percantik Header Expander (VERSI AMAN TANPA OVERLAY) */
+            
+            /* 2. PERBAIKAN TOTAL: BUNUH TEKS HANTU "arrow" ("arr") */
             div[data-testid="stExpander"] summary {
                 padding: 15px 20px !important;
                 background: #F8FAFC !important;
                 border-bottom: 1px solid #E2E8F0 !important;
-                /* Hapus display: flex agar teks tersembunyi Streamlit tidak bangkit lagi */
+                
+                /* JURUS PAMUNGKAS: Jadikan semua ukuran teks di sini 0 agar teks hantu lenyap */
+                font-size: 0px !important; 
+                color: transparent !important;
             }
             
-            /* Percantik teks judulnya */
+            /* Bangkitkan HANYA teks judul (p) kita agar tampil sempurna */
             div[data-testid="stExpander"] summary p {
                 font-weight: 700 !important;
                 color: #0F172A !important;
@@ -1445,21 +1449,11 @@ def halaman_utama():
                 margin: 0 !important;
             }
 
-            /* PAKSA HILANG SEMUA TEKS SILUMAN (Screen Reader) DI SEKITAR PANAH */
-            div[data-testid="stExpander"] summary span[data-testid="stExpanderToggleIcon"] text,
-            div[data-testid="stExpander"] summary span.visually-hidden {
-                display: none !important;
-                font-size: 0 !important;
-                color: transparent !important;
-            }
-            
-            /* 2. Sembunyikan elemen teks apapun yang menyusup di dalam SVG panah */
-            div[data-testid="stExpander"] summary svg text,
-            div[data-testid="stExpander"] summary svg tspan {
-                display: none !important;
-                opacity: 0 !important;
-                visibility: hidden !important;
-                font-size: 0 !important;
+            /* Pastikan icon panah asli Streamlit tetap ada dan warnanya pas */
+            div[data-testid="stExpander"] summary svg {
+                color: #64748B !important;
+                width: 24px !important;
+                height: 24px !important;
             }
             
             /* 3. Beri Ruang Lega di Dalam Expander Agar Tidak Tumpang Tindih */
