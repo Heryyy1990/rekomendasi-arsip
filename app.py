@@ -1206,7 +1206,7 @@ def halaman_utama():
             /* ========================================================= */
             .saas-card {
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
+                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); border: 1px solid #E2E8F0; border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
                 transition: all 0.3s ease !important; /* Paksa transisi agar mulus */
@@ -1222,8 +1222,8 @@ def halaman_utama():
             .bg-purple { background-color: #FAF5FF; color: #A855F7; }
 
             .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
-            .saas-card-title { font-weight: 700; color: #0F172A; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
-            .saas-card-desc { font-size: 0.8rem; color: #64748B; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
+            .saas-card-title { font-weight: 700; color: #FFFFFF; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
+            .saas-card-desc { font-size: 0.8rem; color: #F1F5F9; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
             </style>
             """, unsafe_allow_html=True)
