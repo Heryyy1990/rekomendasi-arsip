@@ -1428,32 +1428,41 @@ def halaman_utama():
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
-            /* 2. Percantik Header Expander */
+            /* 2. Percantik Header Expander & PERBAIKI TULISAN OVERLAP ("arr") */
             div[data-testid="stExpander"] summary {
                 padding: 15px 20px !important;
                 background: #F8FAFC !important;
                 border-bottom: 1px solid #E2E8F0 !important;
+                display: flex !important;
+                align-items: center !important;
             }
             div[data-testid="stExpander"] summary p {
                 font-weight: 700 !important;
                 color: #0F172A !important;
                 font-size: 1.05rem !important;
                 font-family: 'Poppins', sans-serif !important;
+                flex-grow: 1 !important; 
+                margin-right: 30px !important; /* Jarak aman agar tidak menabrak icon panah */
             }
+            /* Sembunyikan teks bocor "arrow" dari icon bawaan Streamlit */
+            div[data-testid="stExpander"] summary svg text {
+                display: none !important;
+            }
+            
             /* 3. Beri Ruang Lega di Dalam Expander Agar Tidak Tumpang Tindih */
             div[data-testid="stExpanderDetails"] {
                 padding: 25px 20px !important;
                 display: flex;
                 flex-direction: column;
-                gap: 10px; /* Jarak aman antar elemen */
+                gap: 10px;
             }
             
-            /* 4. Desain Kotak Feedback */
+            /* 4. Desain Kotak Feedback (Pilih Rekomendasi) */
             .feedback-wrapper {
                 background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%);
                 border: 1px dashed #BAE6FD;
                 border-radius: 16px;
-                padding: 20px;
+                padding: 25px 20px;
                 text-align: center;
                 margin-top: 35px;
                 box-shadow: 0 4px 10px rgba(0, 157, 255, 0.05);
@@ -1462,14 +1471,23 @@ def halaman_utama():
                 font-size: 0.95rem;
                 font-weight: 700;
                 color: #0F172A;
-                margin-bottom: 15px;
+                margin-bottom: 20px;
                 font-family: 'Poppins', sans-serif !important;
             }
-            /* Rapikan tombol feedback bawaan streamlit */
+            /* Desain Tombol Pilihan Feedback */
             .feedback-wrapper button {
-                border-radius: 8px !important;
-                font-weight: 600 !important;
-                border: 1px solid #E2E8F0 !important;
+                border-radius: 10px !important;
+                font-weight: 700 !important;
+                border: 2px solid #E2E8F0 !important;
+                background: #FFFFFF !important;
+                color: #009DFF !important;
+                height: 50px !important;
+                transition: all 0.3s ease !important;
+            }
+            .feedback-wrapper button:hover {
+                border-color: #009DFF !important;
+                background: #F0F9FF !important;
+                transform: translateY(-2px);
             }
             </style>
             """, unsafe_allow_html=True)
@@ -1486,7 +1504,7 @@ def halaman_utama():
                     results = smart_classify(user_input, df)
                     
                     if results:
-                        # BANNER SUKSES KUSTOM (Ganti st.success bawaan yang kaku)
+                        # BANNER SUKSES KUSTOM
                         st.markdown("""
                         <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:center; gap:10px;">
                             <span class="material-symbols-rounded" style="color:#009DFF;">check_circle</span>
@@ -1494,28 +1512,30 @@ def halaman_utama():
                         </div>
                         """, unsafe_allow_html=True)
                         
+                        rekomendasi_kode = [] # List untuk menyimpan kode yang dihasilkan AI
+                        
                         # LOOPING HASIL PENCARIAN
                         for i, (idx, score) in enumerate(results):
                             res = df.iloc[idx]
+                            rekomendasi_kode.append(res['kode']) # Tangkap kodenya
+                            
                             with st.expander(f"🏅 KODE {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                                # Tampilkan Uraian Utama
                                 st.markdown(f"<div style='font-size:1.15rem; font-weight:700; color:#009DFF; margin-bottom:15px; line-height:1.4;'>{res['uraian'].title()}</div>", unsafe_allow_html=True)
-                                
-                                # Tampilkan Struktur Hierarki
                                 st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#64748B; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;'>JALUR HIERARKI KODE:</div>", unsafe_allow_html=True)
                                 hierarki = get_hierarchy(res['kode'], df)
                                 for h in hierarki: 
                                     st.markdown(h, unsafe_allow_html=True)
                                     
-                        # --- FITUR FEEDBACK ---
-                        st.markdown('<div class="feedback-wrapper"><div class="feedback-title">Apakah hasil pencarian AI ini membantu Anda?</div>', unsafe_allow_html=True)
-                        col_fb1, col_fb2, col_fb3, col_fb4 = st.columns([2, 1.5, 1.5, 2])
-                        with col_fb2:
-                            if st.button("👍 Ya, Membantu", key=f"fb_yes_{user_input}", use_container_width=True):
-                                st.success("Terima kasih atas respons Anda! Logika AI akan terus kami pertahankan.")
-                        with col_fb3:
-                            if st.button("👎 Tidak Cocok", key=f"fb_no_{user_input}", use_container_width=True):
-                                st.info("Terima kasih masukannya! Kami akan melatih AI ini agar lebih pintar lagi.")
+                        # --- FITUR FEEDBACK (PILIH KODE TERBAIK) ---
+                        st.markdown('<div class="feedback-wrapper"><div class="feedback-title">🎯 Bantu SIKAP Belajar! Mana kode yang paling tepat menurut Anda?</div>', unsafe_allow_html=True)
+                        
+                        # Buat kolom tombol secara dinamis sesuai jumlah rekomendasi AI
+                        cols = st.columns(len(rekomendasi_kode))
+                        for i, col in enumerate(cols):
+                            with col:
+                                if st.button(f"Pilih Kode {rekomendasi_kode[i]}", key=f"fb_pilih_{rekomendasi_kode[i]}_{user_input}", use_container_width=True):
+                                    st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {rekomendasi_kode[i]}** sebagai jawaban yang paling tepat. Pilihan ini akan terekam di sistem kami.")
+                        
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     else:
