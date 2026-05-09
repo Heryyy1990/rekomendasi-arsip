@@ -1051,58 +1051,54 @@ def halaman_utama():
             
            if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Tanpa gangguan elemen bawah)
+            if st.session_state.page == 'Beranda':
+            
+            # CSS KHUSUS BERANDA (Bersih dari bug spacer)
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
             .hero-banner {
                 background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); 
                 border-radius: 16px; 
-                padding: 25px 20px; 
-                display: flex; 
-                flex-direction: column;
-                align-items: center; 
-                text-align: center; 
-                border: 1px solid #BAE6FD;
-                margin-bottom: 0px; 
-                padding-bottom: 70px; 
+                padding: 30px 20px 40px 20px; 
+                display: flex; flex-direction: column; align-items: center; text-align: center; 
+                border: 1px solid #BAE6FD; margin-bottom: 0px; 
             }
             .hero-content { width: 100%; max-width: 700px; margin: 0 auto; }
             .hero-title { font-size: 2rem; font-weight: 800; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
             .hero-title span { color: #009DFF; }
-            .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 20px; line-height: 1.5; font-family: 'Poppins', sans-serif !important;}
+            .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; font-family: 'Poppins', sans-serif !important;}
             
-            /* 2. Desain Kotak Tempat Search */
+            /* 2. Desain Kotak Tempat Search (Padding bawah disiapkan untuk tempat input) */
             .search-card-bg { 
                 background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); 
                 border-radius: 12px; 
-                padding: 20px 25px; 
-                box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.2); 
-                border: 1px solid #1D4ED8;
-                width: 100%;
-                max-width: 600px; 
-                margin: 0 auto;
+                padding: 20px 25px 60px 25px; /* Angka 60px ini adalah batas bawah kotak biru */
+                box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3); border: 1px solid #1D4ED8;
+                width: 100%; max-width: 600px; margin: 0 auto;
             }
-            .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important; text-shadow: 0 2px 4px rgba(0,0,0,0.3);}
+            .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; font-family: 'Poppins', sans-serif !important;}
             
-            /* Penahan di dalam background biru */
-            .search-spacer { height: 75px; } 
-            
-            /* 3. POSISI INPUT STREAMLIT (Sekarang bebas ditarik naik) */
+            /* ========================================================= */
+            /* 3. PUSAT KENDALI NAIK-TURUN KOLOM PENCARIAN               */
+            /* ========================================================= */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -95px !important; /* Tarikan ke atas (sekarang pasti berfungsi) */
-                transform: translateX(25px) !important; /* Posisi kanan yang sudah pas */
-                width: 100% !important; 
-                max-width: 580px !important; 
-                margin-left: auto !important; 
-                margin-right: auto !important;
-                position: relative; 
-                z-index: 10; 
-                align-items: center !important;
+                
+                /* 👇 UBAH ANGKA INI JIKA MASIH KURANG PAS 👇 */
+                /* Semakin besar minusnya (misal -80px, -90px), dia akan SEMAKIN NAIK. */
+                margin-top: -65px !important; 
+                
+                /* Posisi Kanan yang sudah pas tidak saya sentuh */
+                transform: translateX(25px) !important; 
+                
+                width: 100% !important; max-width: 580px !important; 
+                margin-left: auto !important; margin-right: auto !important;
+                position: relative; z-index: 99;
             }
             
+            /* Desain Input Streamlit */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
-                height: 48px !important; border-radius: 8px !important; border: 1px solid #E2E8F0 !important; background: #FFFFFF !important;
+                height: 48px !important; border-radius: 8px !important; background: #FFFFFF !important;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
@@ -1120,35 +1116,23 @@ def halaman_utama():
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
                 height: 48px !important; border-radius: 8px !important; width: 100% !important; 
                 background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
-                border: none !important; 
-                font-size: 0 !important; 
-                color: transparent !important; 
-                box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important;
-                position: relative;
+                border: none !important; font-size: 0 !important; color: transparent !important; position: relative;
             }
             
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button::before {
-                content: "";
-                position: absolute;
-                top: 50%; left: 50%;
-                transform: translate(-50%, -50%);
+                content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 width: 20px; height: 20px;
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
-                background-size: cover;
-                transition: all 0.3s ease;
+                background-size: cover; transition: all 0.3s ease;
             }
             
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {
-                box-shadow: 0 6px 15px rgba(0, 114, 255, 0.5) !important;
-            }
-
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover::before {
                 animation: floatHover 1.5s ease-in-out infinite;
             }
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA
+            # HTML BANNER UTAMA (Bersih)
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
@@ -1156,13 +1140,12 @@ def halaman_utama():
         <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
         <div class="search-card-bg">
             <div class="search-title">Cari kode klasifikasi arsip</div>
-            <div class="search-spacer"></div>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-            # FORM PENCARIAN (Bebas tanpa gangguan kode lain di bawahnya)
+            # FORM PENCARIAN 
             col_in, col_btn = st.columns([5, 1])
             with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
@@ -1173,6 +1156,7 @@ def halaman_utama():
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
+                
             # =========================================================
             # AKSES CEPAT (DESAIN IDENTIK GAMBAR + TOMBOL GAIB)
             # =========================================================
