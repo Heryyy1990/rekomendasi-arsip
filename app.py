@@ -1049,7 +1049,7 @@ def halaman_utama():
             
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Bersih dari bug spacer)
+            # CSS KHUSUS BERANDA (Taktik Sniper :has)
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
@@ -1065,27 +1065,25 @@ def halaman_utama():
             .hero-title span { color: #009DFF; }
             .hero-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 25px; font-family: 'Poppins', sans-serif !important;}
             
-            /* 2. Desain Kotak Tempat Search (Padding bawah disiapkan untuk tempat input) */
+            /* 2. Desain Kotak Tempat Search */
             .search-card-bg { 
                 background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); 
                 border-radius: 12px; 
-                padding: 20px 25px 60px 25px; /* Angka 60px ini adalah batas bawah kotak biru */
+                padding: 20px 25px 60px 25px; 
                 box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3); border: 1px solid #1D4ED8;
                 width: 100%; max-width: 600px; margin: 0 auto;
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; font-family: 'Poppins', sans-serif !important;}
             
             /* ========================================================= */
-            /* 3. PUSAT KENDALI NAIK-TURUN KOLOM PENCARIAN               */
+            /* TAKTIK SNIPER: Cari baris yang berisi kotak input!        */
             /* ========================================================= */
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
+            div[data-testid="stHorizontalBlock"]:has(input) {
+                /* PAKSA NAIK! Ubah angka -80px jika masih kurang pas */
+                margin-top: -80px !important; 
                 
-                /* 👇 UBAH ANGKA INI JIKA MASIH KURANG PAS 👇 */
-                /* Semakin besar minusnya (misal -120px, -130px), dia akan SEMAKIN NAIK. */
-                margin-top: -65px !important; 
-                
-                /* Posisi Kanan yang sudah pas tidak saya sentuh */
-                transform: translateX(25px) !important; 
+                /* Posisi Kanan */
+                transform: translateX(10px) !important; 
                 
                 width: 100% !important; max-width: 580px !important; 
                 margin-left: auto !important; margin-right: auto !important;
@@ -1093,14 +1091,14 @@ def halaman_utama():
             }
             
             /* Desain Input Streamlit */
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
+            div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] {
                 height: 48px !important; border-radius: 8px !important; background: #FFFFFF !important;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
             }
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"]:focus-within {
+            div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"]:focus-within {
                 border-color: #009DFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.3) !important;
             }
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
+            div[data-testid="stHorizontalBlock"]:has(input) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
             /* 4. DESAIN ICON KACA PEMBESAR MODERN + ANIMASI FLOATING */
             @keyframes floatHover {
@@ -1109,26 +1107,26 @@ def halaman_utama():
                 100% { transform: translate(-50%, -50%); }
             }
 
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button {
+            div[data-testid="stHorizontalBlock"]:has(input) button {
                 height: 48px !important; border-radius: 8px !important; width: 100% !important; 
                 background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
                 border: none !important; font-size: 0 !important; color: transparent !important; position: relative;
             }
             
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button::before {
+            div[data-testid="stHorizontalBlock"]:has(input) button::before {
                 content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 width: 20px; height: 20px;
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
                 background-size: cover; transition: all 0.3s ease;
             }
             
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover::before {
+            div[data-testid="stHorizontalBlock"]:has(input) button:hover::before {
                 animation: floatHover 1.5s ease-in-out infinite;
             }
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA (Bersih)
+            # HTML BANNER UTAMA
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
