@@ -1101,11 +1101,13 @@ def halaman_utama():
             }
             div[data-testid="stHorizontalBlock"]:has(input) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
-            /* 4. DESAIN ICON KACA PEMBESAR MODERN + ANIMASI FLOATING */
-            @keyframes floatHover {
-                0% { transform: translate(-50%, -50%); }
-                50% { transform: translate(-50%, -70%); }
-                100% { transform: translate(-50%, -50%); }
+            /* 4. DESAIN ICON KACA PEMBESAR MODERN + ANIMASI SELURUH TOMBOL */
+            
+            /* Nama animasi disamakan jadi floatButton, dan pakai translateY untuk kotak */
+            @keyframes floatButton {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-6px); } /* Kotak naik ke atas */
+                100% { transform: translateY(0px); }
             }
 
             div[data-testid="stHorizontalBlock"]:has(input) button {
@@ -1115,7 +1117,7 @@ def halaman_utama():
                 transition: all 0.3s ease; /* Transisi agar mulus */
             }
 
-            /* 👇 INI KUNCINYA: Animasi dipasang DI SINI (di kotaknya), bukan di ::before */
+            /* Memanggil nama animasi yang benar: floatButton */
             div[data-testid="stHorizontalBlock"]:has(input) button:hover {
                 animation: floatButton 1.5s ease-in-out infinite !important;
                 box-shadow: 0 8px 18px rgba(0, 114, 255, 0.5) !important; /* Bayangan membesar saat tombol naik */
