@@ -1112,8 +1112,6 @@ def halaman_utama():
                 height: 54px !important; border-radius: 8px !important; width: 100% !important; 
                 background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
                 border: none !important; font-size: 0 !important; color: transparent !important; position: relative;
-                box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
-                box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important;
                 transition: all 0.3s ease; /* Transisi agar mulus */
             }
 
