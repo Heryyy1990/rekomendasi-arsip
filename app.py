@@ -3,6 +3,11 @@ import pandas as pd
 import re
 import os
 import plotly.express as px
+import json
+import io
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -14,7 +19,60 @@ from groq import Groq
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
+# ====================================================
+# MESIN SINKRONISASI GOOGLE DRIVE
+# ====================================================
+@st.cache_resource
+def init_drive():
+    key_dict = json.loads(st.secrets["gcp_service_account"])
+    creds = service_account.Credentials.from_service_account_info(
+        key_dict, scopes=["https://www.googleapis.com/auth/drive"]
+    )
+    return build('drive', 'v3', credentials=creds)
 
+def get_drive_file_id(drive_service, file_name, folder_id):
+    query = f"name='{file_name}' and '{folder_id}' in parents and trashed=false"
+    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+    items = results.get('files', [])
+    if items:
+        return items[0]['id']
+    return None
+
+def sync_from_drive(file_name):
+    drive_service = init_drive()
+    folder_id = st.secrets["drive_folder_id"]
+    file_id = get_drive_file_id(drive_service, file_name, folder_id)
+    if file_id:
+        request = drive_service.files().get_media(fileId=file_id)
+        fh = io.FileIO(file_name, 'wb')
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+
+def sync_to_drive(file_name):
+    if not os.path.exists(file_name):
+        return
+    drive_service = init_drive()
+    folder_id = st.secrets["drive_folder_id"]
+    file_id = get_drive_file_id(drive_service, file_name, folder_id)
+    media = MediaFileUpload(file_name, mimetype='text/csv', resumable=True)
+    if file_id:
+        drive_service.files().update(fileId=file_id, media_body=media).execute()
+    else:
+        file_metadata = {'name': file_name, 'parents': [folder_id]}
+        drive_service.files().create(body=file_metadata, media_body=media).execute()
+
+# Menjalankan unduhan otomatis saat aplikasi pertama kali dinyalakan (Booting)
+@st.cache_data
+def initial_sync():
+    sync_from_drive('pengguna.csv')
+    sync_from_drive('klasifikasi_arsip_emas.csv')
+    sync_from_drive('riwayat_pencarian.csv')
+    return True
+
+_ = initial_sync()
+# ====================================================
 
 # --- INISIALISASI SESSION STATE LOGIN & HISTORY ---
 if 'logged_in' not in st.session_state:
@@ -47,6 +105,8 @@ def simpan_riwayat_csv(nama_user, pencarian):
         df_baru.to_csv(file_riwayat, index=False)
     else:
         df_baru.to_csv(file_riwayat, mode='a', header=False, index=False)
+
+    sync_to_drive(file_riwayat)
 
 def baca_riwayat_csv(nama_user):
     file_riwayat = 'riwayat_pencarian.csv'
@@ -1732,7 +1792,8 @@ def halaman_utama():
 
             def admin_save_csv(df, file_name, sep=','):
                 df.to_csv(file_name, index=False, sep=sep)
-                st.toast(f"Data berhasil disimpan ke {file_name}!", icon="✅")
+                sync_to_drive(file_name) # UPLOAD KE DRIVE
+                st.toast(f"Data berhasil disinkronkan permanen ke Cloud!", icon="☁️")
 
             # --- KOMPONEN UI KUSTOM (MATERIAL DESIGN) ---
             def modern_alert(icon, text, color="#009DFF", bg="#E0F2FE"):
