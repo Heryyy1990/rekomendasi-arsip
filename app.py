@@ -1049,7 +1049,7 @@ def halaman_utama():
             
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Tarikan Ekstrim)
+            # CSS KHUSUS BERANDA
             st.markdown("""
             <style>
             /* 1. Desain Banner Biru Utama */
@@ -1069,7 +1069,6 @@ def halaman_utama():
             .search-card-bg { 
                 background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); 
                 border-radius: 12px; 
-                /* PERHATIAN: Padding bawah dilebarkan jadi 85px agar input punya tempat bersandar */
                 padding: 20px 25px 85px 25px; 
                 box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3); border: 1px solid #1D4ED8;
                 width: 100%; max-width: 600px; margin: 0 auto;
@@ -1077,57 +1076,65 @@ def halaman_utama():
             .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; font-family: 'Poppins', sans-serif !important;}
             
             /* ========================================================= */
-            /* 3. TAKTIK SNIPER: TARIKAN EKSTRIM (-120px)                */
+            /* 3. TAKTIK SNIPER: TARIKAN EKSTRIM (-120px) TETAP          */
             /* ========================================================= */
             div[data-testid="stHorizontalBlock"]:has(input) {
-                /* INI DIA KUNCINYA: Tarik paksa ke atas dua kali lipat lebih kuat */
-                margin-top: -120px !important; 
+                margin-top: -120px !important; /* TETAP JANGAN DIUBAH KARENA SUDAH PAS */
                 
-                /* Posisi Kanan (Sudah pas, kita biarkan) */
-                transform: translateX(10px) !important; 
+                /* KEMBALI KE PENGATURAN AWAL ANDA: Geser 25px agar centered pas */
+                transform: translateX(25px) !important; 
                 
                 width: 100% !important; max-width: 580px !important; 
                 margin-left: auto !important; margin-right: auto !important;
                 position: relative; z-index: 99;
+                
+                /* Menyelaraskan agar input dan tombol sejajar sempurna */
+                align-items: center !important; 
             }
             
-            /* Desain Input Streamlit */
+            /* Desain Input Streamlit (Memaksa tinggi 48px) */
             div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] {
-                height: 48px !important; border-radius: 8px !important; background: #FFFFFF !important;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+                height: 48px !important; min-height: 48px !important; border-radius: 8px !important; background: #FFFFFF !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important; box-sizing: border-box !important;
             }
             div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"]:focus-within {
                 border-color: #009DFF !important; box-shadow: 0 0 0 2px rgba(0, 157, 255, 0.3) !important;
             }
             div[data-testid="stHorizontalBlock"]:has(input) input { font-size: 0.95rem !important; padding-left: 15px !important; font-family: 'Poppins', sans-serif !important;}
             
-            /* 4. DESAIN ICON KACA PEMBESAR MODERN + ANIMASI FLOATING */
-            @keyframes floatHover {
-                0% { transform: translate(-50%, -50%); }
-                50% { transform: translate(-50%, -70%); }
-                100% { transform: translate(-50%, -50%); }
+            /* 4. DESAIN ICON KACA PEMBESAR MODERN + ANIMASI SELURUH TOMBOL */
+            @keyframes floatButton {
+                0% { transform: translateY(0px); box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important; }
+                50% { transform: translateY(-6px); box-shadow: 0 8px 18px rgba(0, 114, 255, 0.5) !important; } /* Kotaknya naik */
+                100% { transform: translateY(0px); box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important; }
             }
 
+            /* Desain Kotak Tombol (Memaksa tinggi 48px sama dengan input) */
             div[data-testid="stHorizontalBlock"]:has(input) button {
-                height: 48px !important; border-radius: 8px !important; width: 100% !important; 
+                height: 48px !important; min-height: 48px !important; border-radius: 8px !important; width: 100% !important; 
                 background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%) !important; 
                 border: none !important; font-size: 0 !important; color: transparent !important; position: relative;
+                box-sizing: border-box !important; margin: 0 !important; padding: 0 !important;
+                box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important;
+                transition: all 0.3s ease; /* Transisi agar halus sebelum hovering */
             }
             
+            /* Animasi dikenakan pada kotaknya, bukan isinya */
+            div[data-testid="stHorizontalBlock"]:has(input) button:hover {
+                animation: floatButton 1.5s ease-in-out infinite !important;
+            }
+            
+            /* SVG Icon ditanam mati di tengah tombol */
             div[data-testid="stHorizontalBlock"]:has(input) button::before {
                 content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 width: 20px; height: 20px;
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
-                background-size: cover; transition: all 0.3s ease;
-            }
-            
-            div[data-testid="stHorizontalBlock"]:has(input) button:hover::before {
-                animation: floatHover 1.5s ease-in-out infinite;
+                background-size: cover; 
             }
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA
+            # HTML BANNER UTAMA (Sisanya tetap sama)
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
