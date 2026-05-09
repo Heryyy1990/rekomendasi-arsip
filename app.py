@@ -1056,10 +1056,21 @@ def halaman_utama():
             /* ========================================================= */
             /* 5. TARIKAN HEADER & LOGO "S" FUTURISTIK                   */
             /* ========================================================= */
-            [data-testid="stSidebarHeader"] { display: none !important; } /* Hilangkan jarak kosong bawaan st */
+            
+            /* KEMBALIKAN TOMBOL HIDE SIDEBAR: Jangan di-display none! */
+            [data-testid="stSidebarHeader"] { 
+                background: transparent !important;
+                padding-bottom: 0px !important; 
+            }
+            
+            /* Pastikan icon panah hide sidebar warnanya putih agar terlihat */
+            [data-testid="stSidebarHeader"] svg {
+                color: #FFFFFF !important;
+            }
             
             .sidebar-title-container { 
-                margin-top: -45px !important; /* Tarik lurus sejajar dengan banner biru utama */
+                /* TARIKAN AMAN: Ubah angka -10px ini jika kurang lurus dengan banner utama */
+                margin-top: -10px !important; 
                 display: flex; align-items: center; gap: 14px; 
                 padding: 0 0 15px 0;
             }
