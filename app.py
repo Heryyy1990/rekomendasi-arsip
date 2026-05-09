@@ -1049,21 +1049,21 @@ def halaman_utama():
         
         if st.session_state.page == 'Beranda':
             
-            # CSS KHUSUS BERANDA (Banner Centered & Tanpa Logo)
+            # CSS KHUSUS BERANDA (Banner Centered, Tanpa Deskripsi AI, Posisi Input Naik)
             st.markdown("""
             <style>
-            /* 1. Desain Banner Biru Utama (Dikecilkan & Rata Tengah) */
+            /* 1. Desain Banner Biru Utama */
             .hero-banner {
                 background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); 
                 border-radius: 16px; 
-                padding: 40px 20px; /* Padding kiri-kanan agar pas */
+                padding: 40px 20px; 
                 display: flex; 
                 flex-direction: column;
-                align-items: center; /* Memaksa konten ke tengah */
-                text-align: center; /* Teks rata tengah */
+                align-items: center; 
+                text-align: center; 
                 border: 1px solid #BAE6FD;
-                margin-bottom: -30px; /* Margin diperkecil agar tidak ada sisa ruang kosong */
-                padding-bottom: 60px; /* Padding bawah dikurangi */
+                margin-bottom: -30px; 
+                padding-bottom: 60px; 
             }
             .hero-content { width: 100%; max-width: 700px; margin: 0 auto; }
             .hero-title { font-size: 2.1rem; font-weight: 800; color: #0F172A; margin-bottom: 8px; font-family: 'Poppins', sans-serif !important;}
@@ -1076,16 +1076,17 @@ def halaman_utama():
                 box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #E2E8F0;
             }
             .search-title { font-size: 1.1rem; font-weight: 700; color: #0F172A; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
-            .search-desc { font-size: 0.85rem; color: #64748B; margin-bottom: 0; font-family: 'Poppins', sans-serif !important;}
-            .search-spacer { height: 40px; } /* Diperkecil agar input pencarian naik */
             
-            /* 3. POSISI INPUT STREAMLIT (Ditarik naik & diletakkan di tengah) */
+            /* Penahan ruang agar kolom input tidak keluar dari background putih */
+            .search-spacer { height: 65px; } 
+            
+            /* 3. POSISI INPUT STREAMLIT (Ditarik jauh lebih naik ke dalam kotak putih) */
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
-                margin-top: -85px !important; /* Ditarik ke atas menimpa kotak putih */
-                margin-left: auto !important; /* Margin auto untuk centering */
+                margin-top: -105px !important; /* Nilai tarikan digandakan agar naik pas di bawah judul */
+                margin-left: auto !important; 
                 margin-right: auto !important;
                 width: 100% !important; 
-                max-width: 650px !important; /* Menyesuaikan lebar dengan kotak putih */
+                max-width: 650px !important; 
                 position: relative; z-index: 10; margin-bottom: 50px !important; align-items: center !important;
             }
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) div[data-baseweb="input"] {
@@ -1101,7 +1102,7 @@ def halaman_utama():
             }
 
             /* ============================================================== */
-            /* 4. KARTU AKSES CEPAT (Sama seperti sebelumnya) */
+            /* 4. KARTU AKSES CEPAT (Tetap sama) */
             /* ============================================================== */
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
             .card-container div[data-testid="stButton"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
@@ -1130,7 +1131,7 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA (Tanpa Gambar & Centered)
+            # HTML BANNER UTAMA (Deskripsi AI dihapus)
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
@@ -1138,7 +1139,6 @@ def halaman_utama():
         <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
         <div class="search-card-bg">
             <div class="search-title">Cari kode klasifikasi arsip</div>
-            <div class="search-desc">Gunakan AI untuk membantu menemukan kode arsip yang paling relevan.</div>
             <div class="search-spacer"></div>
         </div>
     </div>
@@ -1156,7 +1156,6 @@ def halaman_utama():
                 st.session_state.temp_search = user_input 
                 ganti_halaman('Pencarian AI')
                 st.rerun()
-
 
             # =========================================================
             # AKSES CEPAT (DESAIN IDENTIK GAMBAR + TOMBOL GAIB)
