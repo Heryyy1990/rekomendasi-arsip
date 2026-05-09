@@ -5,3 +5,4 @@ Sastrawi
 scikit-learn
 groq
 rank_bm25
+plotly
