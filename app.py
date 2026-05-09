@@ -1081,7 +1081,7 @@ def halaman_utama():
             div[data-testid="stHorizontalBlock"]:nth-of-type(1) {
                 
                 /* 👇 UBAH ANGKA INI JIKA MASIH KURANG PAS 👇 */
-                /* Semakin besar minusnya (misal -80px, -90px), dia akan SEMAKIN NAIK. */
+                /* Semakin besar minusnya (misal -120px, -130px), dia akan SEMAKIN NAIK. */
                 margin-top: -65px !important; 
                 
                 /* Posisi Kanan yang sudah pas tidak saya sentuh */
