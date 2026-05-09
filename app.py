@@ -1203,7 +1203,7 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            st.markdown('<div class="section-title">⚡ Akses Cepat</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title"> Akses Cepat</div>', unsafe_allow_html=True)
             
             # Membuat 3 Kolom untuk Menu
             col1, col2, col3 = st.columns(3)
