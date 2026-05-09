@@ -1414,6 +1414,66 @@ def halaman_utama():
             st.markdown('<div class="section-title">🤖 Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
             st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
+            # =========================================================
+            # CSS KHUSUS UNTUK MEMPERCANTIK HASIL PENCARIAN & FEEDBACK
+            # =========================================================
+            st.markdown("""
+            <style>
+            /* 1. Bersihkan Kotak Expander (Hasil Pencarian) */
+            div[data-testid="stExpander"] {
+                border: 1px solid #E2E8F0 !important;
+                border-radius: 12px !important;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02) !important;
+                background: #FFFFFF !important;
+                margin-bottom: 15px !important;
+                overflow: hidden !important;
+            }
+            /* 2. Percantik Header Expander */
+            div[data-testid="stExpander"] summary {
+                padding: 15px 20px !important;
+                background: #F8FAFC !important;
+                border-bottom: 1px solid #E2E8F0 !important;
+            }
+            div[data-testid="stExpander"] summary p {
+                font-weight: 700 !important;
+                color: #0F172A !important;
+                font-size: 1.05rem !important;
+                font-family: 'Poppins', sans-serif !important;
+            }
+            /* 3. Beri Ruang Lega di Dalam Expander Agar Tidak Tumpang Tindih */
+            div[data-testid="stExpanderDetails"] {
+                padding: 25px 20px !important;
+                display: flex;
+                flex-direction: column;
+                gap: 10px; /* Jarak aman antar elemen */
+            }
+            
+            /* 4. Desain Kotak Feedback */
+            .feedback-wrapper {
+                background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%);
+                border: 1px dashed #BAE6FD;
+                border-radius: 16px;
+                padding: 20px;
+                text-align: center;
+                margin-top: 35px;
+                box-shadow: 0 4px 10px rgba(0, 157, 255, 0.05);
+            }
+            .feedback-title {
+                font-size: 0.95rem;
+                font-weight: 700;
+                color: #0F172A;
+                margin-bottom: 15px;
+                font-family: 'Poppins', sans-serif !important;
+            }
+            /* Rapikan tombol feedback bawaan streamlit */
+            .feedback-wrapper button {
+                border-radius: 8px !important;
+                font-weight: 600 !important;
+                border: 1px solid #E2E8F0 !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
             default_val = st.session_state.pop('temp_search', '') 
             user_input = st.text_input("Ketik perihal surat:", value=default_val, placeholder="Contoh: penyusunan rencana kerja anggaran...", key="input_halaman_ai")
 
@@ -1424,16 +1484,42 @@ def halaman_utama():
 
                 with st.spinner('AI sedang membedah dokumen Anda...'):
                     results = smart_classify(user_input, df)
+                    
                     if results:
-                        st.success("✨ Analisis selesai! Berikut rekomendasi untuk dokumen Anda:")
+                        # BANNER SUKSES KUSTOM (Ganti st.success bawaan yang kaku)
+                        st.markdown("""
+                        <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:center; gap:10px;">
+                            <span class="material-symbols-rounded" style="color:#009DFF;">check_circle</span>
+                            <div><span style="font-weight: 700; color: #0369A1;">Analisis Selesai!</span> <span style="color:#0F172A; font-size:0.95rem;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</span></div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # LOOPING HASIL PENCARIAN
                         for i, (idx, score) in enumerate(results):
                             res = df.iloc[idx]
-                            with st.expander(f"🏅 Kode {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                                st.markdown(f"**Uraian:** {res['uraian'].title()}")
+                            with st.expander(f"🏅 KODE {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
+                                # Tampilkan Uraian Utama
+                                st.markdown(f"<div style='font-size:1.15rem; font-weight:700; color:#009DFF; margin-bottom:15px; line-height:1.4;'>{res['uraian'].title()}</div>", unsafe_allow_html=True)
+                                
+                                # Tampilkan Struktur Hierarki
+                                st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#64748B; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;'>JALUR HIERARKI KODE:</div>", unsafe_allow_html=True)
                                 hierarki = get_hierarchy(res['kode'], df)
-                                for h in hierarki: st.markdown(h, unsafe_allow_html=True)
+                                for h in hierarki: 
+                                    st.markdown(h, unsafe_allow_html=True)
+                                    
+                        # --- FITUR FEEDBACK ---
+                        st.markdown('<div class="feedback-wrapper"><div class="feedback-title">Apakah hasil pencarian AI ini membantu Anda?</div>', unsafe_allow_html=True)
+                        col_fb1, col_fb2, col_fb3, col_fb4 = st.columns([2, 1.5, 1.5, 2])
+                        with col_fb2:
+                            if st.button("👍 Ya, Membantu", key=f"fb_yes_{user_input}", use_container_width=True):
+                                st.success("Terima kasih atas respons Anda! Logika AI akan terus kami pertahankan.")
+                        with col_fb3:
+                            if st.button("👎 Tidak Cocok", key=f"fb_no_{user_input}", use_container_width=True):
+                                st.info("Terima kasih masukannya! Kami akan melatih AI ini agar lebih pintar lagi.")
+                        st.markdown('</div>', unsafe_allow_html=True)
+
                     else:
-                        st.warning("Tidak ditemukan klasifikasi yang cocok.")
+                        st.warning("Maaf, tidak ditemukan klasifikasi yang cocok dengan kata kunci tersebut.")
 
         # --- HALAMAN 3: JELAJAH KODE ---
         elif st.session_state.page == 'Jelajah Kode':
