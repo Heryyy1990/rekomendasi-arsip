@@ -1435,18 +1435,29 @@ def halaman_utama():
                 border-bottom: 1px solid #E2E8F0 !important;
                 display: flex !important;
                 align-items: center !important;
+                justify-content: space-between !important;
             }
             div[data-testid="stExpander"] summary p {
                 font-weight: 700 !important;
                 color: #0F172A !important;
                 font-size: 1.05rem !important;
                 font-family: 'Poppins', sans-serif !important;
-                flex-grow: 1 !important; 
-                margin-right: 30px !important; /* Jarak aman agar tidak menabrak icon panah */
+                margin: 0 !important;
             }
-            /* Sembunyikan teks bocor "arrow" dari icon bawaan Streamlit */
-            div[data-testid="stExpander"] summary svg text {
+            
+            /* JURUS PAMUNGKAS ANTI-HANTU (Membunuh teks 'arrow') */
+            /* 1. Kembalikan font panah ke font asli sistem (Jangan pakai Material Symbols) */
+            div[data-testid="stExpander"] summary svg {
+                font-family: sans-serif !important;
+            }
+            
+            /* 2. Sembunyikan elemen teks apapun yang menyusup di dalam SVG panah */
+            div[data-testid="stExpander"] summary svg text,
+            div[data-testid="stExpander"] summary svg tspan {
                 display: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                font-size: 0 !important;
             }
             
             /* 3. Beri Ruang Lega di Dalam Expander Agar Tidak Tumpang Tindih */
