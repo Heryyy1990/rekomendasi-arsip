@@ -1076,18 +1076,22 @@ def halaman_utama():
             .search-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; font-family: 'Poppins', sans-serif !important;}
             
             /* ========================================================= */
-            /* 3. PENGATUR POSISI (Naik & Center Kanan)                  */
+            /* 3. PENGATUR POSISI (Transform dihapus agar Center Otomatis) */
             /* ========================================================= */
             div[data-testid="stHorizontalBlock"]:has(input) {
-                margin-top: -120px !important; 
+                margin-top: -115px !important; 
                 
-                /* INI YANG SAYA PERBAIKI: Dorongan ke kanan saya perbesar jadi 45px */
-                transform: translateX(45px) !important; 
+                /* TRANSFORM TRANSLATEX TELAH DIHAPUS SEPENUHNYA! */
                 
-                width: 100% !important; max-width: 580px !important; 
-                margin-left: auto !important; margin-right: auto !important;
+                /* Auto Center yang benar */
+                width: 100% !important; 
+                max-width: 540px !important; /* Dikecilkan sedikit agar pasti muat di dalam background 600px */
+                margin-left: auto !important; 
+                margin-right: auto !important;
+                
                 position: relative; z-index: 99;
                 align-items: center !important; 
+                gap: 5px !important; /* Jarak antara kotak input dan tombol dirapatkan */
             }
             
             /* Desain Input Streamlit (Memaksa tinggi 48px) */
@@ -1103,7 +1107,7 @@ def halaman_utama():
             /* 4. DESAIN ICON KACA PEMBESAR MODERN + ANIMASI SELURUH TOMBOL */
             @keyframes floatButton {
                 0% { transform: translateY(0px); box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important; }
-                50% { transform: translateY(-6px); box-shadow: 0 8px 18px rgba(0, 114, 255, 0.5) !important; } /* Kotaknya naik secara keseluruhan */
+                50% { transform: translateY(-6px); box-shadow: 0 8px 18px rgba(0, 114, 255, 0.5) !important; } 
                 100% { transform: translateY(0px); box-shadow: 0 4px 10px rgba(0, 114, 255, 0.3) !important; }
             }
 
@@ -1132,7 +1136,7 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            # HTML BANNER UTAMA (Sisanya tetap sama)
+            # HTML BANNER UTAMA 
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
