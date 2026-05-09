@@ -1270,7 +1270,7 @@ def halaman_utama():
             
             /* Gaya baru untuk Nama Panjang Pengguna */
             .hero-user-name { 
-                font-size: clamp(0.8rem, 5vw, 1rem); 
+                font-size: clamp(0.8rem, 5vw, 2rem); 
                 font-weight: 900; 
                 color: #0F172A; 
                 line-height: 1.1;
