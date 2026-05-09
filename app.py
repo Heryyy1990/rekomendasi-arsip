@@ -1546,8 +1546,52 @@ def halaman_utama():
 
         # --- HALAMAN 3: JELAJAH KODE ---
         elif st.session_state.page == 'Jelajah Kode':
-            st.markdown('<div class="section-title">📁 Jelajah Kode Klasifikasi</div>', unsafe_allow_html=True)
+            # Judul dengan icon modern menyesuaikan sidebar
+            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">folder</span> Jelajah Kode Klasifikasi</div>', unsafe_allow_html=True)
             st.write("Telusuri seluruh struktur hierarki klasifikasi arsip secara manual.")
+            
+            # =========================================================
+            # CSS ANTI-HANTU & DESAIN KOTAK EXPANDER SERAGAM
+            # =========================================================
+            st.markdown("""
+            <style>
+            div[data-testid="stExpander"] {
+                border: 2px solid rgba(0, 157, 255, 0.6) !important;
+                border-radius: 16px !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important;
+                background: #FFFFFF !important;
+                margin-bottom: 15px !important;
+                overflow: hidden !important;
+            }
+            div[data-testid="stExpander"] summary {
+                padding: 15px 20px !important;
+                background: #F8FAFC !important;
+                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important;
+                border-radius: 16px 16px 0 0 !important;
+                font-size: 0px !important; /* JURUS ANTI HANTU TULISAN ARROW */
+                color: transparent !important;
+            }
+            div[data-testid="stExpander"] summary p {
+                font-weight: 700 !important;
+                color: #0F172A !important;
+                font-size: 1.05rem !important;
+                font-family: 'Poppins', sans-serif !important;
+                margin: 0 !important;
+            }
+            div[data-testid="stExpander"] summary svg {
+                color: #64748B !important;
+                width: 24px !important;
+                height: 24px !important;
+            }
+            div[data-testid="stExpanderDetails"] {
+                padding: 25px 20px !important;
+            }
+            /* Hilangkan panah default bawaan HTML pada struktur pohon */
+            details > summary::marker, details > summary::-webkit-details-marker {
+                display: none;
+            }
+            </style>
+            """, unsafe_allow_html=True)
             
             import re
             daftar_primer = [f"{i}00" for i in range(10)]
@@ -1556,7 +1600,8 @@ def halaman_utama():
                 cek_df = df[df['kode'] == p]
                 uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
                 
-                with st.expander(f"📁 RUMPUN {p} - {uraian_primer}"):
+                # Menggunakan simbol chevron kekinian seperti halaman AI
+                with st.expander(f"❯ RUMPUN {p} - {uraian_primer}"):
                     hasil_filter = df[df['kode'].str.startswith(p)]
                     
                     if not hasil_filter.empty:
@@ -1606,19 +1651,23 @@ def halaman_utama():
                             titik_count = str(k).count('.')
                             actual_level = titik_count if titik_count < 4 else 3
                             
-                            warna_level = ["#B71C1C", "#1565C0", "#2E7D32", "#E65100"]
+                            # PERUBAHAN WARNA MUDA & DESAIN MODERN
+                            warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B"]
                             warna_bg = warna_level[actual_level]
                             levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
                             label = levels_name[actual_level]
                             
+                            badge_style = f"background-color: {warna_bg}; color: #ffffff; padding: 6px 14px; border-radius: 16px; font-weight: normal; font-size: 0.95em; display: inline-flex; align-items: center; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);"
+                            icon_html = "<span class='material-symbols-rounded' style='font-size: 1.15em; margin-right: 6px;'>folder</span>"
+                            
                             html = ""
                             if children:
-                                html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
+                                html += f'<details style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><span style="{badge_style}"><strong>{icon_html}{k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8; margin-left: 6px;">({label})</i></span></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #ccc; padding-top: 8px;">'
                                 for c in children:
                                     html += render_tree(c)
                                 html += '</div></details>'
                             else:
-                                html += f'<div style="margin-bottom: 8px;"><span style="background-color: {warna_bg}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: normal; font-size: 0.95em; display: inline-block; box-shadow: 0px 2px 4px rgba(0,0,0,0.2);"><strong>📁 {k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8;">({label})</i></span></div>'
+                                html += f'<div style="margin-bottom: 8px;"><span style="{badge_style}"><strong>{icon_html}{k}</strong> &nbsp;|&nbsp; {u} <i style="opacity: 0.8; margin-left: 6px;">({label})</i></span></div>'
                             return html
                             
                         if p in nodes:
