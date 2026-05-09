@@ -1563,32 +1563,39 @@ def halaman_utama():
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
-            div[data-testid="stExpander"] summary {
+            
+            /* KUNCI PERBAIKAN: Tanda "> details >" ini wajib ada agar anak-cucunya tidak ikut kena tembak jurus 0px! */
+            div[data-testid="stExpander"] > details > summary {
                 padding: 15px 20px !important;
                 background: #F8FAFC !important;
                 border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important;
                 border-radius: 16px 16px 0 0 !important;
-                font-size: 0px !important; /* JURUS ANTI HANTU TULISAN ARROW */
+                font-size: 0px !important; /* JURUS ANTI HANTU (Aman, cuma buat Bapaknya) */
                 color: transparent !important;
             }
-            div[data-testid="stExpander"] summary p {
+            
+            div[data-testid="stExpander"] > details > summary p {
                 font-weight: 700 !important;
                 color: #0F172A !important;
                 font-size: 1.05rem !important;
                 font-family: 'Poppins', sans-serif !important;
                 margin: 0 !important;
             }
-            div[data-testid="stExpander"] summary svg {
+            
+            div[data-testid="stExpander"] > details > summary svg {
                 color: #64748B !important;
                 width: 24px !important;
                 height: 24px !important;
             }
+            
             div[data-testid="stExpanderDetails"] {
                 padding: 25px 20px !important;
             }
-            /* Hilangkan panah default bawaan HTML pada struktur pohon */
-            details > summary::marker, details > summary::-webkit-details-marker {
-                display: none;
+            
+            /* Sembunyikan panah default HTML yg jelek di anak cucu */
+            details.anak-cucu > summary::marker, 
+            details.anak-cucu > summary::-webkit-details-marker {
+                display: none !important;
             }
             </style>
             """, unsafe_allow_html=True)
