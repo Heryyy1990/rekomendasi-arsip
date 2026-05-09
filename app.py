@@ -1421,9 +1421,9 @@ def halaman_utama():
             <style>
             /* 1. Bersihkan Kotak Expander (Hasil Pencarian) */
             div[data-testid="stExpander"] {
-                border: 1px solid #E2E8F0 !important;
+                border: 2px solid rgba(0, 157, 255, 0.6) !important; /* <--- OUTLINE BIRU KEKINIAN */
                 border-radius: 16px !important;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.02) !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; /* <--- GLOW BIRU HALUS */
                 background: #FFFFFF !important;
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
@@ -1433,7 +1433,7 @@ def halaman_utama():
             div[data-testid="stExpander"] summary {
                 padding: 15px 20px !important;
                 background: #F8FAFC !important;
-                border-bottom: 1px solid #E2E8F0 !important;
+                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important;
                 border-radius: 16px 16px 0 0 !important;
                 
                 /* JURUS PAMUNGKAS: Jadikan semua ukuran teks di sini 0 agar teks hantu lenyap */
