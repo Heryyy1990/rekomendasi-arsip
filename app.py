@@ -1426,8 +1426,10 @@ def halaman_utama():
 """, unsafe_allow_html=True)
             
             # FORM PENCARIAN 
-            with st.container():
+            col_in, col_btn = st.columns([5, 1])
+            with col_in:
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
+            with col_btn:
                 btn_cari = st.button("🔍", key="btn_cari_beranda")
 
             if user_input or btn_cari:
@@ -1441,7 +1443,7 @@ def halaman_utama():
             
             st.markdown("""
             <style>
-            .section-title { font-weight: 700; color: var(--text-title); font-size: 2rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
+            .section-title { font-weight: 700; color: #009DFF; font-size: 2rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
             
             /* Wadah utama kartu */
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
@@ -1483,9 +1485,9 @@ def halaman_utama():
             /* ========================================================= */
             .saas-card {
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: var(--sidebar-bg); border: 1px solid var(--card-border); border-radius: 16px;
+                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); border: 1px solid #E2E8F0; border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
-                box-shadow: var(--card-shadow); 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
                 transition: all 0.3s ease !important; /* Paksa transisi agar mulus */
                 z-index: 1;
             }
@@ -1494,69 +1496,14 @@ def halaman_utama():
                 width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
             }
-            .bg-blue { background-color: rgba(0, 157, 255, 0.15); color: #009DFF; }
-            .bg-orange { background-color: rgba(249, 115, 22, 0.15); color: #F97316; }
-            .bg-purple { background-color: rgba(168, 85, 247, 0.15); color: #A855F7; }
+            .bg-blue { background-color: #F0F9FF; color: #009DFF; }
+            .bg-orange { background-color: #FFF7ED; color: #F97316; }
+            .bg-purple { background-color: #FAF5FF; color: #A855F7; }
 
             .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
             .saas-card-title { font-weight: 700; color: #FFFFFF; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
-            .saas-card-desc { font-size: 0.8rem; color: #E2E8F0; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
+            .saas-card-desc { font-size: 0.8rem; color: #F1F5F9; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
-
-            /* ========================================================= */
-            /* JURUS SAKTI PAMUNGKAS (THE FINAL GOD MODE)                */
-            /* ========================================================= */
-            @media screen and (max-width: 768px) {
-                .hero-banner { padding: 30px 10px; border-radius: 16px; }
-                .search-card-bg { padding: 15px 15px 95px 15px; border-radius: 12px; }
-                
-                /* Target Utama: Container yang membungkus Input & Tombol */
-                [data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) {
-                    margin-top: -105px !important; /* Tarik naik ke kotak biru */
-                    position: relative !important;
-                    display: block !important; /* Kita atur manual posisinya */
-                    width: 90% !important;
-                    margin-left: auto !important;
-                    margin-right: auto !important;
-                }
-
-                /* PAKSA INPUT MELEBAR */
-                div:has(> input[key="input_beranda"]) {
-                    width: calc(100% - 58px) !important; /* Sisakan 58px untuk tombol */
-                    display: inline-block !important;
-                    vertical-align: middle !important;
-                }
-
-                /* PAKSA TOMBOL NAIK KE SAMPING INPUT (POSISI ABSOLUT) */
-                div:has(> button[key="btn_cari_beranda"]) {
-                    display: inline-block !important;
-                    width: 50px !important;
-                    position: absolute !important;
-                    right: 0 !important;
-                    top: 0 !important;
-                }
-
-                /* Samakan tinggi dan visual */
-                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: center !important;
-                    gap: 15px !important;
-                    margin-top: -115px !important; /* Tarikan PC tetap kuat */
-                }    
-
-                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) > div:first-child {
-                    flex: 5 !important; /* Input lebih lebar di PC */
-                }
-
-                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:last-child {
-                    flex: 1 !important; /* Tombol menyesuaikan di PC */
-                }
-                /* Merapikan Akses Cepat */
-                .card-container { height: 120px; }
-                .element-container:has(.card-container) + .element-container { margin-top: -130px !important; }
-                .element-container:has(.card-container) + .element-container button { height: 120px !important; }
-            }
             </style>
             """, unsafe_allow_html=True)
 
