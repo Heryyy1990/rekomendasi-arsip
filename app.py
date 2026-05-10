@@ -208,6 +208,7 @@ def halaman_login():
                 st.session_state['logged_in'] = True
                 st.session_state['role'] = role
                 st.session_state['nama'] = nama
+                st.session_state['username'] = user_input
                 st.session_state.search_history = baca_riwayat_csv(nama)
                 st.rerun()
             else:
@@ -1270,19 +1271,6 @@ def halaman_utama():
                 
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
-            # Profil User Info
-            st.markdown(f"""
-            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:rgba(255,255,255,0.1); border-radius:10px; border:1px solid rgba(255,255,255,0.2); margin-bottom: 10px;">
-                <div style="width:35px; height:35px; background:#FFFFFF; color:#009DFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
-                    {nama_user[0:2].upper()}
-                </div>
-                <div>
-                    <div style="font-size:0.85rem; font-weight:700; color:#FFFFFF;">{nama_user}</div>
-                    <div style="font-size:0.7rem; color:#E2E8F0;">{role_user.title()}</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
             # Tombol Profil Modern
             st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">manage_accounts</span><span>Profil Saya</span></div>', unsafe_allow_html=True)
             if st.button(" ", key="sb_profil", width="stretch"):
@@ -2043,30 +2031,49 @@ def halaman_utama():
         elif st.session_state.page == 'Profil Saya':
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">manage_accounts</span> Pengaturan Profil</div>', unsafe_allow_html=True)
             
-            # Bagian Ganti Password (Gaya Modern)
-            st.markdown('<div style="display:flex; align-items:center; gap:8px; margin-top:20px; margin-bottom:10px;"><span class="material-symbols-rounded" style="color:#475569; font-size:1.4rem;">lock_reset</span><span style="font-weight:700; color:#0F172A; font-size:1.1rem; font-family:\'Poppins\';">Ganti Kata Sandi</span></div>', unsafe_allow_html=True)
+            # Form Pengaturan Akun
+            st.markdown('<div style="display:flex; align-items:center; gap:8px; margin-top:20px; margin-bottom:10px;"><span class="material-symbols-rounded" style="color:#475569; font-size:1.4rem;">person_edit</span><span style="font-weight:700; color:#0F172A; font-size:1.1rem; font-family:\'Poppins\';">Ubah Data Pengguna</span></div>', unsafe_allow_html=True)
             
             with st.container():
+                # Input Data
+                nama_baru = st.text_input("Nama Lengkap", value=st.session_state['nama'])
+                role_pilihan = st.selectbox("Role / Jabatan", ["admin", "user"], index=0 if st.session_state['role'] == "admin" else 1)
+                
+                st.markdown("<hr style='margin: 20px 0; opacity: 0.1;'>", unsafe_allow_html=True)
+                st.caption("Biarkan kosong jika tidak ingin mengubah kata sandi")
                 pass_baru = st.text_input("Kata Sandi Baru", type="password")
                 konfirmasi_pass = st.text_input("Konfirmasi Kata Sandi Baru", type="password")
                 
-                if st.button("Simpan Kata Sandi", type="primary"):
-                    if pass_baru and pass_baru == konfirmasi_pass:
-                        df_users = pd.read_csv('pengguna.csv')
-                        df_users.loc[df_users['nama_lengkap'] == st.session_state['nama'], 'password'] = pass_baru
-                        
-                        df_users.to_csv('pengguna.csv', index=False)
-                        sync_to_drive('pengguna.csv')
-                        
-                        st.markdown('<div style="background:#D1FAE5; border-left:4px solid #10B981; padding:12px; border-radius:8px; display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#10B981;">check_circle</span><span style="color:#064E3B; font-size:0.9rem;">Kata sandi berhasil diperbarui!</span></div>', unsafe_allow_html=True)
+                if st.button("Simpan Perubahan Profil", type="primary", width="stretch"):
+                    if pass_baru and pass_baru != konfirmasi_pass:
+                        st.markdown('<div style="background:#FEE2E2; border-left:4px solid #EF4444; padding:12px; border-radius:8px; display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#EF4444;">error</span><span style="color:#7F1D1D; font-size:0.9rem;">Kata sandi tidak cocok.</span></div>', unsafe_allow_html=True)
                     else:
-                        st.markdown('<div style="background:#FEE2E2; border-left:4px solid #EF4444; padding:12px; border-radius:8px; display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#EF4444;">error</span><span style="color:#7F1D1D; font-size:0.9rem;">Kata sandi tidak cocok atau kosong.</span></div>', unsafe_allow_html=True)
-            
-            # Bagian Statistik Pribadi (Gaya Modern)
+                        # Proses Update Database
+                        df_users = pd.read_csv('pengguna.csv', dtype=str)
+                        # Cari baris berdasarkan username yang unik
+                        mask = df_users['username'] == st.session_state['username']
+                        
+                        if not df_users[mask].empty:
+                            df_users.loc[mask, 'nama_lengkap'] = nama_baru
+                            df_users.loc[mask, 'role'] = role_pilihan
+                            if pass_baru:
+                                df_users.loc[mask, 'password'] = pass_baru
+                            
+                            # Simpan Permanen
+                            df_users.to_csv('pengguna.csv', index=False)
+                            sync_to_drive('pengguna.csv')
+                            
+                            # Update Session State agar tampilan langsung berubah
+                            st.session_state['nama'] = nama_baru
+                            st.session_state['role'] = role_pilihan
+                            
+                            st.markdown('<div style="background:#D1FAE5; border-left:4px solid #10B981; padding:12px; border-radius:8px; display:flex; align-items:center; gap:8px; margin-top:10px;"><span class="material-symbols-rounded" style="color:#10B981;">check_circle</span><span style="color:#064E3B; font-size:0.9rem;">Profil berhasil diperbarui!</span></div>', unsafe_allow_html=True)
+                            st.rerun()
+
+            # Statistik (Tetap dipertahankan di bawah)
             st.markdown('<div style="display:flex; align-items:center; gap:8px; margin-top:40px; margin-bottom:10px;"><span class="material-symbols-rounded" style="color:#475569; font-size:1.4rem;">trending_up</span><span style="font-weight:700; color:#0F172A; font-size:1.1rem; font-family:\'Poppins\';">Statistik Penggunaan</span></div>', unsafe_allow_html=True)
             riwayat_pribadi = baca_riwayat_csv(st.session_state['nama'])
             
-            # Kartu Statistik Ala Dashboard
             st.markdown(f"""
             <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 20px; border-radius: 16px; display:flex; align-items:center; gap:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 400px;">
                 <div style="background: #E0F2FE; width: 54px; height: 54px; border-radius: 14px; display:flex; align-items:center; justify-content:center;">
