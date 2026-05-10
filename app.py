@@ -1515,46 +1515,52 @@ def halaman_utama():
                 .hero-user-name { font-size: 1.3rem; margin-bottom: 10px; }
                 .hero-subtitle { font-size: 0.85rem; margin-bottom: 20px; }
                 
-                /* 2. Perkecil Kotak Background Biru Gelap */
-                .search-card-bg { padding: 15px 15px 75px 15px; border-radius: 12px; }
+                /* 2. Perkecil Kotak Background Biru Gelap (Ruang bawah ditambah) */
+                .search-card-bg { padding: 15px 15px 85px 15px; border-radius: 12px; } 
                 .search-title { font-size: 0.95rem; }
                 
                 /* ===================================================== */
-                /* 3. JURUS ABSOLUTE BRUTE FORCE (MENGALAHKAN STREAMLIT) */
+                /* 3. KUNCI MATI UKURAN TOMBOL & TARIK KE ATAS           */
                 /* ===================================================== */
                 div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -85px !important; 
-                    transform: none !important; 
-                    width: 90% !important; /* Lebar keseluruhan area pencarian di HP */
-                    margin-left: 5% !important; /* Pusatkan ke tengah secara absolut */
+                    margin-top: -105px !important; /* Ditarik LEBIH NAIK ke atas lagi! */
+                    width: 90% !important; 
+                    margin-left: 5% !important; 
+                    margin-right: auto !important; 
+                    transform: none !important;
                     
-                    /* Flexbox yang tidak bisa dibantah */
                     display: flex !important;
                     flex-direction: row !important;
                     flex-wrap: nowrap !important;
-                    gap: 10px !important;
+                    gap: 8px !important; /* Jarak aman input dan tombol */
                     align-items: center !important;
                 }
                 
-                /* KOLOM 1: INPUT BOX (Paksa melar dengan perhitungan pasti) */
-                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:first-child { 
-                    width: calc(100% - 60px) !important; /* 100% dikurangi lebar tombol(50) dan gap(10) */
-                    min-width: 0 !important;
+                /* KOLOM 1: INPUT BOX (Disuruh ngalah ambil sisa ruang saja) */
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) { 
                     flex: 1 1 auto !important; 
-                    margin: 0 !important;
+                    width: 100% !important;
+                    min-width: 0 !important; /* WAJIB NOL agar tidak menggencet tombol */
                 }
                 
-                /* KOLOM 2: TOMBOL CARI (Kunci mati di 50px) */
-                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:last-child { 
-                    width: 50px !important; 
-                    min-width: 50px !important;
-                    flex: 0 0 50px !important; 
-                    margin: 0 !important;
+                /* KOLOM 2: TOMBOL CARI (DIKUNCI MATI 52px) */
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) { 
+                    flex: 0 0 52px !important; /* Dilarang keras membesar/mengecil */
+                    width: 52px !important; 
+                    min-width: 52px !important;
+                    max-width: 52px !important;
                 }
                 
-                /* Samakan tinggi input dan tombol ke ukuran absolut */
-                div[data-testid="stHorizontalBlock"]:has(input) button { height: 48px !important; padding: 0 !important; width: 100% !important; }
-                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { height: 48px !important; width: 100% !important; }
+                /* Samakan tinggi input dan tombol */
+                div[data-testid="stHorizontalBlock"]:has(input) button { 
+                    height: 52px !important; 
+                    padding: 0 !important; 
+                    width: 100% !important; 
+                    border-radius: 8px !important; 
+                }
+                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { 
+                    height: 52px !important; 
+                }
                 
                 /* ===================================================== */
                 /* 4. Rapikan Kartu Akses Cepat */
