@@ -63,14 +63,17 @@ def sync_to_drive(file_name):
         file_metadata = {'name': file_name, 'parents': [folder_id]}
         drive_service.files().create(body=file_metadata, media_body=media).execute()
 
-# Menjalankan unduhan otomatis HANYA jika file lokal hilang akibat Streamlit restart
+# Menjalankan unduhan dari GDrive SATU KALI saja untuk data dinamis
 def initial_sync():
-    if not os.path.exists('pengguna.csv'):
+    # Gunakan session_state agar tidak tertipu oleh file bawaan GitHub saat restart
+    if 'drive_synced' not in st.session_state:
+        # Hanya sedot data dinamis dari Google Drive
         sync_from_drive('pengguna.csv')
-    if not os.path.exists('klasifikasi_arsip_emas.csv'):
-        sync_from_drive('klasifikasi_arsip_emas.csv')
-    if not os.path.exists('riwayat_pencarian.csv'):
         sync_from_drive('riwayat_pencarian.csv')
+        sync_from_drive('feedback_ai.csv') # <--- Ini dia langkah keduanya
+        
+        # Tandai sinkronisasi selesai
+        st.session_state['drive_synced'] = True
 
 initial_sync()
 # ====================================================
@@ -119,6 +122,19 @@ def baca_riwayat_csv(nama_user):
         except:
             return []
     return []
+
+# --- FUNGSI FEEDBACK PEMBELAJARAN AI (CSV) ---
+def simpan_feedback_csv(nama_user, input_user, kode_terpilih):
+    file_feedback = 'feedback_ai.csv'
+    waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'perihal': [input_user], 'kode_terpilih': [kode_terpilih]})
+    
+    if not os.path.exists(file_feedback):
+        df_baru.to_csv(file_feedback, index=False)
+    else:
+        df_baru.to_csv(file_feedback, mode='a', header=False, index=False)
+
+    sync_to_drive(file_feedback)
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
@@ -1636,8 +1652,8 @@ def halaman_utama():
                         for i, col in enumerate(cols):
                             with col:
                                 if st.button(f"Pilih Kode {rekomendasi_kode[i]}", key=f"fb_pilih_{rekomendasi_kode[i]}_{user_input}", use_container_width=True):
+                                    simpan_feedback_csv(st.session_state['nama'], user_input, rekomendasi_kode[i])
                                     st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {rekomendasi_kode[i]}** sebagai jawaban yang paling tepat. Pilihan ini akan terekam di sistem kami.")
-                        
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     else:
