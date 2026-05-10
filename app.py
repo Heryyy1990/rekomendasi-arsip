@@ -1437,75 +1437,60 @@ def halaman_utama():
                 ganti_halaman('Pencarian AI')
                 st.rerun()
                 
-            # =========================================================
-            # 5. AKSES CEPAT (FINAL DENGAN ANIMASI SIBLING)
-            # =========================================================
-            
-            st.markdown("""
-            <style>
-            .section-title { font-weight: 700; color: #009DFF; font-size: 2rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
-            
-            /* Wadah utama kartu */
-            .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
-            
             /* ========================================================= */
-            /* JURUS TARIKAN KE ATAS                                     */
+            /* JURUS RESPONSIVE HP (ANTI RUSAK TAMPILAN PC)              */
             /* ========================================================= */
-            
-            /* 1. Tarik wadah tombol yang jatuh di bawah kartu NAIK KE ATAS (-170px) */
-            .element-container:has(.card-container) + .element-container {
-                margin-top: -170px !important; 
-                position: relative !important;
-                z-index: 10 !important;
-            }
-            
-            /* 2. Jadikan tombolnya transparan dan tingginya sama dengan kartu */
-            .element-container:has(.card-container) + .element-container button {
-                height: 160px !important;
-                width: 100% !important;
-                opacity: 0 !important;
-                cursor: pointer !important;
-                background: transparent !important;
-                border: none !important;
-            }
-            
-            /* ========================================================= */
-            /* 3. PERBAIKAN ANIMASI (Trik Sibling)                       */
-            /* ========================================================= */
-            /* "Jika tombol gaib sedang di-hover, angkat kartu yang ada sebelumnya!" */
-            .element-container:has(+ .element-container:hover) .saas-card,
-            div[data-testid="column"]:hover .saas-card {
-                border-color: #009DFF !important; 
-                box-shadow: 0 10px 25px rgba(0, 157, 255, 0.2) !important; 
-                transform: translateY(-5px) !important;
-            }
+            @media screen and (max-width: 768px) {
+                /* 1. Perkecil Teks & Banner */
+                .hero-banner { padding: 30px 10px; border-radius: 16px; }
+                .hero-user-name { font-size: 1.2rem; }
+                .search-card-bg { padding: 15px 15px 95px 15px; border-radius: 12px; }
+                
+                /* 2. PAKSA BARIS INPUT & TOMBOL BERDAMPINGAN DI HP */
+                /* Kita targetkan langsung pembungkus kolomnya */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) {
+                    margin-top: -110px !important; /* Tarik naik ke kotak biru */
+                    display: flex !important;
+                    flex-direction: row !important; /* Paksa satu baris */
+                    flex-wrap: nowrap !important; /* Haram hukumnya tumpah ke bawah */
+                    align-items: center !important;
+                    gap: 8px !important;
+                    width: 92% !important;
+                    margin-left: auto !important;
+                    margin-right: auto !important;
+                }
 
-            /* ========================================================= */
-            /* DESAIN VISUAL KARTU                                       */
-            /* ========================================================= */
-            .saas-card {
-                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); border: 1px solid #E2E8F0; border-radius: 16px;
-                padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-                transition: all 0.3s ease !important; /* Paksa transisi agar mulus */
-                z-index: 1;
-            }
+                /* Kolom Input (Ngalah, ambil sisa ruang) */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:nth-child(1) {
+                    flex: 1 1 auto !important;
+                    width: auto !important;
+                    min-width: 0 !important;
+                }
 
-            .saas-icon-box {
-                width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
-                display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
-            }
-            .bg-blue { background-color: #F0F9FF; color: #009DFF; }
-            .bg-orange { background-color: #FFF7ED; color: #F97316; }
-            .bg-purple { background-color: #FAF5FF; color: #A855F7; }
+                /* Kolom Tombol (Kunci mati ukuran kotak) */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:nth-child(2) {
+                    flex: 0 0 52px !important;
+                    width: 52px !important;
+                    min-width: 52px !important;
+                }
 
-            .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
-            .saas-card-title { font-weight: 700; color: #FFFFFF; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
-            .saas-card-desc { font-size: 0.8rem; color: #F1F5F9; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
-            .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
-            </style>
-            """, unsafe_allow_html=True)
+                /* Samakan tinggi tombol dan input agar rapi */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) button {
+                    height: 52px !important;
+                    width: 52px !important;
+                    padding: 0 !important;
+                    border-radius: 8px !important;
+                }
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) div[data-baseweb="input"] {
+                    height: 52px !important;
+                }
+
+                /* 3. Rapikan Akses Cepat */
+                .card-container { height: 120px; }
+                .saas-card { padding: 12px; gap: 8px; }
+                .element-container:has(.card-container) + .element-container { margin-top: -130px !important; }
+                .element-container:has(.card-container) + .element-container button { height: 120px !important; }
+            }
 
             st.markdown('<div class="section-title" style="text-align: center;"> Akses Cepat</div>', unsafe_allow_html=True)
             
