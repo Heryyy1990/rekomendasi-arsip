@@ -1520,35 +1520,33 @@ def halaman_utama():
                 .search-title { font-size: 0.95rem; }
                 
                 /* ===================================================== */
-                /* 3. PERBAIKAN FINAL KOTAK SEARCH (ANTI TUMPAH)         */
+                /* 3. JURUS GRID UNTUK MENGALAHKAN STREAMLIT MOBILE      */
                 /* ===================================================== */
                 div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -85px !important; /* Posisi naik ke atas kotak biru */
-                    transform: translateX(0px) !important; /* HAPUS geseran dari versi Desktop */
-                    width: 85% !important; /* Batasi lebar agar tidak tumpah ke pinggir layar */
+                    margin-top: -85px !important; 
+                    transform: none !important; 
+                    width: 85% !important; 
                     margin-left: auto !important; 
-                    margin-right: auto !important; /* Otomatis ke tengah */
+                    margin-right: auto !important; 
                     
-                    /* Paksa sejajar ke samping */
-                    display: flex !important;
-                    flex-direction: row !important;
-                    gap: 10px !important; /* Jarak antara input dan tombol */
+                    /* GANTI FLEX JADI GRID */
+                    display: grid !important;
+                    grid-template-columns: 1fr 50px !important; /* Kolom 1 bebas, Kolom 2 fix 50px */
+                    gap: 10px !important;
+                    align-items: center !important;
                 }
                 
-                /* Kolom 1 (Input Teks) - Biarkan dia mengisi sisa ruang yang ada */
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) { 
-                    flex: 1 !important; 
-                    width: auto !important; 
+                /* Hancurkan semua paksaan tumpuk/lebar 100% dari Streamlit */
+                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"] { 
+                    width: 100% !important; 
+                    min-width: 0 !important; 
+                    max-width: 100% !important;
+                    flex: none !important; /* Matikan sistem flex Streamlit */
+                    margin: 0 !important;
                 }
                 
-                /* Kolom 2 (Tombol Cari) - Kunci mati lebarnya di 50px */
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) { 
-                    flex: 0 0 50px !important; 
-                    width: 50px !important; 
-                }
-                
-                /* Samakan tinggi input dan tombol agar serasi */
-                div[data-testid="stHorizontalBlock"]:has(input) button { height: 48px !important; padding: 0 !important; }
+                /* Samakan tinggi input dan tombol */
+                div[data-testid="stHorizontalBlock"]:has(input) button { height: 48px !important; padding: 0 !important; width: 100% !important; }
                 div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { height: 48px !important; }
                 
                 /* ===================================================== */
