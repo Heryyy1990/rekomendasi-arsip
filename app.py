@@ -86,6 +86,8 @@ if 'role' not in st.session_state:
     st.session_state['role'] = None
 if 'nama' not in st.session_state:
     st.session_state['nama'] = ""
+if 'username' not in st.session_state:
+    st.session_state['username'] = ""
 if 'search_history' not in st.session_state:
     st.session_state.search_history = []
 
