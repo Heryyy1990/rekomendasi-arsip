@@ -1270,9 +1270,9 @@ def halaman_utama():
                 
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
-            # Profil User & Tombol Keluar
+            # Profil User Info
             st.markdown(f"""
-            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:rgba(255,255,255,0.1); border-radius:10px; border:1px solid rgba(255,255,255,0.2);">
+            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:rgba(255,255,255,0.1); border-radius:10px; border:1px solid rgba(255,255,255,0.2); margin-bottom: 10px;">
                 <div style="width:35px; height:35px; background:#FFFFFF; color:#009DFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
                     {nama_user[0:2].upper()}
                 </div>
@@ -1283,10 +1283,19 @@ def halaman_utama():
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("🚪 Keluar", use_container_width=True):
+            # Tombol Profil Modern
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">manage_accounts</span><span>Profil Saya</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_profil", width="stretch"):
+                ganti_halaman('Profil Saya')
+                st.rerun()
+
+            # Tombol Keluar Modern
+            st.markdown('<div class="sidebar-menu"><span class="material-symbols-rounded">logout</span><span>Keluar</span></div>', unsafe_allow_html=True)
+            if st.button(" ", key="sb_keluar", width="stretch"):
                 st.session_state['logged_in'] = False
                 st.session_state['role'] = None
                 st.session_state['nama'] = ""
+                st.session_state.search_history = [] # Bersihkan riwayat saat keluar
                 st.rerun()
 
         # ================= MAIN CONTENT (ROUTING) =================
@@ -2029,6 +2038,47 @@ def halaman_utama():
                 <strong>Status:</strong> Rilis Perdana
             </div>
             """, unsafe_allow_html=True)
+
+        # --- HALAMAN 8: PROFIL SAYA ---
+        elif st.session_state.page == 'Profil Saya':
+            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">manage_accounts</span> Pengaturan Profil</div>', unsafe_allow_html=True)
+            
+            # Bagian Ganti Password (Gaya Modern)
+            st.markdown('<div style="display:flex; align-items:center; gap:8px; margin-top:20px; margin-bottom:10px;"><span class="material-symbols-rounded" style="color:#475569; font-size:1.4rem;">lock_reset</span><span style="font-weight:700; color:#0F172A; font-size:1.1rem; font-family:\'Poppins\';">Ganti Kata Sandi</span></div>', unsafe_allow_html=True)
+            
+            with st.container():
+                pass_baru = st.text_input("Kata Sandi Baru", type="password")
+                konfirmasi_pass = st.text_input("Konfirmasi Kata Sandi Baru", type="password")
+                
+                if st.button("Simpan Kata Sandi", type="primary"):
+                    if pass_baru and pass_baru == konfirmasi_pass:
+                        df_users = pd.read_csv('pengguna.csv')
+                        df_users.loc[df_users['nama_lengkap'] == st.session_state['nama'], 'password'] = pass_baru
+                        
+                        df_users.to_csv('pengguna.csv', index=False)
+                        sync_to_drive('pengguna.csv')
+                        
+                        st.markdown('<div style="background:#D1FAE5; border-left:4px solid #10B981; padding:12px; border-radius:8px; display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#10B981;">check_circle</span><span style="color:#064E3B; font-size:0.9rem;">Kata sandi berhasil diperbarui!</span></div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div style="background:#FEE2E2; border-left:4px solid #EF4444; padding:12px; border-radius:8px; display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#EF4444;">error</span><span style="color:#7F1D1D; font-size:0.9rem;">Kata sandi tidak cocok atau kosong.</span></div>', unsafe_allow_html=True)
+            
+            # Bagian Statistik Pribadi (Gaya Modern)
+            st.markdown('<div style="display:flex; align-items:center; gap:8px; margin-top:40px; margin-bottom:10px;"><span class="material-symbols-rounded" style="color:#475569; font-size:1.4rem;">trending_up</span><span style="font-weight:700; color:#0F172A; font-size:1.1rem; font-family:\'Poppins\';">Statistik Penggunaan</span></div>', unsafe_allow_html=True)
+            riwayat_pribadi = baca_riwayat_csv(st.session_state['nama'])
+            
+            # Kartu Statistik Ala Dashboard
+            st.markdown(f"""
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 20px; border-radius: 16px; display:flex; align-items:center; gap:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 400px;">
+                <div style="background: #E0F2FE; width: 54px; height: 54px; border-radius: 14px; display:flex; align-items:center; justify-content:center;">
+                    <span class="material-symbols-rounded" style="color:#009DFF; font-size:2rem;">manage_search</span>
+                </div>
+                <div>
+                    <div style="color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:4px;">Total Pencarian AI</div>
+                    <div style="color: #0F172A; font-size: 1.6rem; font-weight: 800; line-height: 1;">{len(riwayat_pribadi)} <span style="font-size: 1rem; color: #475569; font-weight: 600;">kali</span></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memuat data: {e}")
