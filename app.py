@@ -1386,7 +1386,8 @@ def halaman_utama():
             }
             </style>
             """, unsafe_allow_html=True)
-
+            sapaan_dinamis = dapatkan_sapaan()
+            
             # HTML BANNER UTAMA 
             st.markdown(f"""
 <div class="hero-banner">
