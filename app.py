@@ -1049,11 +1049,11 @@ def dapatkan_sapaan():
     jam = waktu_sekarang.hour
 
     if 4 <= jam < 11:
-        return "Selamat Pagi"
+        return "Selamat Pagi,"
     elif 11 <= jam < 15:
-        return "Selamat Siang"
+        return "Selamat Siang,"
     elif 15 <= jam < 18:
-        return "Selamat Sore"
+        return "Selamat Sore,"
     else:
         return "Selamat Malam,"
 def halaman_utama():
