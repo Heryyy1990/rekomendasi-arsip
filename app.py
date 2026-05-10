@@ -1520,34 +1520,41 @@ def halaman_utama():
                 .search-title { font-size: 0.95rem; }
                 
                 /* ===================================================== */
-                /* 3. JURUS GRID UNTUK MENGALAHKAN STREAMLIT MOBILE      */
+                /* 3. JURUS ABSOLUTE BRUTE FORCE (MENGALAHKAN STREAMLIT) */
                 /* ===================================================== */
                 div[data-testid="stHorizontalBlock"]:has(input) {
                     margin-top: -85px !important; 
                     transform: none !important; 
-                    width: 85% !important; 
-                    margin-left: auto !important; 
-                    margin-right: auto !important; 
+                    width: 90% !important; /* Lebar keseluruhan area pencarian di HP */
+                    margin-left: 5% !important; /* Pusatkan ke tengah secara absolut */
                     
-                    /* GANTI FLEX JADI GRID */
-                    display: grid !important;
-                    grid-template-columns: 1fr 50px !important; /* Kolom 1 bebas, Kolom 2 fix 50px */
+                    /* Flexbox yang tidak bisa dibantah */
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
                     gap: 10px !important;
                     align-items: center !important;
                 }
                 
-                /* Hancurkan semua paksaan tumpuk/lebar 100% dari Streamlit */
-                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"] { 
-                    width: 100% !important; 
-                    min-width: 0 !important; 
-                    max-width: 100% !important;
-                    flex: none !important; /* Matikan sistem flex Streamlit */
+                /* KOLOM 1: INPUT BOX (Paksa melar dengan perhitungan pasti) */
+                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:first-child { 
+                    width: calc(100% - 60px) !important; /* 100% dikurangi lebar tombol(50) dan gap(10) */
+                    min-width: 0 !important;
+                    flex: 1 1 auto !important; 
                     margin: 0 !important;
                 }
                 
-                /* Samakan tinggi input dan tombol */
+                /* KOLOM 2: TOMBOL CARI (Kunci mati di 50px) */
+                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:last-child { 
+                    width: 50px !important; 
+                    min-width: 50px !important;
+                    flex: 0 0 50px !important; 
+                    margin: 0 !important;
+                }
+                
+                /* Samakan tinggi input dan tombol ke ukuran absolut */
                 div[data-testid="stHorizontalBlock"]:has(input) button { height: 48px !important; padding: 0 !important; width: 100% !important; }
-                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { height: 48px !important; }
+                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { height: 48px !important; width: 100% !important; }
                 
                 /* ===================================================== */
                 /* 4. Rapikan Kartu Akses Cepat */
