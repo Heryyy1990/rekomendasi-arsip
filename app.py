@@ -1055,7 +1055,7 @@ def dapatkan_sapaan():
     elif 15 <= jam < 18:
         return "Selamat Sore"
     else:
-        return "Selamat Malam"
+        return "Selamat Malam,"
 def halaman_utama():
     # INISIALISASI ROUTING HALAMAN
     if 'page' not in st.session_state:
