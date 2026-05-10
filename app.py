@@ -1519,47 +1519,41 @@ def halaman_utama():
                 .search-card-bg { padding: 15px 15px 75px 15px; border-radius: 12px; }
                 .search-title { font-size: 0.95rem; }
                 
-                /* 3. PERBAIKAN FINAL KOTAK SEARCH: PAKSA BARIS & KUNCI LEBAR */
+                /* ===================================================== */
+                /* 3. PERBAIKAN FINAL KOTAK SEARCH (ANTI TUMPAH)         */
+                /* ===================================================== */
                 div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -85px !important; /* Paskan posisi vertikal */
-                    width: calc(100% - 30px) !important; /* Paskan dengan padding kiri-kanan */
-                    margin-left: auto !important;
-                    margin-right: auto !important;
-                    transform: none !important;
+                    margin-top: -85px !important; /* Posisi naik ke atas kotak biru */
+                    transform: translateX(0px) !important; /* HAPUS geseran dari versi Desktop */
+                    width: 85% !important; /* Batasi lebar agar tidak tumpah ke pinggir layar */
+                    margin-left: auto !important; 
+                    margin-right: auto !important; /* Otomatis ke tengah */
                     
-                    /* Kunci agar tidak numpuk ke bawah */
+                    /* Paksa sejajar ke samping */
                     display: flex !important;
                     flex-direction: row !important;
-                    flex-wrap: nowrap !important;
-                    justify-content: center !important;
-                    align-items: center !important;
-                    gap: 10px !important;
+                    gap: 10px !important; /* Jarak antara input dan tombol */
                 }
                 
-                /* Kunci Kolom 1 (Input) agar mengambil sisa ruang dengan aman */
-                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:nth-of-type(1) { 
-                    width: calc(100% - 65px) !important; 
-                    flex: 1 1 auto !important;
-                    min-width: 0 !important; /* Mencegah input field menerobos batas */
+                /* Kolom 1 (Input Teks) - Biarkan dia mengisi sisa ruang yang ada */
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) { 
+                    flex: 1 !important; 
+                    width: auto !important; 
                 }
                 
-                /* Kunci Kolom 2 (Tombol) ukuran mutlak 55px */
-                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:nth-of-type(2) { 
-                    width: 55px !important; 
-                    flex: 0 0 55px !important; 
+                /* Kolom 2 (Tombol Cari) - Kunci mati lebarnya di 50px */
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) { 
+                    flex: 0 0 50px !important; 
+                    width: 50px !important; 
                 }
                 
-                /* Sesuaikan tinggi tombol agar sama persis dengan input */
-                div[data-testid="stHorizontalBlock"]:has(input) button { 
-                    height: 52px !important; 
-                    width: 100% !important;
-                    padding: 0 !important;
-                }
-                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { 
-                    height: 52px !important; 
-                }
+                /* Samakan tinggi input dan tombol agar serasi */
+                div[data-testid="stHorizontalBlock"]:has(input) button { height: 48px !important; padding: 0 !important; }
+                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { height: 48px !important; }
                 
+                /* ===================================================== */
                 /* 4. Rapikan Kartu Akses Cepat */
+                /* ===================================================== */
                 .card-container { height: 120px; margin-bottom: 15px;}
                 .saas-card { padding: 12px 15px; gap: 10px; }
                 .saas-icon-box { width: 40px; height: 40px; min-width: 40px; font-size: 1.3rem; }
