@@ -1287,7 +1287,7 @@ def halaman_utama():
             
             /* Gaya baru untuk Nama Panjang Pengguna */
             .hero-user-name { 
-                font-size: clamp(0.8rem, 5vw, 2rem); 
+                font-size: clamp(0.8rem, 5vw, 1,5rem); 
                 font-weight: 600; 
                 color: #0F172A; 
                 line-height: 1.1;
@@ -1404,7 +1404,7 @@ def halaman_utama():
             
             st.markdown("""
             <style>
-            .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
+            .section-title { font-weight: 700; color: #009DFF; font-size: 2rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
             
             /* Wadah utama kartu */
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
