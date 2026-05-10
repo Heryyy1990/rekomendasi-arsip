@@ -1426,10 +1426,8 @@ def halaman_utama():
 """, unsafe_allow_html=True)
             
             # FORM PENCARIAN 
-            col_in, col_btn = st.columns([5, 1])
-            with col_in:
+            with st.container():
                 user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
-            with col_btn:
                 btn_cari = st.button("🔍", key="btn_cari_beranda")
 
             if user_input or btn_cari:
