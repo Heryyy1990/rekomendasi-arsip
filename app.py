@@ -106,23 +106,33 @@ def simpan_riwayat_csv(nama_user, pencarian):
     waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'pencarian': [pencarian]})
     
-    if not os.path.isfile(file_riwayat):
-        df_baru.to_csv(file_riwayat, index=False)
+    # PERBAIKAN: Baca, Gabungkan, lalu Simpan (Anti Hilang Header)
+    if os.path.isfile(file_riwayat) and os.path.getsize(file_riwayat) > 0:
+        try:
+            df_lama = pd.read_csv(file_riwayat)
+            df_final = pd.concat([df_lama, df_baru], ignore_index=True)
+        except:
+            df_final = df_baru
     else:
-        df_baru.to_csv(file_riwayat, mode='a', header=False, index=False)
-
+        df_final = df_baru
+        
+    df_final.to_csv(file_riwayat, index=False)
     sync_to_drive(file_riwayat)
+
 
 def baca_riwayat_csv(nama_user):
     file_riwayat = 'riwayat_pencarian.csv'
     if os.path.isfile(file_riwayat):
         try:
             df_riwayat = pd.read_csv(file_riwayat)
-            riwayat_user = df_riwayat[df_riwayat['nama'] == nama_user]['pencarian'].tolist()
-            return list(dict.fromkeys(riwayat_user)) # Hapus duplikat
+            # Pastikan kolom 'nama' dan 'pencarian' ada untuk mencegah error
+            if 'nama' in df_riwayat.columns and 'pencarian' in df_riwayat.columns:
+                riwayat_user = df_riwayat[df_riwayat['nama'] == nama_user]['pencarian'].tolist()
+                return list(dict.fromkeys(riwayat_user)) # Hapus duplikat
         except:
             return []
     return []
+
 
 # --- FUNGSI FEEDBACK PEMBELAJARAN AI (CSV) ---
 def simpan_feedback_csv(nama_user, input_user, kode_terpilih):
@@ -130,11 +140,17 @@ def simpan_feedback_csv(nama_user, input_user, kode_terpilih):
     waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'perihal': [input_user], 'kode_terpilih': [kode_terpilih]})
     
-    if not os.path.exists(file_feedback):
-        df_baru.to_csv(file_feedback, index=False)
+    # PERBAIKAN: Baca, Gabungkan, lalu Simpan (Anti Hilang Header)
+    if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
+        try:
+            df_lama = pd.read_csv(file_feedback)
+            df_final = pd.concat([df_lama, df_baru], ignore_index=True)
+        except:
+            df_final = df_baru
     else:
-        df_baru.to_csv(file_feedback, mode='a', header=False, index=False)
-
+        df_final = df_baru
+        
+    df_final.to_csv(file_feedback, index=False)
     sync_to_drive(file_feedback)
 
 # --- HALAMAN LOGIN ---
