@@ -362,17 +362,27 @@ st.markdown("""
 }
 
 :root {
-    --bg-app: radial-gradient(circle at top right, #E0F2FE 0%, transparent 40%), linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
-    --card-bg: rgba(255, 255, 255, 0.95);
-    --card-border: rgba(0, 157, 255, 0.15);
-    --card-shadow: 0 20px 40px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.8);
+    /* Background Utama & Kartu */
+    --bg-app: #F8FAFC; 
+    --card-bg: #FFFFFF;
+    --card-border: #E2E8F0;
+    --card-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    
+    /* Teks */
     --text-title: #0F172A;
     --text-subtitle: #475569;
+    --text-muted: #64748B;
+    
+    /* Input & Expander */
     --input-bg: #F8FAFC; 
     --input-border: rgba(0, 157, 255, 0.4); 
-    --input-focus-bg: #FFFFFF;
-    --icon-bg: rgba(0, 157, 255, 0.08);
-    --icon-border: rgba(0, 157, 255, 0.5);
+    --expander-bg: #F8FAFC;
+    
+    /* Komponen Spesifik */
+    --hero-bg: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+    --hero-border: #BAE6FD;
+    --sidebar-bg: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+    --sidebar-hover: rgba(255, 255, 255, 0.15);
 }
 
 /* ============================= */
@@ -380,23 +390,33 @@ st.markdown("""
 /* ============================= */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-app: radial-gradient(circle at top, rgba(0,191,255,0.08), transparent 40%), linear-gradient(135deg, #020617 0%, #060f26 50%, #020617 100%);
-        --card-bg: rgba(10, 20, 40, 0.5);
-        --card-border: rgba(0, 194, 255, 0.25);
-        --card-shadow: 0 15px 50px rgba(0,0,0,0.6);
-        --text-title: #FFFFFF;
+        /* Background Utama & Kartu */
+        --bg-app: #0F172A; /* Biru sangat gelap */
+        --card-bg: #1E293B;
+        --card-border: #334155;
+        --card-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        
+        /* Teks */
+        --text-title: #F8FAFC;
         --text-subtitle: #94A3B8;
-        --input-bg: rgba(255, 255, 255, 0.05);
+        --text-muted: #CBD5E1;
+        
+        /* Input & Expander */
+        --input-bg: #0F172A; 
         --input-border: rgba(120, 180, 255, 0.4); 
-        --input-focus-bg: rgba(0, 157, 255, 0.05);
-        --icon-bg: rgba(0, 157, 255, 0.1);
-        --icon-border: #009DFF;
+        --expander-bg: #1E293B;
+        
+        /* Komponen Spesifik */
+        --hero-bg: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+        --hero-border: #334155;
+        --sidebar-bg: linear-gradient(135deg, #020617 0%, #0F172A 100%);
+        --sidebar-hover: rgba(255, 255, 255, 0.05);
     }
 }
 
+/* Terapkan ke Background Utama Streamlit */
 .stApp {
     background: var(--bg-app) !important;
-    min-height: 100vh;
 }
 
 /* ============================= */
@@ -1070,8 +1090,8 @@ def halaman_utama():
     # CSS GLOBAL HALAMAN UTAMA
     st.markdown("""
     <style>
-    /* Reset & Force Light Theme */
-    .stApp { background-color: #F8FAFC !important; }
+    /* Hapus paksaan warna putih, biarkan mengikuti root/sistem */
+    .stApp { background-color: var(--bg-app) !important; }
 
     /* Font Poppins untuk Teks */
     .hero-title, .hero-subtitle, .search-box-title, .search-box-desc,
@@ -1089,8 +1109,8 @@ def halaman_utama():
 
     /* --- SIDEBAR --- */
     [data-testid="stSidebar"] {
-        background-color: #FFFFFF !important;
-        border-right: 1px solid #E2E8F0 !important;
+        background: var(--sidebar-bg) !important;
+        border-right: 1px solid var(--card-border) !important;
     }
     .sidebar-title-container { display: flex; align-items: center; gap: 10px; padding: 10px 0 20px 0; }
     .sidebar-logo {
@@ -1102,22 +1122,22 @@ def halaman_utama():
     /* Tombol Sidebar Normal */
     section[data-testid="stSidebar"] .stButton button {
         height: 45px !important; border: none !important; background-color: transparent !important;
-        font-size: 0.95rem !important; color: #475569 !important; justify-content: flex-start !important;
+        font-size: 0.95rem !important; color: var(--text-subtitle) !important; justify-content: flex-start !important;
         box-shadow: none !important; transform: none !important; font-family: 'Poppins', sans-serif !important;
     }
-    section[data-testid="stSidebar"] .stButton button:hover { background-color: #F8FAFC !important; color: #0F172A !important; }
+    section[data-testid="stSidebar"] .stButton button:hover { background-color: var(--sidebar-hover) !important; color: var(--text-title) !important; }
     
-    /* PAKSA WARNA BIRU UNTUK TOMBOL AKTIF (Melawan tema merah bawaan) */
+    /* PAKSA WARNA BIRU UNTUK TOMBOL AKTIF */
     button[kind="primary"] {
         background-color: #009DFF !important; border-color: #009DFF !important; color: white !important; font-weight: 700 !important;
     }
     section[data-testid="stSidebar"] .stButton button[kind="primary"] {
-        background-color: #E0F2FE !important; color: #009DFF !important;
+        background-color: rgba(0, 157, 255, 0.1) !important; color: #009DFF !important;
     }
 
     /* UMUM */
-    .section-title { font-weight: 700; color: #0F172A; font-size: 1.15rem; margin-bottom: 15px; margin-top: 25px; font-family: 'Poppins', sans-serif !important;}
-    div[data-testid="stDataFrame"] { background: #FFFFFF; border-radius: 12px; padding: 10px; border: 1px solid #E2E8F0; }
+    .section-title { font-weight: 700; color: var(--text-title); font-size: 1.15rem; margin-bottom: 15px; margin-top: 25px; font-family: 'Poppins', sans-serif !important;}
+    div[data-testid="stDataFrame"] { background: var(--card-bg); border-radius: 12px; padding: 10px; border: 1px solid var(--card-border); }
     div[data-testid="InputInstructions"] { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -1297,42 +1317,29 @@ def halaman_utama():
             <style>
             /* 1. Desain Banner Biru Utama */
             .hero-banner {
-                background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); 
+                background: var(--hero-bg); 
                 border-radius: 24px; 
                 padding: 50px 20px; 
                 display: flex; flex-direction: column; align-items: center; text-align: center; 
-                border: 1px solid #BAE6FD;
+                border: 1px solid var(--hero-border);
                 margin-bottom: 0px; 
             }
             .hero-content { width: 100%; max-width: 850px; margin: 0 auto; }
             
-            /* Gaya baru untuk teks "Selamat Datang" */
             .hero-welcome-text { 
-                font-size: 2rem; 
-                font-weight: 900; 
-                color: #009DFF; 
-                text-transform: uppercase; 
-                letter-spacing: 3px;
-                margin-bottom: 8px;
+                font-size: 2rem; font-weight: 900; color: #009DFF; 
+                text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px;
             }
             
-            /* Gaya baru untuk Nama Panjang Pengguna */
             .hero-user-name { 
-                font-size: clamp(1.5rem, 5vw, 1.5rem); 
-                font-weight: 700; 
-                color: #0F172A; 
-                line-height: 1.1;
-                margin-bottom: 15px;
-                word-break: break-word; 
+                font-size: clamp(1.5rem, 5vw, 1.5rem); font-weight: 700; 
+                color: var(--text-title); 
+                line-height: 1.1; margin-bottom: 15px; word-break: break-word; 
             }
             
             .hero-subtitle { 
-                font-size: 1rem; 
-                color: #475569; 
-                margin-bottom: 30px;
-                max-width: 600px;
-                margin-left: auto;
-                margin-right: auto;
+                font-size: 1rem; color: var(--text-subtitle); margin-bottom: 30px;
+                max-width: 600px; margin-left: auto; margin-right: auto;
             }
             
             /* 2. Desain Kotak Tempat Search */
@@ -1568,10 +1575,10 @@ def halaman_utama():
             <style>
             /* 1. Bersihkan Kotak Expander (Hasil Pencarian) */
             div[data-testid="stExpander"] {
-                border: 2px solid rgba(0, 157, 255, 0.6) !important; /* <--- OUTLINE BIRU KEKINIAN */
+                border: 2px solid var(--input-border) !important; /* <--- OUTLINE BIRU KEKINIAN */
                 border-radius: 16px !important;
                 box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; /* <--- GLOW BIRU HALUS */
-                background: #FFFFFF !important;
+                background: var(--card-bg) !important; /* <--- UBAH DI SINI */
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
@@ -1579,8 +1586,8 @@ def halaman_utama():
             /* 2. PERBAIKAN TOTAL: BUNUH TEKS HANTU "arrow" ("arr") */
             div[data-testid="stExpander"] summary {
                 padding: 15px 20px !important;
-                background: #F8FAFC !important;
-                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important;
+                background: var(--expander-bg) !important; /* <--- UBAH DI SINI */
+                border-bottom: 1px solid var(--card-border) !important; /* <--- UBAH DI SINI */
                 border-radius: 16px 16px 0 0 !important;
                 
                 /* JURUS PAMUNGKAS: Jadikan semua ukuran teks di sini 0 agar teks hantu lenyap */
@@ -1591,7 +1598,7 @@ def halaman_utama():
             /* Bangkitkan HANYA teks judul (p) kita agar tampil sempurna */
             div[data-testid="stExpander"] summary p {
                 font-weight: 700 !important;
-                color: #0F172A !important;
+                color: var(--text-title) !important; /* <--- UBAH DI SINI */
                 font-size: 1.05rem !important;
                 font-family: 'Poppins', sans-serif !important;
                 margin: 0 !important;
@@ -1599,7 +1606,7 @@ def halaman_utama():
 
             /* Pastikan icon panah asli Streamlit tetap ada dan warnanya pas */
             div[data-testid="stExpander"] summary svg {
-                color: #64748B !important;
+                color: var(--text-muted) !important; /* <--- UBAH DI SINI */
                 width: 24px !important;
                 height: 24px !important;
             }
@@ -1616,7 +1623,7 @@ def halaman_utama():
             .feedback-title {
                 font-size: 1rem;
                 font-weight: 700;
-                color: #0F172A;
+                color: var(--text-title); /* <--- UBAH DI SINI */
                 margin-top: 40px;
                 margin-bottom: 20px;
                 text-align: center;
@@ -1703,10 +1710,10 @@ def halaman_utama():
             st.markdown("""
             <style>
             div[data-testid="stExpander"] {
-                border: 2px solid rgba(0, 157, 255, 0.6) !important;
+                border: 2px solid var(--input-border) !important;
                 border-radius: 16px !important;
-                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important;
-                background: #FFFFFF !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.05) !important;
+                background: var(--card-bg) !important;
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
@@ -1714,8 +1721,8 @@ def halaman_utama():
             /* KUNCI PERBAIKAN: Tanda "> details >" ini wajib ada agar anak-cucunya tidak ikut kena tembak jurus 0px! */
             div[data-testid="stExpander"] > details > summary {
                 padding: 15px 20px !important;
-                background: #F8FAFC !important;
-                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important;
+                background: var(--expander-bg) !important;
+                border-bottom: 1px solid var(--card-border) !important;
                 border-radius: 16px 16px 0 0 !important;
                 font-size: 0px !important; /* JURUS ANTI HANTU (Aman, cuma buat Bapaknya) */
                 color: transparent !important;
@@ -1723,14 +1730,14 @@ def halaman_utama():
             
             div[data-testid="stExpander"] > details > summary p {
                 font-weight: 700 !important;
-                color: #0F172A !important;
+                color: var(--text-title) !important;
                 font-size: 1.05rem !important;
                 font-family: 'Poppins', sans-serif !important;
                 margin: 0 !important;
             }
             
             div[data-testid="stExpander"] > details > summary svg {
-                color: #64748B !important;
+                color: var(--text-muted) !important;
                 width: 24px !important;
                 height: 24px !important;
             }
@@ -1882,15 +1889,15 @@ def halaman_utama():
                 </div>
                 """, unsafe_allow_html=True)
 
-            def metric_card(icon, title, value, color="#009DFF", bg="#E0F2FE"):
+            def metric_card(icon, title, value, color="#009DFF", bg="var(--expander-bg)"):
                 return f"""
-                <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 20px; border-radius: 16px; display:flex; align-items:center; gap:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 20px; border-radius: 16px; display:flex; align-items:center; gap:15px; box-shadow: var(--card-shadow);">
                     <div style="background: {bg}; width: 54px; height: 54px; border-radius: 14px; display:flex; align-items:center; justify-content:center;">
                         <span class="material-symbols-rounded" style="color:{color}; font-size:2rem;">{icon}</span>
                     </div>
                     <div>
-                        <div style="color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:4px;">{title}</div>
-                        <div style="color: #0F172A; font-size: 1.6rem; font-weight: 800; line-height: 1;">{value}</div>
+                        <div style="color: var(--text-subtitle); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:4px;">{title}</div>
+                        <div style="color: var(--text-title); font-size: 1.6rem; font-weight: 800; line-height: 1;">{value}</div>
                     </div>
                 </div>
                 """
