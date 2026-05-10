@@ -1506,60 +1506,47 @@ def halaman_utama():
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
 
             /* ========================================================= */
-            /* JURUS RESPONSIVE HP (ANTI BERANTAKAN DI LAYAR KECIL)      */
+            /* JURUS RESPONSIVE HP (HANYA UNTUK HP - PC TIDAK BERUBAH)   */
             /* ========================================================= */
             @media screen and (max-width: 768px) {
-                /* 1. Perkecil Banner & Teks */
-                .hero-banner { padding: 30px 15px; border-radius: 16px; }
-                .hero-welcome-text { font-size: 1.5rem; letter-spacing: 1px; }
-                .hero-user-name { font-size: 1.3rem; margin-bottom: 10px; }
-                .hero-subtitle { font-size: 0.85rem; margin-bottom: 20px; }
-                
-                /* 2. Perkecil Kotak Background Biru Gelap (Ruang bawah ditambah) */
-                .search-card-bg { padding: 15px 15px 85px 15px; border-radius: 12px; } 
-                .search-title { font-size: 0.95rem; }
-                
-                /* ===================================================== */
-                /* 3. KUNCI MATI UKURAN TOMBOL & TARIK KE ATAS           */
-                /* ===================================================== */
+                /* ... (bagian 1 & 2 biarkan tetap) ... */
+
+                /* 3. FIX TOMBOL MELUBER & KOTAK INPUT SURAT */
                 div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -105px !important; /* Ditarik LEBIH NAIK ke atas lagi! */
-                    width: 90% !important; 
-                    margin-left: 5% !important; 
-                    margin-right: auto !important; 
-                    transform: none !important;
-                    
+                    margin-top: -105px !important; /* Tarikan naik lebih kuat di HP */
                     display: flex !important;
-                    flex-direction: row !important;
+                    flex-direction: row !important; /* Paksa satu baris (Anti Meluber) */
                     flex-wrap: nowrap !important;
-                    gap: 8px !important; /* Jarak aman input dan tombol */
                     align-items: center !important;
+                    gap: 8px !important;
+                    width: 92% !important;
+                    margin-left: auto !important;
+                    margin-right: auto !important;
                 }
-                
-                /* KOLOM 1: INPUT BOX (Disuruh ngalah ambil sisa ruang saja) */
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) { 
-                    flex: 1 1 auto !important; 
-                    width: 100% !important;
-                    min-width: 0 !important; /* WAJIB NOL agar tidak menggencet tombol */
+
+                /* Hilangkan margin bawaan Streamlit yang bikin meluber ke bawah */
+                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"] {
+                    margin-bottom: 0px !important; 
+                    padding-bottom: 0px !important;
+                    min-width: 0 !important;
                 }
-                
-                /* KOLOM 2: TOMBOL CARI (DIKUNCI MATI 52px) */
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) { 
-                    flex: 0 0 52px !important; /* Dilarang keras membesar/mengecil */
-                    width: 52px !important; 
+
+                /* Kunci Input agar melar tapi tetap memberi ruang */
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) {
+                    flex: 1 1 auto !important;
+                }
+
+                /* Kunci Tombol agar tetap kotak (Anti Gepeng & Anti Turun) */
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) {
+                    flex: 0 0 52px !important;
+                    width: 52px !important;
                     min-width: 52px !important;
-                    max-width: 52px !important;
                 }
-                
-                /* Samakan tinggi input dan tombol */
-                div[data-testid="stHorizontalBlock"]:has(input) button { 
-                    height: 52px !important; 
-                    padding: 0 !important; 
-                    width: 100% !important; 
-                    border-radius: 8px !important; 
-                }
-                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { 
-                    height: 52px !important; 
+
+                div[data-testid="stHorizontalBlock"]:has(input) button {
+                    height: 52px !important;
+                    width: 52px !important;
+                    padding: 0 !important;
                 }
                 
                 /* ===================================================== */
