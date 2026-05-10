@@ -1516,28 +1516,48 @@ def halaman_utama():
                 .hero-subtitle { font-size: 0.85rem; margin-bottom: 20px; }
                 
                 /* 2. Perkecil Kotak Background Biru Gelap */
-                .search-card-bg { padding: 15px 15px 65px 15px; border-radius: 12px; }
+                .search-card-bg { padding: 15px 15px 75px 15px; border-radius: 12px; }
                 .search-title { font-size: 0.95rem; }
                 
-                /* 3. PAKSA KOLOM SEARCH AGAR TIDAK JATUH/TUMPUK KE BAWAH */
+                /* 3. PERBAIKAN FINAL KOTAK SEARCH: PAKSA BARIS & KUNCI LEBAR */
                 div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -90px !important; /* Tarikan dikurangi agar pas */
-                    max-width: 92% !important;
-                    transform: translateX(0px) !important; /* Paskan ke tengah */
+                    margin-top: -85px !important; /* Paskan posisi vertikal */
+                    width: calc(100% - 30px) !important; /* Paskan dengan padding kiri-kanan */
+                    margin-left: auto !important;
+                    margin-right: auto !important;
+                    transform: none !important;
                     
-                    /* Paksa sejajar ke samping (kiri input, kanan tombol) */
+                    /* Kunci agar tidak numpuk ke bawah */
                     display: flex !important;
                     flex-direction: row !important;
                     flex-wrap: nowrap !important;
-                    gap: 8px !important;
+                    justify-content: center !important;
+                    align-items: center !important;
+                    gap: 10px !important;
                 }
                 
-                /* Atur Lebar Input vs Tombol di HP */
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) { width: 80% !important; }
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) { width: 20% !important; min-width: 50px !important; }
+                /* Kunci Kolom 1 (Input) agar mengambil sisa ruang dengan aman */
+                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:nth-of-type(1) { 
+                    width: calc(100% - 65px) !important; 
+                    flex: 1 1 auto !important;
+                    min-width: 0 !important; /* Mencegah input field menerobos batas */
+                }
                 
-                /* Sesuaikan tinggi tombol agar sama dengan tinggi input */
-                div[data-testid="stHorizontalBlock"]:has(input) button { height: 48px !important; }
+                /* Kunci Kolom 2 (Tombol) ukuran mutlak 55px */
+                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:nth-of-type(2) { 
+                    width: 55px !important; 
+                    flex: 0 0 55px !important; 
+                }
+                
+                /* Sesuaikan tinggi tombol agar sama persis dengan input */
+                div[data-testid="stHorizontalBlock"]:has(input) button { 
+                    height: 52px !important; 
+                    width: 100% !important;
+                    padding: 0 !important;
+                }
+                div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { 
+                    height: 52px !important; 
+                }
                 
                 /* 4. Rapikan Kartu Akses Cepat */
                 .card-container { height: 120px; margin-bottom: 15px;}
@@ -1547,7 +1567,6 @@ def halaman_utama():
                 .saas-card-desc { font-size: 0.7rem; }
                 .saas-card-arrow { font-size: 1rem; }
                 
-                /* Sesuaikan Tarikan Tombol Gaib Akses Cepat */
                 .element-container:has(.card-container) + .element-container { margin-top: -145px !important; }
                 .element-container:has(.card-container) + .element-container button { height: 120px !important; }
             }
