@@ -1824,7 +1824,7 @@ def halaman_utama():
 
         # --- HALAMAN 4: RIWAYAT ---
         elif st.session_state.page == 'Riwayat':
-            st.markdown('<div class="section-title">🕒 Riwayat Pencarian Lengkap</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">history</span> Riwayat Pencarian Lengkap</div>', unsafe_allow_html=True)
             if not st.session_state.search_history:
                 st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
                 
