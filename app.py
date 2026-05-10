@@ -2056,16 +2056,42 @@ def halaman_utama():
                         mask = df_users['username'] == st.session_state['username']
                         
                         if not df_users[mask].empty:
+                            # 1. INGAT NAMA LAMA SEBELUM DITIMPA
+                            nama_lama = st.session_state['nama'] 
+                            
                             df_users.loc[mask, 'nama_lengkap'] = nama_baru
                             df_users.loc[mask, 'role'] = role_pilihan
                             if pass_baru:
                                 df_users.loc[mask, 'password'] = pass_baru
                             
-                            # Simpan Permanen
+                            # Simpan Permanen ke pengguna.csv
                             df_users.to_csv('pengguna.csv', index=False)
                             sync_to_drive('pengguna.csv')
                             
-                            # Update Session State agar tampilan langsung berubah
+                            # ========================================================
+                            # 2. SINKRONISASI NAMA BARU KE SEMUA RIWAYAT & FEEDBACK
+                            # ========================================================
+                            if nama_lama != nama_baru:
+                                # Update di Riwayat Pencarian
+                                file_riwayat = 'riwayat_pencarian.csv'
+                                if os.path.exists(file_riwayat):
+                                    df_r = pd.read_csv(file_riwayat, dtype=str)
+                                    if 'nama' in df_r.columns:
+                                        df_r.loc[df_r['nama'] == nama_lama, 'nama'] = nama_baru
+                                        df_r.to_csv(file_riwayat, index=False)
+                                        sync_to_drive(file_riwayat)
+                                        
+                                # Update di Feedback AI
+                                file_feedback = 'feedback_ai.csv'
+                                if os.path.exists(file_feedback):
+                                    df_f = pd.read_csv(file_feedback, dtype=str)
+                                    if 'nama' in df_f.columns:
+                                        df_f.loc[df_f['nama'] == nama_lama, 'nama'] = nama_baru
+                                        df_f.to_csv(file_feedback, index=False)
+                                        sync_to_drive(file_feedback)
+                            # ========================================================
+                            
+                            # 3. Update Session State agar tampilan langsung berubah
                             st.session_state['nama'] = nama_baru
                             st.session_state['role'] = role_pilihan
                             
