@@ -5,6 +5,7 @@ import os
 import plotly.express as px
 import json
 import io
+import pytz
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
@@ -1024,6 +1025,20 @@ def smart_classify(user_input, df, top_n=3):
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
+def dapatkan_sapaan():
+    # Mengatur zona waktu spesifik ke WITA
+    tz_wita = pytz.timezone('Asia/Makassar')
+    waktu_sekarang = datetime.now(tz_wita)
+    jam = waktu_sekarang.hour
+
+    if 4 <= jam < 11:
+        return "Selamat Pagi"
+    elif 11 <= jam < 15:
+        return "Selamat Siang"
+    elif 15 <= jam < 18:
+        return "Selamat Sore"
+    else:
+        return "Selamat Malam"
 def halaman_utama():
     # INISIALISASI ROUTING HALAMAN
     if 'page' not in st.session_state:
@@ -1376,7 +1391,7 @@ def halaman_utama():
             st.markdown(f"""
 <div class="hero-banner">
     <div class="hero-content">
-        <div class="hero-welcome-text">Selamat Datang</div>
+        <div class="hero-welcome-text">{sapaan_dinamis}</div>
         <div class="hero-user-name">{nama_user}</div>
         <div class="hero-subtitle">Kelola dan temukan kode klasifikasi arsip dengan mudah, cepat, dan akurat.</div>
         <div class="search-card-bg">
@@ -1385,7 +1400,7 @@ def halaman_utama():
     </div>
 </div>
 """, unsafe_allow_html=True)
-
+            
             # FORM PENCARIAN 
             col_in, col_btn = st.columns([5, 1])
             with col_in:
