@@ -1537,18 +1537,21 @@ def halaman_utama():
                 }
 
                 /* Samakan tinggi dan visual */
-                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) button {
-                    height: 52px !important;
-                    width: 50px !important;
-                    border-radius: 8px !important;
-                    padding: 0 !important;
-                }
-                
-                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) div[data-baseweb="input"] {
-                    height: 52px !important;
-                    border-radius: 8px !important;
+                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    align-items: center !important;
+                    gap: 15px !important;
+                    margin-top: -115px !important; /* Tarikan PC tetap kuat */
+                }    
+
+                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) > div:first-child {
+                    flex: 5 !important; /* Input lebih lebar di PC */
                 }
 
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:last-child {
+                    flex: 1 !important; /* Tombol menyesuaikan di PC */
+                }
                 /* Merapikan Akses Cepat */
                 .card-container { height: 120px; }
                 .element-container:has(.card-container) + .element-container { margin-top: -130px !important; }
