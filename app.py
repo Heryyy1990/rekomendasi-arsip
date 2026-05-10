@@ -63,15 +63,16 @@ def sync_to_drive(file_name):
         file_metadata = {'name': file_name, 'parents': [folder_id]}
         drive_service.files().create(body=file_metadata, media_body=media).execute()
 
-# Menjalankan unduhan otomatis saat aplikasi pertama kali dinyalakan (Booting)
-@st.cache_data
+# Menjalankan unduhan otomatis HANYA jika file lokal hilang akibat Streamlit restart
 def initial_sync():
-    sync_from_drive('pengguna.csv')
-    sync_from_drive('klasifikasi_arsip_emas.csv')
-    sync_from_drive('riwayat_pencarian.csv')
-    return True
+    if not os.path.exists('pengguna.csv'):
+        sync_from_drive('pengguna.csv')
+    if not os.path.exists('klasifikasi_arsip_emas.csv'):
+        sync_from_drive('klasifikasi_arsip_emas.csv')
+    if not os.path.exists('riwayat_pencarian.csv'):
+        sync_from_drive('riwayat_pencarian.csv')
 
-_ = initial_sync()
+initial_sync()
 # ====================================================
 
 # --- INISIALISASI SESSION STATE LOGIN & HISTORY ---
