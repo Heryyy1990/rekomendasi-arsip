@@ -1506,60 +1506,62 @@ def halaman_utama():
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
 
             /* ========================================================= */
-            /* JURUS RESPONSIVE HP (HANYA UNTUK HP - PC TIDAK BERUBAH)   */
+            /* JURUS SUPER-FIX HP (ANTI TUMPAH & ANTI LONCAT)            */
             /* ========================================================= */
             @media screen and (max-width: 768px) {
-                /* ... (bagian 1 & 2 biarkan tetap) ... */
-
-                /* 3. FIX TOMBOL MELUBER & KOTAK INPUT SURAT */
-                div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -105px !important; /* Tarikan naik lebih kuat di HP */
-                    display: flex !important;
-                    flex-direction: row !important; /* Paksa satu baris (Anti Meluber) */
-                    flex-wrap: nowrap !important;
-                    align-items: center !important;
-                    gap: 8px !important;
-                    width: 92% !important;
+                /* 1. Perkecil Teks Banner */
+                .hero-banner { padding: 30px 10px; border-radius: 16px; }
+                .hero-welcome-text { font-size: 1.4rem; }
+                .hero-user-name { font-size: 1.2rem; }
+                
+                /* 2. Besarkan Kotak Biru agar bisa menampung tarikan */
+                .search-card-bg { padding: 15px 15px 95px 15px; border-radius: 12px; }
+                
+                /* ===================================================== */
+                /* 3. GEMBOK POSISI INPUT & TOMBOL (FORCE ALIGN)         */
+                /* ===================================================== */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) {
+                    margin-top: -110px !important; /* Tarik naik ke tengah kotak biru */
+                    width: 92% !important; /* Batasi lebar agar tidak tumpah ke kanan layar */
                     margin-left: auto !important;
                     margin-right: auto !important;
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    gap: 6px !important;
+                    padding: 0 !important;
                 }
 
-                /* Hilangkan margin bawaan Streamlit yang bikin meluber ke bawah */
-                div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"] {
-                    margin-bottom: 0px !important; 
-                    padding-bottom: 0px !important;
+                /* KOLOM 1 (INPUT): Paksa mengisi sisa ruang secara adil */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:nth-child(1) {
+                    flex: 1 1 auto !important;
+                    width: 1% !important; /* Trik agar flex-grow yang bekerja, bukan lebar bawaan */
                     min-width: 0 !important;
                 }
 
-                /* Kunci Input agar melar tapi tetap memberi ruang */
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) {
-                    flex: 1 1 auto !important;
-                }
-
-                /* Kunci Tombol agar tetap kotak (Anti Gepeng & Anti Turun) */
-                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) {
-                    flex: 0 0 52px !important;
-                    width: 52px !important;
-                    min-width: 52px !important;
-                }
-
-                div[data-testid="stHorizontalBlock"]:has(input) button {
-                    height: 52px !important;
-                    width: 52px !important;
+                /* KOLOM 2 (TOMBOL): Kunci mati di 50px agar tidak loncat */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:nth-child(2) {
+                    flex: 0 0 50px !important;
+                    width: 50px !important;
+                    min-width: 50px !important;
+                    max-width: 50px !important;
                     padding: 0 !important;
                 }
-                
-                /* ===================================================== */
-                /* 4. Rapikan Kartu Akses Cepat */
-                /* ===================================================== */
-                .card-container { height: 120px; margin-bottom: 15px;}
-                .saas-card { padding: 12px 15px; gap: 10px; }
-                .saas-icon-box { width: 40px; height: 40px; min-width: 40px; font-size: 1.3rem; }
-                .saas-card-title { font-size: 0.85rem; }
-                .saas-card-desc { font-size: 0.7rem; }
-                .saas-card-arrow { font-size: 1rem; }
-                
-                .element-container:has(.card-container) + .element-container { margin-top: -145px !important; }
+
+                /* Samakan tinggi input dan tombol */
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) button {
+                    height: 50px !important;
+                    width: 50px !important;
+                    padding: 0 !important;
+                }
+                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) div[data-baseweb="input"] {
+                    height: 50px !important;
+                }
+
+                /* 4. Rapikan Akses Cepat agar tidak terlalu besar di HP */
+                .card-container { height: 120px; }
+                .saas-card { padding: 12px; gap: 8px; }
+                .element-container:has(.card-container) + .element-container { margin-top: -130px !important; }
                 .element-container:has(.card-container) + .element-container button { height: 120px !important; }
             }
             </style>
