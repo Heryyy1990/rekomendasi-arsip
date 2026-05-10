@@ -208,6 +208,7 @@ def halaman_login():
                 st.session_state['logged_in'] = True
                 st.session_state['role'] = role
                 st.session_state['nama'] = nama
+                st.session_state.search_history = baca_riwayat_csv(nama)
                 st.rerun()
             else:
                 st.error("Username atau Password salah!")
@@ -1841,14 +1842,15 @@ def halaman_utama():
         # --- HALAMAN 4: RIWAYAT ---
         elif st.session_state.page == 'Riwayat':
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">history</span> Riwayat Pencarian Lengkap</div>', unsafe_allow_html=True)
-            if not st.session_state.search_history:
-                st.session_state.search_history = baca_riwayat_csv(st.session_state['nama'])
-                
+    
+            
             if st.session_state.search_history:
                 for riwayat in reversed(st.session_state.search_history):
                     st.markdown(f"🔹 {riwayat}")
+                
                 if st.button("Hapus Riwayat"):
                     st.session_state.search_history = []
+                    # (Opsional: Kamu bisa tambahkan fungsi hapus file CSV di Drive juga di sini)
                     st.rerun()
             else:
                 st.info("Belum ada riwayat.")
