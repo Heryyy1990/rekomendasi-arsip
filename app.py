@@ -1506,61 +1506,53 @@ def halaman_utama():
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
 
             /* ========================================================= */
-            /* JURUS SUPER-FIX HP (ANTI TUMPAH & ANTI LONCAT)            */
+            /* JURUS SAKTI PAMUNGKAS (THE FINAL GOD MODE)                */
             /* ========================================================= */
             @media screen and (max-width: 768px) {
-                /* 1. Perkecil Teks Banner */
                 .hero-banner { padding: 30px 10px; border-radius: 16px; }
-                .hero-welcome-text { font-size: 1.4rem; }
-                .hero-user-name { font-size: 1.2rem; }
-                
-                /* 2. Besarkan Kotak Biru agar bisa menampung tarikan */
                 .search-card-bg { padding: 15px 15px 95px 15px; border-radius: 12px; }
                 
-                /* ===================================================== */
-                /* 3. GEMBOK POSISI INPUT & TOMBOL (FORCE ALIGN)         */
-                /* ===================================================== */
-                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) {
-                    margin-top: -110px !important; /* Tarik naik ke tengah kotak biru */
-                    width: 92% !important; /* Batasi lebar agar tidak tumpah ke kanan layar */
+                /* Target Utama: Container yang membungkus Input & Tombol */
+                [data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) {
+                    margin-top: -105px !important; /* Tarik naik ke kotak biru */
+                    position: relative !important;
+                    display: block !important; /* Kita atur manual posisinya */
+                    width: 90% !important;
                     margin-left: auto !important;
                     margin-right: auto !important;
-                    display: flex !important;
-                    flex-direction: row !important;
-                    flex-wrap: nowrap !important;
-                    gap: 6px !important;
-                    padding: 0 !important;
                 }
 
-                /* KOLOM 1 (INPUT): Paksa mengisi sisa ruang secara adil */
-                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:nth-child(1) {
-                    flex: 1 1 auto !important;
-                    width: 1% !important; /* Trik agar flex-grow yang bekerja, bukan lebar bawaan */
-                    min-width: 0 !important;
+                /* PAKSA INPUT MELEBAR */
+                div:has(> input[key="input_beranda"]) {
+                    width: calc(100% - 58px) !important; /* Sisakan 58px untuk tombol */
+                    display: inline-block !important;
+                    vertical-align: middle !important;
                 }
 
-                /* KOLOM 2 (TOMBOL): Kunci mati di 50px agar tidak loncat */
-                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) > div:nth-child(2) {
-                    flex: 0 0 50px !important;
+                /* PAKSA TOMBOL NAIK KE SAMPING INPUT (POSISI ABSOLUT) */
+                div:has(> button[key="btn_cari_beranda"]) {
+                    display: inline-block !important;
                     width: 50px !important;
-                    min-width: 50px !important;
-                    max-width: 50px !important;
-                    padding: 0 !important;
+                    position: absolute !important;
+                    right: 0 !important;
+                    top: 0 !important;
                 }
 
-                /* Samakan tinggi input dan tombol */
-                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) button {
-                    height: 50px !important;
+                /* Samakan tinggi dan visual */
+                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) button {
+                    height: 52px !important;
                     width: 50px !important;
+                    border-radius: 8px !important;
                     padding: 0 !important;
                 }
-                div[data-testid="stHorizontalBlock"]:has(input[key="input_beranda"]) div[data-baseweb="input"] {
-                    height: 50px !important;
+                
+                div[data-testid="stVerticalBlock"]:has(input[key="input_beranda"]) div[data-baseweb="input"] {
+                    height: 52px !important;
+                    border-radius: 8px !important;
                 }
 
-                /* 4. Rapikan Akses Cepat agar tidak terlalu besar di HP */
+                /* Merapikan Akses Cepat */
                 .card-container { height: 120px; }
-                .saas-card { padding: 12px; gap: 8px; }
                 .element-container:has(.card-container) + .element-container { margin-top: -130px !important; }
                 .element-container:has(.card-container) + .element-container button { height: 120px !important; }
             }
