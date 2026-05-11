@@ -1869,7 +1869,7 @@ def halaman_utama():
                 display: inline-block !important; 
             }
             details[open] > summary .arrow-icon {
-                transform: rotate(270deg) !important; 
+                transform: rotate(180deg) !important; 
             }
 
             </style>
