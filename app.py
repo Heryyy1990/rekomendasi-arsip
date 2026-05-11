@@ -1539,7 +1539,7 @@ def halaman_utama():
                     flex-direction: row !important; 
                     flex-wrap: nowrap !important;
                     align-items: center !important;
-                    gap: 10px !important;
+                    gap: 5px !important;
                     box-sizing: border-box !important; /* Wajib agar padding tidak merusak lebar */
                 }
 
