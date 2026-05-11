@@ -1506,7 +1506,7 @@ def halaman_utama():
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
 
             /* ========================================================= */
-            /* JURUS RESPONSIVE HP (FOKUS HP, LAPTOP AMAN 100%)          */
+            /* JURUS RESPONSIVE HP (ANTI GESER KIRI / KANAN)             */
             /* ========================================================= */
             @media screen and (max-width: 768px) {
                 /* 1. Sesuaikan Ukuran Teks Banner */
@@ -1520,38 +1520,42 @@ def halaman_utama():
                 .search-title { font-size: 0.95rem; }
                 
                 /* ===================================================== */
-                /* 3. KUNCI MATI KOLOM INPUT & TOMBOL DI HP              */
+                /* 3. RESET TOTAL POSISI KOTAK SEARCH                    */
                 /* ===================================================== */
-                /* Targetkan baris pembungkus utamanya */
                 div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -105px !important; /* Tarik naik ke atas */
+                    margin-top: -105px !important; 
+                    transform: translateX(0) !important; /* MATIKAN PAKSA EFEK GESER DARI PC */
+                    left: 0 !important;
+                    right: 0 !important;
+                    
+                    width: 100% !important; /* Pakai seluruh lebar yang tersedia */
+                    max-width: 100% !important;
+                    margin-left: 0 !important; 
+                    margin-right: 0 !important;
+                    padding: 0 20px !important; /* Jepit dari kiri-kanan pakai padding agar ke tengah */
+                    
                     display: flex !important;
-                    flex-direction: row !important; /* Haramkan numpuk ke bawah */
+                    flex-direction: row !important; 
                     flex-wrap: nowrap !important;
-                    justify-content: center !important;
                     align-items: center !important;
-                    width: 90% !important; /* Batasi lebar agar tidak mentok tepi HP */
-                    margin-left: 5% !important;
-                    margin-right: 5% !important;
                     gap: 10px !important;
-                    padding: 0 !important;
-                    transform: none !important; /* Hilangkan sisa efek desktop */
+                    box-sizing: border-box !important; /* Wajib agar padding tidak merusak lebar */
                 }
 
                 /* Targetkan Kolom 1 (Area Input Teks) */
                 div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:nth-child(1) {
-                    width: calc(100% - 65px) !important; /* Sisa ruang dikurangi tombol+gap */
                     flex: 1 1 auto !important;
-                    min-width: 0 !important; /* Wajib nol agar bisa menyusut di HP kecil */
+                    width: 100% !important;
+                    min-width: 0 !important; 
                     margin: 0 !important;
                 }
 
                 /* Targetkan Kolom 2 (Area Tombol Cari) */
                 div[data-testid="stHorizontalBlock"]:has(input) > div[data-testid="column"]:nth-child(2) {
-                    width: 55px !important; /* Kunci mutlak */
+                    flex: 0 0 55px !important;
+                    width: 55px !important; 
                     min-width: 55px !important;
                     max-width: 55px !important;
-                    flex: 0 0 55px !important;
                     margin: 0 !important;
                 }
 
@@ -1567,7 +1571,7 @@ def halaman_utama():
                 }
 
                 /* ===================================================== */
-                /* 4. Rapikan Kartu Akses Cepat                           */
+                /* 4. Rapikan Kartu Akses Cepat                          */
                 /* ===================================================== */
                 .card-container { height: 120px; margin-bottom: 15px;}
                 .saas-card { padding: 12px 15px; gap: 10px; }
