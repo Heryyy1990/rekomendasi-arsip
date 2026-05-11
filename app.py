@@ -551,7 +551,7 @@ div[data-testid="stForm"] {
 }
 
 /* ============================= */
-/* INPUT BOX */
+/* INPUT BOX (VERSI ANTI HILANG) */
 /* ============================= */
 div[data-baseweb="input"], 
 div[data-baseweb="base-input"] {
@@ -575,6 +575,7 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 15px rgba(0, 157, 255, 0.2) !important;
 }
 
+/* Kotak Input Teksnya Sendiri */
 input[type="text"], input[type="password"] {
     height: 56px !important; 
     padding: 15px 45px 15px 55px !important; 
@@ -582,22 +583,41 @@ input[type="text"], input[type="password"] {
     color: var(--text-title) !important;
     font-weight: 600 !important;
     font-size: 1rem !important;
-    background-color: transparent !important;
+    background-color: transparent !important; /* Wajib transparan agar tembus pandang */
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
+}
+
+/* ======================================================= */
+/* JURUS PAMUNGKAS: ANTI HILANG & ANTI AUTOFILL CHROME     */
+/* ======================================================= */
+
+/* 1. Gambar ditanam di Tembok Belakang (Wadah Luar), bukan di Kotak Inputnya */
+div[data-baseweb="input"]:has(input[placeholder="Masukkan username Anda"]) {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>') !important;
     background-repeat: no-repeat !important;
     background-position: 18px center !important; 
     background-size: 20px !important;
 }
 
-div[data-testid="stTextInput"]:nth-of-type(1) input {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>') !important;
+div[data-baseweb="input"]:has(input[placeholder="Masukkan password Anda"]) {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') !important;
+    background-repeat: no-repeat !important;
+    background-position: 18px center !important; 
+    background-size: 20px !important;
 }
 
-div[data-testid="stTextInput"]:nth-of-type(2) input {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23009DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>') !important;
+/* 2. JURUS SULAP: Tahan warna putih Autofill Chrome selama 5000 detik! */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--text-title) !important;
+    transition: background-color 5000s ease-in-out 0s !important;
 }
+
+/* ======================================================= */
 
 input[type="text"]::placeholder, input[type="password"]::placeholder {
     color: #94A3B8 !important;
@@ -613,7 +633,6 @@ div[data-testid="stTextInputPassword"] button {
 div[data-testid="InputInstructions"], .st-emotion-cache-12oz5g7, small {
     display: none !important;
 }
-
 /* ============================= */
 /* BUTTON MASUK (BERSIH & CENTER) */
 /* ============================= */
