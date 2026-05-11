@@ -1443,7 +1443,7 @@ def halaman_utama():
             
             st.markdown("""
             <style>
-            .section-title { font-weight: 700; color: #009DFF; font-size: 2rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
+            .section-title { font-weight: 700; color: var(--text-title); font-size: 2rem; margin-bottom: 15px; margin-top: 10px; font-family: 'Poppins', sans-serif !important;}
             
             /* Wadah utama kartu */
             .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
@@ -1485,9 +1485,9 @@ def halaman_utama():
             /* ========================================================= */
             .saas-card {
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); border: 1px solid #E2E8F0; border-radius: 16px;
+                background: var(--sidebar-bg); border: 1px solid var(--card-border); border-radius: 16px;
                 padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+                box-shadow: var(--card-shadow); 
                 transition: all 0.3s ease !important; /* Paksa transisi agar mulus */
                 z-index: 1;
             }
@@ -1496,14 +1496,61 @@ def halaman_utama():
                 width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
             }
-            .bg-blue { background-color: #F0F9FF; color: #009DFF; }
-            .bg-orange { background-color: #FFF7ED; color: #F97316; }
-            .bg-purple { background-color: #FAF5FF; color: #A855F7; }
+            .bg-blue { background-color: rgba(0, 157, 255, 0.15); color: #009DFF; }
+            .bg-orange { background-color: rgba(249, 115, 22, 0.15); color: #F97316; }
+            .bg-purple { background-color: rgba(168, 85, 247, 0.15); color: #A855F7; }
 
             .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
             .saas-card-title { font-weight: 700; color: #FFFFFF; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
-            .saas-card-desc { font-size: 0.8rem; color: #F1F5F9; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
+            .saas-card-desc { font-size: 0.8rem; color: #E2E8F0; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
+
+            /* ========================================================= */
+            /* JURUS RESPONSIVE HP (ANTI BERANTAKAN DI LAYAR KECIL)      */
+            /* ========================================================= */
+            @media screen and (max-width: 768px) {
+                /* 1. Perkecil Banner & Teks */
+                .hero-banner { padding: 30px 15px; border-radius: 16px; }
+                .hero-welcome-text { font-size: 1.5rem; letter-spacing: 1px; }
+                .hero-user-name { font-size: 1.3rem; margin-bottom: 10px; }
+                .hero-subtitle { font-size: 0.85rem; margin-bottom: 20px; }
+                
+                /* 2. Perkecil Kotak Background Biru Gelap */
+                .search-card-bg { padding: 15px 15px 65px 15px; border-radius: 12px; }
+                .search-title { font-size: 0.95rem; }
+                
+                /* 3. PAKSA KOLOM SEARCH AGAR TIDAK JATUH/TUMPUK KE BAWAH */
+                div[data-testid="stHorizontalBlock"]:has(input) {
+                    margin-top: -90px !important; /* Tarikan dikurangi agar pas */
+                    max-width: 92% !important;
+                    transform: translateX(0px) !important; /* Paskan ke tengah */
+                    
+                    /* Paksa sejajar ke samping (kiri input, kanan tombol) */
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    gap: 8px !important;
+                }
+                
+                /* Atur Lebar Input vs Tombol di HP */
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(1) { width: 80% !important; }
+                div[data-testid="stHorizontalBlock"]:has(input) > div:nth-child(2) { width: 20% !important; min-width: 50px !important; }
+                
+                /* Sesuaikan tinggi tombol agar sama dengan tinggi input */
+                div[data-testid="stHorizontalBlock"]:has(input) button { height: 48px !important; }
+                
+                /* 4. Rapikan Kartu Akses Cepat */
+                .card-container { height: 120px; margin-bottom: 15px;}
+                .saas-card { padding: 12px 15px; gap: 10px; }
+                .saas-icon-box { width: 40px; height: 40px; min-width: 40px; font-size: 1.3rem; }
+                .saas-card-title { font-size: 0.85rem; }
+                .saas-card-desc { font-size: 0.7rem; }
+                .saas-card-arrow { font-size: 1rem; }
+                
+                /* Sesuaikan Tarikan Tombol Gaib Akses Cepat */
+                .element-container:has(.card-container) + .element-container { margin-top: -145px !important; }
+                .element-container:has(.card-container) + .element-container button { height: 120px !important; }
+            }
             </style>
             """, unsafe_allow_html=True)
 
