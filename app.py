@@ -1368,6 +1368,7 @@ def halaman_utama():
         # ================= MAIN CONTENT (ROUTING) =================
             
         if st.session_state.page == 'Beranda':
+            tutup_sidebar_hp() #
             
             # CSS KHUSUS BERANDA (Tarikan Ekstrim)
             st.markdown("""
