@@ -3,6 +3,7 @@ import pandas as pd
 import re
 import os
 import streamlit.components.v1 as components
+import time
 import plotly.express as px
 import json
 import io
@@ -21,32 +22,36 @@ from groq import Groq
 import streamlit.components.v1 as components
 
 # =================================================================
-# FUNGSI AUTO-TUTUP SIDEBAR KHUSUS HP
+# FUNGSI AUTO-TUTUP SIDEBAR KHUSUS HP (VERSI ANTI-MOGOK)
 # =================================================================
 def tutup_sidebar_hp():
-    # Mengirimkan script ke browser pengguna untuk menekan tombol 'Escape' jika layar kecil
-    js_code = """
-    <script>
-        // Cek apakah ini layar HP (lebar <= 768px)
-        if (window.parent.innerWidth <= 768) {
-            // Simulasikan menekan tombol 'Escape' pada keyboard
-            window.parent.document.dispatchEvent(new KeyboardEvent('keydown', {
-                key: 'Escape',
-                code: 'Escape',
-                keyCode: 27,
-                which: 27,
-                bubbles: true
-            }));
-            
-            // Alternatif: Cari tombol silang 'X' di sidebar dan klik otomatis
-            const closeBtn = window.parent.document.querySelector('[data-testid="baseButton-header"]');
-            if (closeBtn) {
-                closeBtn.click();
-            }
-        }
+    # Menggunakan time.time() agar kodenya selalu unik dan Streamlit terpaksa menjalankannya setiap saat
+    unik = time.time()
+    js_code = f"""
+    <script id="penutup_{unik}">
+        // Tunggu sedikit sampai animasi halaman selesai dimuat (sekitar 0.2 detik)
+        setTimeout(function() {{
+            if (window.parent.innerWidth <= 768) {{
+                // Trik Paling Ampuh: Mencari 'Overlay' (latar belakang gelap) yang muncul saat sidebar terbuka di HP
+                // Lalu mensimulasikan klik pada latar gelap tersebut untuk menutup sidebar.
+                const allDivs = window.parent.document.querySelectorAll('div');
+                for (let i = 0; i < allDivs.length; i++) {{
+                    const bg = window.parent.getComputedStyle(allDivs[i]).backgroundColor;
+                    // Latar gelap Streamlit mobile biasanya rgba(0, 0, 0, 0.5)
+                    if (bg === 'rgba(0, 0, 0, 0.5)') {{
+                        allDivs[i].click();
+                        break;
+                    }}
+                }}
+                
+                // Sebagai cadangan, tetap kirim tombol ESCAPE secara gaib
+                window.parent.document.dispatchEvent(new KeyboardEvent('keydown', {{
+                    key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true
+                }}));
+            }}
+        }}, 200); 
     </script>
     """
-    # Jalankan script secara tersembunyi (tanpa memakan ruang visual)
     components.html(js_code, height=0, width=0)
 
 # --- KONFIGURASI HALAMAN ---
