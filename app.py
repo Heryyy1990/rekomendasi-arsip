@@ -6,6 +6,9 @@ import plotly.express as px
 import json
 import io
 import pytz
+import logging
+# Membungkam peringatan (warning) gaib dari Google API saat pertama kali load
+logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
@@ -411,9 +414,28 @@ st.markdown("""
     }
 }
 
-/* Terapkan ke Background Utama Streamlit */
+/* Terapkan ke Background Utama Streamlit + Jurus Tirai Fade-In */
 .stApp {
     background: var(--bg-app) !important;
+    animation: smoothLoad 0.8s ease-in-out forwards !important; /* <--- Animasi masuk yang elegan */
+}
+
+/* Kunci Animasi Memudar (Fade In) */
+@keyframes smoothLoad {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* JURUS SAPU BERSIH: Sembunyikan kotak merah/kuning bawaan Streamlit di detik pertama */
+[data-testid="stException"], 
+[data-testid="stAlert"] {
+    animation: hideError 1s forwards !important;
+}
+
+@keyframes hideError {
+    0% { display: none !important; opacity: 0; }
+    99% { display: none !important; opacity: 0; }
+    100% { display: block; opacity: 1; }
 }
 
 /* ============================= */
