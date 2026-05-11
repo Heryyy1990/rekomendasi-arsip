@@ -1529,7 +1529,7 @@ def halaman_utama():
                     right: 0 !important;
                     
                     width: 100% !important; /* Pakai seluruh lebar yang tersedia */
-                    width: 95% !important;
+                    width: 90% !important;
                     margin-left: 0 !important; 
                     padding-left: 20px !important;
                     padding-right: 50px !important;
@@ -1539,7 +1539,7 @@ def halaman_utama():
                     flex-direction: row !important; 
                     flex-wrap: nowrap !important;
                     align-items: center !important;
-                    gap: 5px !important;
+                    gap: 3px !important;
                     box-sizing: border-box !important; /* Wajib agar padding tidak merusak lebar */
                 }
 
