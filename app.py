@@ -1523,7 +1523,7 @@ def halaman_utama():
                 /* 3. RESET TOTAL POSISI KOTAK SEARCH                    */
                 /* ===================================================== */
                 div[data-testid="stHorizontalBlock"]:has(input) {
-                    margin-top: -105px !important; 
+                    margin-top: -125px !important; 
                     transform: translateX(0) !important; /* MATIKAN PAKSA EFEK GESER DARI PC */
                     left: 0 !important;
                     right: 0 !important;
