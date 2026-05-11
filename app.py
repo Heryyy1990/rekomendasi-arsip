@@ -1226,13 +1226,18 @@ def halaman_utama():
             }
             
             /* ========================================================= */
-            /* 6. KUNCI LEBAR SIDEBAR (ANTI GESER/RESIZE)                */
+            /* 6. KUNCI MATI LEBAR SIDEBAR (JURUS BRUTE FORCE)           */
             /* ========================================================= */
             
-            /* Menyembunyikan tuas penarik batas bawaan Streamlit */
+            /* Basmi semua kemungkinan nama elemen tuas penarik Streamlit */
+            [data-testid="stSidebarResizer"],
             [data-testid="stSidebarResizeHandle"] {
                 display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
                 width: 0px !important;
+                pointer-events: none !important;
+                cursor: default !important;
             }
             .sidebar-title { color: #FFFFFF !important; font-weight: 900 !important; letter-spacing: 1px !important; font-size: 1.8rem !important; margin: 0 !important;}
             </style>
