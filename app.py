@@ -22,37 +22,33 @@ from groq import Groq
 import streamlit.components.v1 as components
 
 # =================================================================
-# FUNGSI AUTO-TUTUP SIDEBAR KHUSUS HP (VERSI ANTI-MOGOK)
+# FUNGSI AUTO-TUTUP SIDEBAR HP (JURUS NINJA BYPASS STREAMLIT CLOUD)
 # =================================================================
+import time
+
 def tutup_sidebar_hp():
-    # Menggunakan time.time() agar kodenya selalu unik dan Streamlit terpaksa menjalankannya setiap saat
+    # Kita menggunakan tag <img> palsu. Saat gambar gagal dimuat (onerror),
+    # dia akan memicu Javascript langsung di DOM Utama, menembus blokir keamanan Streamlit!
     unik = time.time()
-    js_code = f"""
-    <script id="penutup_{unik}">
-        // Tunggu sedikit sampai animasi halaman selesai dimuat (sekitar 0.2 detik)
-        setTimeout(function() {{
-            if (window.parent.innerWidth <= 768) {{
-                // Trik Paling Ampuh: Mencari 'Overlay' (latar belakang gelap) yang muncul saat sidebar terbuka di HP
-                // Lalu mensimulasikan klik pada latar gelap tersebut untuk menutup sidebar.
-                const allDivs = window.parent.document.querySelectorAll('div');
-                for (let i = 0; i < allDivs.length; i++) {{
-                    const bg = window.parent.getComputedStyle(allDivs[i]).backgroundColor;
-                    // Latar gelap Streamlit mobile biasanya rgba(0, 0, 0, 0.5)
-                    if (bg === 'rgba(0, 0, 0, 0.5)') {{
-                        allDivs[i].click();
-                        break;
-                    }}
+    
+    js_hack = f"""
+    <img src="gambar_gaib_{unik}.jpg" onerror="
+        if(window.innerWidth <= 768) {{
+            // Jurus 1: Tekan tombol ESCAPE secara virtual
+            document.dispatchEvent(new KeyboardEvent('keydown', {{'key': 'Escape', 'bubbles': true}}));
+            
+            // Jurus 2: Cari latar belakang gelap (overlay) Streamlit dan klik paksa
+            var divs = document.querySelectorAll('div');
+            for(var i=0; i<divs.length; i++) {{
+                if(window.getComputedStyle(divs[i]).backgroundColor === 'rgba(0, 0, 0, 0.5)') {{
+                    divs[i].click();
+                    break;
                 }}
-                
-                // Sebagai cadangan, tetap kirim tombol ESCAPE secara gaib
-                window.parent.document.dispatchEvent(new KeyboardEvent('keydown', {{
-                    key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true
-                }}));
             }}
-        }}, 200); 
-    </script>
+        }}
+    " style="display:none;">
     """
-    components.html(js_code, height=0, width=0)
+    st.markdown(js_hack, unsafe_allow_html=True)
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
