@@ -21,7 +21,7 @@ from thefuzz import process, fuzz
 from groq import Groq
 
 # --- KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
+st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
 
 # ====================================================
 # MESIN SINKRONISASI GOOGLE DRIVE
