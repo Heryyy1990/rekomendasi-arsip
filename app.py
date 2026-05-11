@@ -1506,6 +1506,28 @@ def halaman_utama():
             .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
 
             /* ========================================================= */
+            /* JURUS ANTI KAMUFLASE (WARNA TEKS INPUT TETAP TERLIHAT)    */
+            /* ========================================================= */
+            
+            /* 1. Pastikan kotak inputnya tetap putih bersih */
+            div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] {
+                background-color: #FFFFFF !important; 
+            }
+
+            /* 2. Paksa teks yang Bapak ketik berwarna gelap (Hitam/Abu Tua) */
+            div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] input {
+                color: #1E1E1E !important; 
+                -webkit-text-fill-color: #1E1E1E !important; 
+                font-weight: 500 !important;
+            }
+            
+            /* 3. Sesuaikan warna teks bayangan (Placeholder) agar elegan */
+            div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] input::placeholder {
+                color: #888888 !important;
+                -webkit-text-fill-color: #888888 !important;
+            }
+
+            /* ========================================================= */
             /* JURUS RESPONSIVE HP (ANTI GESER KIRI / KANAN)             */
             /* ========================================================= */
             @media screen and (max-width: 768px) {
