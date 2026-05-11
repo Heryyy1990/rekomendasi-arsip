@@ -416,70 +416,7 @@ st.markdown("""
     background: var(--bg-app) !important;
 }
 
-/* ============================= */
-/* TITLE & WRAPPER SIKAP */
-/* ============================= */
-
-/* --- PENGATURAN DEFAULT (UNTUK PC): TARIK KIRI MUTLAK --- */
-.sikap-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start !important; /* Tarik seluruh elemen ke ujung kiri */
-    justify-content: center;
-    margin-top: 0vh;
-    margin-bottom: 2rem;
-    padding: 0 !important; /* Hilangkan padding agar rata kiri sempurna dengan kotak login */
-}
-
-.sikap-title {
-    font-size: clamp(3.5rem, 8vw, 6.5rem) !important;
-    font-weight: 900;
-    line-height: 1.1;
-    letter-spacing: 6px !important; 
-    background: linear-gradient(90deg, #21E6C1 0%, #009DFF 50%, #1E88FF 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-align: left !important; /* Teks Rata Kiri */
-    filter: drop-shadow(0 0 15px rgba(0,194,255,0.2));
-    width: 100%;
-}
-
-.sikap-subtitle {
-    font-size: clamp(0.85rem, 3vw, 1.15rem) !important;
-    font-weight: 700 !important;
-    color: var(--text-subtitle);
-    text-align: left !important; /* Subteks Rata Kiri */
-    margin-top: 5px;
-    padding-bottom: 20px; 
-    position: relative;
-    width: 100%;
-}
-
-/* Garis Biru Futuristik - Mulai tebal dari kiri lalu memudar ke kanan */
-.sikap-subtitle::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0 !important; /* Kunci di ujung kiri */
-    width: 100%; 
-    height: 1.5px;
-    background: linear-gradient(90deg, #009DFF, transparent) !important; 
-}
-
-/* Titik Cahaya - Menempel pas di ujung kiri garis */
-.sikap-subtitle::before {
-    content: "";
-    position: absolute;
-    bottom: -1.5px; 
-    left: 0 !important; /* Kunci di ujung kiri */
-    transform: none !important; /* Matikan efek geser ke tengah */
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #00C2FF;
-    box-shadow: 0 0 10px 2px rgba(0, 194, 255, 0.8);
-    z-index: 1;
-}
+TITLE & WRAPPER SIKAP
 
 /* ========================================================= */
 /* JURUS PELINDUNG HP: KEMBALIKAN SEMUANYA KE TENGAH!        */
