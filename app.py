@@ -1532,7 +1532,7 @@ def halaman_utama():
                     max-width: 100% !important;
                     margin-left: 0 !important; 
                     padding-left: 20px !important;
-                    padding-right: 45px !important;
+                    padding-right: 55px !important;
                     padding: 0 20px !important; /* Jepit dari kiri-kanan pakai padding agar ke tengah */
                     
                     display: flex !important;
