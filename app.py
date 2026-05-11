@@ -1232,7 +1232,7 @@ def halaman_utama():
             st.markdown("""
             <div class="sidebar-title-container">
                 <div class="sidebar-logo">
-                    <svg viewBox="0 0 24 24" width="100%" height="70%" style="filter: drop-shadow(0px 2px 3px rgba(0,157,255,0.4)); transform: scale(1.6); margin-top: 3px;">
+                    <svg viewBox="0 0 24 24" width="100%" height="70%" style="filter: drop-shadow(0px 2px 3px rgba(0,157,255,0.4)); transform: scale(1.6); margin-top: 2px;">
                         <defs>
                             <linearGradient id="gradS" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#00C6FF;stop-opacity:1" />
