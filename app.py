@@ -1557,15 +1557,22 @@ def halaman_utama():
                     width: 55px !important; 
                     min-width: 55px !important;
                     max-width: 55px !important;
+                    flex-shrink: 0 !important;
                     margin: 0 !important;
                 }
 
                 /* Seragamkan Tinggi Tombol dan Kotak Input */
                 div[data-testid="stHorizontalBlock"]:has(input) button {
                     height: 52px !important;
-                    width: 100% !important;
+                    min-height: 52px !important; /* <--- ANTI GEPENG ATAS-BAWAH */
+                    width: 55px !important;      /* <--- KUNCI LEBAR TOMBOL SAMA DENGAN KOLOM */
+                    min-width: 55px !important;  /* <--- ANTI GEPENG KIRI-KANAN */
+                    flex-shrink: 0 !important;   /* <--- JURUS MUTLAK ANTI MENGKERUT */
                     padding: 0 !important;
                     border-radius: 8px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
                 }
                 div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] {
                     height: 52px !important;
