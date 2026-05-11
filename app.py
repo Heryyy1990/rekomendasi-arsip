@@ -1883,7 +1883,7 @@ def halaman_utama():
                 uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
                 
                 # Menggunakan simbol chevron kekinian seperti halaman AI
-                with st.expander(f"❯ RUMPUN {p} - {uraian_primer}"):
+                with st.expander(f"❯ {p} - {uraian_primer}"):
                     hasil_filter = df[df['kode'].str.startswith(p)]
                     
                     if not hasil_filter.empty:
