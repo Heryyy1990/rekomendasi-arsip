@@ -157,72 +157,75 @@ def simpan_feedback_csv(nama_user, input_user, kode_terpilih):
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
-    # JURUS MEMBELAH LAYAR JADI 2 KOLOM
-    # vertical_alignment="center" memastikan Kiri (Teks) dan Kanan (Form) sejajar sempurna di tengah!
-    col_kiri, col_kanan = st.columns(2, gap="large", vertical_alignment="center")
+    st.markdown("""
+<div class="sikap-wrapper">
+    <div class="sikap-title">SIKAP</div>
+    <div class="sikap-subtitle">Sistem Informasi Klasifikasi Arsip Pintar</div>
+</div>
+""", unsafe_allow_html=True)
 
-    # KOLOM KIRI: Tempat Judul
-    with col_kiri:
+    with st.form("form_login"):
         st.markdown("""
-        <div class="sikap-wrapper">
-            <div class="sikap-title">SIKAP</div>
-            <div class="sikap-subtitle">Sistem Informasi Klasifikasi Arsip Pintar</div>
+        <div class="login-header-container">
+            <div class="login-title">Selamat Datang</div>
+        </div>
+        <div class="login-subtitle">
+        <b>Masuk untuk mengakses sistem klasifikasi arsip<br>
+        secara cepat, akurat, dan pintar.</b>
         </div>
         """, unsafe_allow_html=True)
 
-    # KOLOM KANAN: Tempat Form Login
-    with col_kanan:
-        with st.form("form_login"):
-            st.markdown("""
-            <div class="login-header-container">
-                <div class="login-title">Selamat Datang</div>
-            </div>
-            <div class="login-subtitle">
-            <b>Masuk untuk mengakses sistem klasifikasi arsip<br>
-            secara cepat, akurat, dan pintar.</b>
-            </div>
-            """, unsafe_allow_html=True)
+        user_input = st.text_input(
+            "Username",
+            placeholder="Masukkan username Anda"
+        )
 
-            user_input = st.text_input(
-                "Username",
-                placeholder="Masukkan username Anda"
-            )
+        pwd_input = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Masukkan password Anda"
+        )
 
-            pwd_input = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Masukkan password Anda"
-            )
+        submit = st.form_submit_button(
+            "Masuk",
+            use_container_width=True
+        )
+        
+        # FOOTER BARU: Icon Futuristik + Crafted by Heryanto, S.Pd.
+        st.markdown("""
+        <div class="login-footer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 6px;">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span>Crafted by <b>Heryanto, S.Pd.</b></span>
+        </div>
+        """, unsafe_allow_html=True)
 
-            submit = st.form_submit_button(
-                "Masuk",
-                use_container_width=True
-            )
-            
-            st.markdown("""
-            <div class="login-footer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 6px;">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                    <polyline points="2 17 12 22 22 17"></polyline>
-                    <polyline points="2 12 12 17 22 12"></polyline>
-                </svg>
-                <span>Crafted by <b>Heryanto, S.Pd.</b></span>
-            </div>
-            """, unsafe_allow_html=True)
+        if submit:
+            is_valid, role, nama = validasi_login(user_input, pwd_input)
 
-            # Cukup satu kali eksekusi submit (kode asli Bapak ada 2 kali tercopy)
-            if submit:
-                is_valid, role, nama = validasi_login(user_input, pwd_input)
+            if is_valid:
+                st.session_state['logged_in'] = True
+                st.session_state['role'] = role
+                st.session_state['nama'] = nama
+                st.session_state['username'] = user_input
+                st.session_state.search_history = baca_riwayat_csv(nama)
+                st.rerun()
+            else:
+                st.error("Username atau Password salah!")
 
-                if is_valid:
-                    st.session_state['logged_in'] = True
-                    st.session_state['role'] = role
-                    st.session_state['nama'] = nama
-                    st.session_state['username'] = user_input
-                    st.session_state.search_history = baca_riwayat_csv(nama)
-                    st.rerun()
-                else:
-                    st.error("Username atau Password salah!")
+        if submit:
+            is_valid, role, nama = validasi_login(user_input, pwd_input)
+
+            if is_valid:
+                st.session_state['logged_in'] = True
+                st.session_state['role'] = role
+                st.session_state['nama'] = nama
+                st.rerun()
+            else:
+                st.error("Username atau Password salah!")
 
 # 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
 try:
@@ -416,29 +419,63 @@ st.markdown("""
     background: var(--bg-app) !important;
 }
 
-TITLE & WRAPPER SIKAP
+/* ============================= */
+/* TITLE & WRAPPER SIKAP */
+/* ============================= */
+.sikap-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6vh;
+    margin-bottom: 2rem;
+    padding: 0 15px;
+}
 
-/* ========================================================= */
-/* JURUS PELINDUNG HP: KEMBALIKAN SEMUANYA KE TENGAH!        */
-/* ========================================================= */
-@media screen and (max-width: 768px) {
-    .sikap-wrapper { 
-        align-items: center !important; /* Kembalikan ke tengah */
-        margin-top: 6vh !important; 
-        padding: 0 15px !important;
-    }
-    .sikap-title, .sikap-subtitle { 
-        text-align: center !important; /* Teks kembali rata tengah */
-    }
-    /* Garis memudar dari kiri-tengah-kanan */
-    .sikap-subtitle::after { 
-        background: linear-gradient(90deg, transparent, #009DFF, transparent) !important; 
-    }
-    /* Titik nyala kembali ke tengah bawah */
-    .sikap-subtitle::before { 
-        left: 50% !important; 
-        transform: translateX(-50%) !important; 
-    }
+.sikap-title {
+    font-size: clamp(3.5rem, 8vw, 6.5rem) !important;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: 6px !important; 
+    background: linear-gradient(90deg, #21E6C1 0%, #009DFF 50%, #1E88FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    filter: drop-shadow(0 0 15px rgba(0,194,255,0.2));
+}
+
+.sikap-subtitle {
+    font-size: clamp(0.85rem, 3vw, 1.15rem) !important;
+    font-weight: 700 !important;
+    color: var(--text-subtitle);
+    text-align: center;
+    margin-top: 5px;
+    padding-bottom: 20px; 
+    position: relative;
+}
+
+.sikap-subtitle::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0; 
+    width: 100%; 
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, #009DFF, transparent); 
+}
+
+.sikap-subtitle::before {
+    content: "";
+    position: absolute;
+    bottom: -1.5px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00C2FF;
+    box-shadow: 0 0 10px 2px rgba(0, 194, 255, 0.8);
+    z-index: 1;
 }
 
 /* ============================= */
