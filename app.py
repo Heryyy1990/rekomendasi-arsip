@@ -1860,6 +1860,18 @@ def halaman_utama():
             details.anak-cucu > summary::-webkit-details-marker {
                 display: none !important;
             }
+            
+            /* ========================================================= */
+            /* TAMBAHAN ANIMASI PANAH ELEGAN                             */
+            /* ========================================================= */
+            .arrow-icon {
+                transition: transform 0.3s ease-in-out !important;
+                display: inline-block !important; 
+            }
+            details[open] > summary .arrow-icon {
+                transform: rotate(-90deg) !important; 
+            }
+
             </style>
             """, unsafe_allow_html=True)
             
@@ -1940,13 +1952,14 @@ def halaman_utama():
                             # TAMBAHAN BARU: INDIKATOR PANAH (JIKA PUNYA TURUNAN)
                             # =======================================================
                             if children:
-                                # Jika ada anaknya, beri icon panah ke bawah berlatar gelap tipis di pojok kanan
-                                indikator_html = f"<div style='display: flex; align-items: flex-start; margin-left: 10px; margin-top: 2px; flex-shrink: 0;'><span class='material-symbols-rounded' style='font-size: 1.2rem; background: rgba(0,0,0,0.15); border-radius: 50%; padding: 2px;'>keyboard_arrow_down</span></div>"
+                                # 1. Panah diganti jadi "keyboard_arrow_right" (lurus ke kanan)
+                                # 2. Ditambahkan class "arrow-icon" agar bisa diputar oleh CSS
+                                indikator_html = f"<div style='display: flex; align-items: flex-start; margin-left: 10px; margin-top: 2px; flex-shrink: 0;'><span class='material-symbols-rounded arrow-icon' style='font-size: 1.2rem; background: rgba(0,0,0,0.15); border-radius: 50%; padding: 2px;'>keyboard_arrow_right</span></div>"
                             else:
-                                # Jika mentok (tidak ada turunan/anak), kosongkan agar terlihat sebagai ujung kode
+                                # Jika mentok (tidak ada turunan/anak), kosongkan
                                 indikator_html = ""
                             # =======================================================
-
+                            
                             html = ""
                             if children:
                                 html += f'<details class="anak-cucu" style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><div style="{badge_style}">{icon_code_html}{text_html}{indikator_html}</div></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #CBD5E1; padding-top: 8px;">'
