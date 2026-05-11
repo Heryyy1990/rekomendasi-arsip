@@ -157,75 +157,72 @@ def simpan_feedback_csv(nama_user, input_user, kode_terpilih):
 
 # --- HALAMAN LOGIN ---
 def halaman_login():
-    st.markdown("""
-<div class="sikap-wrapper">
-    <div class="sikap-title">SIKAP</div>
-    <div class="sikap-subtitle">Sistem Informasi Klasifikasi Arsip Pintar</div>
-</div>
-""", unsafe_allow_html=True)
+    # JURUS MEMBELAH LAYAR JADI 2 KOLOM
+    # vertical_alignment="center" memastikan Kiri (Teks) dan Kanan (Form) sejajar sempurna di tengah!
+    col_kiri, col_kanan = st.columns(2, gap="large", vertical_alignment="center")
 
-    with st.form("form_login"):
+    # KOLOM KIRI: Tempat Judul
+    with col_kiri:
         st.markdown("""
-        <div class="login-header-container">
-            <div class="login-title">Selamat Datang</div>
-        </div>
-        <div class="login-subtitle">
-        <b>Masuk untuk mengakses sistem klasifikasi arsip<br>
-        secara cepat, akurat, dan pintar.</b>
+        <div class="sikap-wrapper">
+            <div class="sikap-title">SIKAP</div>
+            <div class="sikap-subtitle">Sistem Informasi Klasifikasi Arsip Pintar</div>
         </div>
         """, unsafe_allow_html=True)
 
-        user_input = st.text_input(
-            "Username",
-            placeholder="Masukkan username Anda"
-        )
+    # KOLOM KANAN: Tempat Form Login
+    with col_kanan:
+        with st.form("form_login"):
+            st.markdown("""
+            <div class="login-header-container">
+                <div class="login-title">Selamat Datang</div>
+            </div>
+            <div class="login-subtitle">
+            <b>Masuk untuk mengakses sistem klasifikasi arsip<br>
+            secara cepat, akurat, dan pintar.</b>
+            </div>
+            """, unsafe_allow_html=True)
 
-        pwd_input = st.text_input(
-            "Password",
-            type="password",
-            placeholder="Masukkan password Anda"
-        )
+            user_input = st.text_input(
+                "Username",
+                placeholder="Masukkan username Anda"
+            )
 
-        submit = st.form_submit_button(
-            "Masuk",
-            use_container_width=True
-        )
-        
-        # FOOTER BARU: Icon Futuristik + Crafted by Heryanto, S.Pd.
-        st.markdown("""
-        <div class="login-footer">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 6px;">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                <polyline points="2 17 12 22 22 17"></polyline>
-                <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-            <span>Crafted by <b>Heryanto, S.Pd.</b></span>
-        </div>
-        """, unsafe_allow_html=True)
+            pwd_input = st.text_input(
+                "Password",
+                type="password",
+                placeholder="Masukkan password Anda"
+            )
 
-        if submit:
-            is_valid, role, nama = validasi_login(user_input, pwd_input)
+            submit = st.form_submit_button(
+                "Masuk",
+                use_container_width=True
+            )
+            
+            st.markdown("""
+            <div class="login-footer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#009DFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 6px;">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                <span>Crafted by <b>Heryanto, S.Pd.</b></span>
+            </div>
+            """, unsafe_allow_html=True)
 
-            if is_valid:
-                st.session_state['logged_in'] = True
-                st.session_state['role'] = role
-                st.session_state['nama'] = nama
-                st.session_state['username'] = user_input
-                st.session_state.search_history = baca_riwayat_csv(nama)
-                st.rerun()
-            else:
-                st.error("Username atau Password salah!")
+            # Cukup satu kali eksekusi submit (kode asli Bapak ada 2 kali tercopy)
+            if submit:
+                is_valid, role, nama = validasi_login(user_input, pwd_input)
 
-        if submit:
-            is_valid, role, nama = validasi_login(user_input, pwd_input)
-
-            if is_valid:
-                st.session_state['logged_in'] = True
-                st.session_state['role'] = role
-                st.session_state['nama'] = nama
-                st.rerun()
-            else:
-                st.error("Username atau Password salah!")
+                if is_valid:
+                    st.session_state['logged_in'] = True
+                    st.session_state['role'] = role
+                    st.session_state['nama'] = nama
+                    st.session_state['username'] = user_input
+                    st.session_state.search_history = baca_riwayat_csv(nama)
+                    st.rerun()
+                else:
+                    st.error("Username atau Password salah!")
 
 # 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
 try:
@@ -422,14 +419,16 @@ st.markdown("""
 /* ============================= */
 /* TITLE & WRAPPER SIKAP */
 /* ============================= */
+
+/* --- PENGATURAN DEFAULT (UNTUK PC): TARIK KIRI MUTLAK --- */
 .sikap-wrapper {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start !important; /* Tarik seluruh elemen ke ujung kiri */
     justify-content: center;
-    margin-top: 6vh;
+    margin-top: 0vh;
     margin-bottom: 2rem;
-    padding: 0 15px;
+    padding: 0 !important; /* Hilangkan padding agar rata kiri sempurna dengan kotak login */
 }
 
 .sikap-title {
@@ -440,42 +439,69 @@ st.markdown("""
     background: linear-gradient(90deg, #21E6C1 0%, #009DFF 50%, #1E88FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-align: center;
+    text-align: left !important; /* Teks Rata Kiri */
     filter: drop-shadow(0 0 15px rgba(0,194,255,0.2));
+    width: 100%;
 }
 
 .sikap-subtitle {
     font-size: clamp(0.85rem, 3vw, 1.15rem) !important;
     font-weight: 700 !important;
     color: var(--text-subtitle);
-    text-align: center;
+    text-align: left !important; /* Subteks Rata Kiri */
     margin-top: 5px;
     padding-bottom: 20px; 
     position: relative;
+    width: 100%;
 }
 
+/* Garis Biru Futuristik - Mulai tebal dari kiri lalu memudar ke kanan */
 .sikap-subtitle::after {
     content: "";
     position: absolute;
     bottom: 0;
-    left: 0; 
+    left: 0 !important; /* Kunci di ujung kiri */
     width: 100%; 
     height: 1.5px;
-    background: linear-gradient(90deg, transparent, #009DFF, transparent); 
+    background: linear-gradient(90deg, #009DFF, transparent) !important; 
 }
 
+/* Titik Cahaya - Menempel pas di ujung kiri garis */
 .sikap-subtitle::before {
     content: "";
     position: absolute;
     bottom: -1.5px; 
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0 !important; /* Kunci di ujung kiri */
+    transform: none !important; /* Matikan efek geser ke tengah */
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background: #00C2FF;
     box-shadow: 0 0 10px 2px rgba(0, 194, 255, 0.8);
     z-index: 1;
+}
+
+/* ========================================================= */
+/* JURUS PELINDUNG HP: KEMBALIKAN SEMUANYA KE TENGAH!        */
+/* ========================================================= */
+@media screen and (max-width: 768px) {
+    .sikap-wrapper { 
+        align-items: center !important; /* Kembalikan ke tengah */
+        margin-top: 6vh !important; 
+        padding: 0 15px !important;
+    }
+    .sikap-title, .sikap-subtitle { 
+        text-align: center !important; /* Teks kembali rata tengah */
+    }
+    /* Garis memudar dari kiri-tengah-kanan */
+    .sikap-subtitle::after { 
+        background: linear-gradient(90deg, transparent, #009DFF, transparent) !important; 
+    }
+    /* Titik nyala kembali ke tengah bawah */
+    .sikap-subtitle::before { 
+        left: 50% !important; 
+        transform: translateX(-50%) !important; 
+    }
 }
 
 /* ============================= */
