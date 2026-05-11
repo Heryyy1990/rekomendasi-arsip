@@ -1226,19 +1226,18 @@ def halaman_utama():
             }
             
             /* ========================================================= */
-            /* 6. KUNCI MATI LEBAR SIDEBAR (JURUS BRUTE FORCE)           */
+            /* 6. KUNCI MATI LEBAR SIDEBAR (JURUS SENSOR KURSOR)         */
             /* ========================================================= */
             
-            /* Basmi semua kemungkinan nama elemen tuas penarik Streamlit */
-            [data-testid="stSidebarResizer"],
-            [data-testid="stSidebarResizeHandle"] {
+            /* Membasmi elemen tanpa nama yang memiliki kursor penarik batas */
+            div[style*="cursor: col-resize"],
+            div[style*="cursor: ew-resize"] {
                 display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
                 width: 0px !important;
                 pointer-events: none !important;
-                cursor: default !important;
+                opacity: 0 !important;
             }
+            
             .sidebar-title { color: #FFFFFF !important; font-weight: 900 !important; letter-spacing: 1px !important; font-size: 1.8rem !important; margin: 0 !important;}
             </style>
             """, unsafe_allow_html=True)
