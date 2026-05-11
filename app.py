@@ -1224,6 +1224,16 @@ def halaman_utama():
                 display: flex; align-items: center; justify-content: center; 
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15), inset 0 -3px 0 rgba(226, 232, 240, 1) !important;
             }
+            
+            /* ========================================================= */
+            /* 6. KUNCI LEBAR SIDEBAR (ANTI GESER/RESIZE)                */
+            /* ========================================================= */
+            
+            /* Menyembunyikan tuas penarik batas bawaan Streamlit */
+            [data-testid="stSidebarResizeHandle"] {
+                display: none !important;
+                width: 0px !important;
+            }
             .sidebar-title { color: #FFFFFF !important; font-weight: 900 !important; letter-spacing: 1px !important; font-size: 1.8rem !important; margin: 0 !important;}
             </style>
             """, unsafe_allow_html=True)
