@@ -1366,7 +1366,7 @@ def halaman_utama():
                 width: 100% !important; max-width: 580px !important; 
                 margin-left: auto !important; margin-right: auto !important;
                 position: relative; z-index: 99;
-                padding-left: 30px !important;
+                padding-left: 25px !important;
             }
             
             /* Desain Input Streamlit */
