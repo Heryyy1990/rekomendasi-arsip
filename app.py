@@ -1529,10 +1529,10 @@ def halaman_utama():
                     right: 0 !important;
                     
                     width: 100% !important; /* Pakai seluruh lebar yang tersedia */
-                    max-width: 100% !important;
+                    width: 90% !important;
                     margin-left: 0 !important; 
                     padding-left: 20px !important;
-                    padding-right: 500px !important;
+                    padding-right: 60px !important;
                     padding: 0 20px !important; /* Jepit dari kiri-kanan pakai padding agar ke tengah */
                     
                     display: flex !important;
