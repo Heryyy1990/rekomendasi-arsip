@@ -1072,13 +1072,13 @@ def dapatkan_sapaan():
     jam = waktu_sekarang.hour
 
     if 4 <= jam < 11:
-        return "Selamat Pagi,"
+        return "Selamat Pagi!"
     elif 11 <= jam < 15:
-        return "Selamat Siang,"
+        return "Selamat Siang!"
     elif 15 <= jam < 18:
-        return "Selamat Sore,"
+        return "Selamat Sore!"
     else:
-        return "Selamat Malam,"
+        return "Selamat Malam!"
 def halaman_utama():
     # INISIALISASI ROUTING HALAMAN
     if 'page' not in st.session_state:
@@ -1616,7 +1616,7 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            st.markdown('<div class="section-title" style="text-align: center;"> Akses Cepat</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title" style="text-align: center; color: #009DFF; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;"> Akses Cepat</div>', unsafe_allow_html=True)
             
             # Membuat 3 Kolom
             col1, col2, col3 = st.columns(3)
