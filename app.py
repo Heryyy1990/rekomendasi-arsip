@@ -1927,23 +1927,36 @@ def halaman_utama():
                             label = levels_name[actual_level]
                             
                             # KUNCI PERBAIKAN: Flexbox Split agar teks panjang rapi & rata (justify)
-                            badge_style = f"background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);"
-                            
-                            # Ruangan Kiri (Ikon & Kode) - Dikunci mati
-                            icon_code_html = f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'><span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span><strong style='margin-top: 2px;'>{k}</strong><span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span></div>"
-                            
-                            # Ruangan Kanan (Uraian Teks) - Bebas melebar & Justify
-                            text_html = f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>{u} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i></div>"
-                            
-                            html = ""
-                            if children:
-                                html += f'<details class="anak-cucu" style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><div style="{badge_style}">{icon_code_html}{text_html}</div></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #CBD5E1; padding-top: 8px;">'
-                                for c in children:
-                                    html += render_tree(c)
-                                html += '</div></details>'
-                            else:
-                                html += f'<div style="margin-bottom: 8px;"><div style="{badge_style}">{icon_code_html}{text_html}</div></div>'
-                            return html
+                        badge_style = f"background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);"
+                        
+                        # Ruangan Kiri (Ikon & Kode) - Dikunci mati
+                        icon_code_html = f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'><span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span><strong style='margin-top: 2px;'>{k}</strong><span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span></div>"
+                        
+                        # Ruangan Kanan (Uraian Teks) - Bebas melebar & Justify
+                        text_html = f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>{u} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i></div>"
+                        
+                        # =======================================================
+                        # TAMBAHAN BARU: INDIKATOR PANAH (JIKA PUNYA TURUNAN)
+                        # =======================================================
+                        if children:
+                            # Jika ada anaknya, beri icon panah ke bawah berlatar gelap tipis di pojok kanan
+                            indikator_html = f"<div style='display: flex; align-items: flex-start; margin-left: 10px; margin-top: 2px; flex-shrink: 0;'><span class='material-symbols-rounded' style='font-size: 1.2rem; background: rgba(0,0,0,0.15); border-radius: 50%; padding: 2px;'>keyboard_arrow_down</span></div>"
+                        else:
+                            # Jika mentok (tidak ada turunan/anak), kosongkan agar terlihat sebagai ujung kode
+                            indikator_html = ""
+                        # =======================================================
+
+                        html = ""
+                        if children:
+                            # Rakit semua bagian: Kiri + Kanan + Indikator Panah
+                            html += f'<details class="anak-cucu" style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><div style="{badge_style}">{icon_code_html}{text_html}{indikator_html}</div></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #CBD5E1; padding-top: 8px;">'
+                            for c in children:
+                                html += render_tree(c)
+                            html += '</div></details>'
+                        else:
+                            # Rakit semua bagian (tanpa panah karena tidak ada anak)
+                            html += f'<div style="margin-bottom: 8px;"><div style="{badge_style}">{icon_code_html}{text_html}{indikator_html}</div></div>'
+                        return html
                             
                         if p in nodes:
                             full_html = ""
