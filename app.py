@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 import os
+import streamlit.components.v1 as components
 import plotly.express as px
 import json
 import io
@@ -1094,6 +1095,30 @@ def smart_classify(user_input, df, top_n=3):
         
     # Fallback
     return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
+
+# =================================================================
+# FUNGSI AUTO-TUTUP SIDEBAR KHUSUS HP (INJEKSI JAVASCRIPT)
+# =================================================================
+def tutup_sidebar_hp():
+    js_code = """
+    <script>
+        // Cek apakah ini layar HP (lebar <= 768px)
+        if (window.parent.innerWidth <= 768) {
+            // Trik 1: Coba tekan tombol 'Escape' secara virtual
+            window.parent.document.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true
+            }));
+            
+            // Trik 2: Coba cari tombol penutup sidebar Streamlit dan klik
+            setTimeout(function() {
+                const closeBtn = window.parent.document.querySelector('[data-testid="stSidebarCollapseButton"] button');
+                if(closeBtn) closeBtn.click();
+            }, 100); // Beri jeda 0.1 detik agar aman
+        }
+    </script>
+    """
+    # Jalankan script tanpa memakan ruang di layar
+    components.html(js_code, height=0, width=0)
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
 def dapatkan_sapaan():
@@ -1110,6 +1135,7 @@ def dapatkan_sapaan():
         return "Selamat Sore!"
     else:
         return "Selamat Malam!"
+        
 def halaman_utama():
     # INISIALISASI ROUTING HALAMAN
     if 'page' not in st.session_state:
@@ -1705,6 +1731,7 @@ def halaman_utama():
                     
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
+            tutup_sidebar_hp() #
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">smart_toy</span> Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
             st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
@@ -1840,7 +1867,7 @@ def halaman_utama():
 
         # --- HALAMAN 3: JELAJAH KODE ---
         elif st.session_state.page == 'Jelajah Kode':
-            # Judul dengan icon modern menyesuaikan sidebar
+            tutup_sidebar_hp() #
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">folder</span> Jelajah Kode Klasifikasi</div>', unsafe_allow_html=True)
             st.write("Telusuri seluruh struktur hierarki klasifikasi arsip secara manual.")
             
@@ -1987,6 +2014,7 @@ def halaman_utama():
 
         # --- HALAMAN 4: RIWAYAT ---
         elif st.session_state.page == 'Riwayat':
+            tutup_sidebar_hp() #
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">history</span> Riwayat Pencarian Lengkap</div>', unsafe_allow_html=True)
     
             
@@ -2003,7 +2031,7 @@ def halaman_utama():
 
         # --- HALAMAN 5: ADMIN PANEL ---
         elif st.session_state.page == 'Admin':
-            # Judul Halaman Utama Admin
+            tutup_sidebar_hp() #
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">admin_panel_settings</span> Panel Administrator SIKAP</div>', unsafe_allow_html=True)
             
             # --- FUNGSI BANTUAN KHUSUS ADMIN ---
@@ -2161,11 +2189,13 @@ def halaman_utama():
 
         # --- HALAMAN 6: PETUNJUK PENGGUNAAN ---
         elif st.session_state.page == 'Petunjuk':
+            tutup_sidebar_hp() #
             st.markdown('<div class="section-title">📖 Petunjuk Penggunaan SIKAP</div>', unsafe_allow_html=True)
             st.info("Halaman panduan dan tata cara penggunaan aplikasi akan segera hadir di sini. Harap bersabar ya!")
 
         # --- HALAMAN 7: TENTANG SIKAP ---
         elif st.session_state.page == 'Tentang':
+            tutup_sidebar_hp() #
             st.markdown('<div class="section-title">ℹ️ Tentang SIKAP</div>', unsafe_allow_html=True)
             st.write("SIKAP (Sistem Informasi Klasifikasi Arsip Pintar) adalah inovasi digital cerdas yang dirancang untuk membantu aparatur pemerintah daerah dalam mengklasifikasikan dan menemukan kode arsip secara presisi, cepat, dan modern.")
             
@@ -2178,6 +2208,7 @@ def halaman_utama():
 
         # --- HALAMAN 8: PROFIL SAYA ---
         elif st.session_state.page == 'Profil Saya':
+            tutup_sidebar_hp() #
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">manage_accounts</span> Pengaturan Profil</div>', unsafe_allow_html=True)
             
             # Form Pengaturan Akun
