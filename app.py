@@ -419,16 +419,14 @@ st.markdown("""
 /* ============================= */
 /* TITLE & WRAPPER SIKAP */
 /* ============================= */
-
-/* --- PENGATURAN DEFAULT (UNTUK PC): TARIK KIRI MUTLAK --- */
 .sikap-wrapper {
     display: flex;
     flex-direction: column;
-    align-items: flex-start !important; /* Tarik seluruh elemen ke ujung kiri */
+    align-items: center !important; /* KUNCI: Memusatkan elemen di dalam kolom */
     justify-content: center;
     margin-top: 0vh;
     margin-bottom: 2rem;
-    padding: 0 !important; /* Hilangkan padding agar rata kiri sempurna dengan kotak login */
+    padding: 0 15px;
 }
 
 .sikap-title {
@@ -439,7 +437,7 @@ st.markdown("""
     background: linear-gradient(90deg, #21E6C1 0%, #009DFF 50%, #1E88FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-align: left !important; /* Teks Rata Kiri */
+    text-align: center !important; /* KUNCI: Teks rata tengah */
     filter: drop-shadow(0 0 15px rgba(0,194,255,0.2));
     width: 100%;
 }
@@ -448,31 +446,32 @@ st.markdown("""
     font-size: clamp(0.85rem, 3vw, 1.15rem) !important;
     font-weight: 700 !important;
     color: var(--text-subtitle);
-    text-align: left !important; /* Subteks Rata Kiri */
+    text-align: center !important; /* KUNCI: Teks rata tengah */
     margin-top: 5px;
     padding-bottom: 20px; 
     position: relative;
     width: 100%;
 }
 
-/* Garis Biru Futuristik - Mulai tebal dari kiri lalu memudar ke kanan */
+/* Garis Biru Futuristik - Kembali memudar dari tengah ke pinggir */
 .sikap-subtitle::after {
     content: "";
     position: absolute;
     bottom: 0;
-    left: 0 !important; /* Kunci di ujung kiri */
+    left: 50% !important; /* KUNCI: Balik ke tengah */
+    transform: translateX(-50%) !important;
     width: 100%; 
     height: 1.5px;
-    background: linear-gradient(90deg, #009DFF, transparent) !important; 
+    background: linear-gradient(90deg, transparent, #009DFF, transparent) !important; 
 }
 
-/* Titik Cahaya - Menempel pas di ujung kiri garis */
+/* Titik Cahaya - Kembali persis di tengah garis */
 .sikap-subtitle::before {
     content: "";
     position: absolute;
     bottom: -1.5px; 
-    left: 0 !important; /* Kunci di ujung kiri */
-    transform: none !important; /* Matikan efek geser ke tengah */
+    left: 50% !important; /* KUNCI: Balik ke tengah */
+    transform: translateX(-50%) !important;
     width: 6px;
     height: 6px;
     border-radius: 50%;
