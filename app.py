@@ -17,6 +17,37 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 from thefuzz import process, fuzz
 from groq import Groq
 
+import streamlit.components.v1 as components
+
+# =================================================================
+# FUNGSI AUTO-TUTUP SIDEBAR KHUSUS HP
+# =================================================================
+def tutup_sidebar_hp():
+    # Mengirimkan script ke browser pengguna untuk menekan tombol 'Escape' jika layar kecil
+    js_code = """
+    <script>
+        // Cek apakah ini layar HP (lebar <= 768px)
+        if (window.parent.innerWidth <= 768) {
+            // Simulasikan menekan tombol 'Escape' pada keyboard
+            window.parent.document.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Escape',
+                code: 'Escape',
+                keyCode: 27,
+                which: 27,
+                bubbles: true
+            }));
+            
+            // Alternatif: Cari tombol silang 'X' di sidebar dan klik otomatis
+            const closeBtn = window.parent.document.querySelector('[data-testid="baseButton-header"]');
+            if (closeBtn) {
+                closeBtn.click();
+            }
+        }
+    </script>
+    """
+    # Jalankan script secara tersembunyi (tanpa memakan ruang visual)
+    components.html(js_code, height=0, width=0)
+
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide")
 
@@ -1072,13 +1103,13 @@ def dapatkan_sapaan():
     jam = waktu_sekarang.hour
 
     if 4 <= jam < 11:
-        return "Selamat Pagi,"
+        return "Selamat Pagi!"
     elif 11 <= jam < 15:
-        return "Selamat Siang,"
+        return "Selamat Siang!"
     elif 15 <= jam < 18:
-        return "Selamat Sore,"
+        return "Selamat Sore!"
     else:
-        return "Selamat Malam,"
+        return "Selamat Malam!"
 def halaman_utama():
     # INISIALISASI ROUTING HALAMAN
     if 'page' not in st.session_state:
