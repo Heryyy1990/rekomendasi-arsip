@@ -6,6 +6,8 @@ import plotly.express as px
 import json
 import io
 import pytz
+import threading
+import time
 import logging
 # Membungkam peringatan (warning) gaib dari Google API saat pertama kali load
 logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
@@ -24,7 +26,7 @@ from groq import Groq
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
 
 # ====================================================
-# MESIN SINKRONISASI GOOGLE DRIVE
+# MESIN SINKRONISASI GOOGLE DRIVE (VERSI TAHAN BANTING)
 # ====================================================
 @st.cache_resource
 def init_drive():
@@ -35,53 +37,83 @@ def init_drive():
     return build('drive', 'v3', credentials=creds)
 
 def get_drive_file_id(drive_service, file_name, folder_id):
-    query = f"name='{file_name}' and '{folder_id}' in parents and trashed=false"
-    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
-    items = results.get('files', [])
-    if items:
-        return items[0]['id']
-    return None
+    try:
+        query = f"name='{file_name}' and '{folder_id}' in parents and trashed=false"
+        results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+        items = results.get('files', [])
+        if items:
+            return items[0]['id']
+        return None
+    except Exception:
+        # Jika koneksi ke Drive putus, diamkan saja
+        return None
 
 def sync_from_drive(file_name):
-    drive_service = init_drive()
-    folder_id = st.secrets["drive_folder_id"]
-    file_id = get_drive_file_id(drive_service, file_name, folder_id)
-    if file_id:
-        request = drive_service.files().get_media(fileId=file_id)
-        fh = io.FileIO(file_name, 'wb')
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while done is False:
-            status, done = downloader.next_chunk()
+    try:
+        drive_service = init_drive()
+        folder_id = st.secrets["drive_folder_id"]
+        file_id = get_drive_file_id(drive_service, file_name, folder_id)
+        if file_id:
+            request = drive_service.files().get_media(fileId=file_id)
+            fh = io.FileIO(file_name, 'wb')
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+    except Exception:
+        # Jika gagal nyedot dari Drive (BrokenPipe / Timeout), JANGAN ERROR. 
+        pass 
 
+# --- ROBOT ASISTEN GAIB (BACKGROUND THREAD) ---
+def retry_sync_gaib(file_name):
+    time.sleep(5) # Robot diam-diam menunggu 5 detik di belakang layar
+    try:
+        drive_service = init_drive()
+        folder_id = st.secrets["drive_folder_id"]
+        file_id = get_drive_file_id(drive_service, file_name, folder_id)
+        media = MediaFileUpload(file_name, mimetype='text/csv', resumable=True)
+        if file_id:
+            drive_service.files().update(fileId=file_id, media_body=media).execute()
+        else:
+            file_metadata = {'name': file_name, 'parents': [folder_id]}
+            drive_service.files().create(body=file_metadata, media_body=media).execute()
+    except Exception:
+        pass # Kalau 5 detik kemudian MASIH putus, robot menyerah dalam diam.
+
+# --- FUNGSI UPLOAD UTAMA ---
 def sync_to_drive(file_name):
     if not os.path.exists(file_name):
         return
-    drive_service = init_drive()
-    folder_id = st.secrets["drive_folder_id"]
-    file_id = get_drive_file_id(drive_service, file_name, folder_id)
-    media = MediaFileUpload(file_name, mimetype='text/csv', resumable=True)
-    if file_id:
-        drive_service.files().update(fileId=file_id, media_body=media).execute()
-    else:
-        file_metadata = {'name': file_name, 'parents': [folder_id]}
-        drive_service.files().create(body=file_metadata, media_body=media).execute()
+    try:
+        drive_service = init_drive()
+        folder_id = st.secrets["drive_folder_id"]
+        file_id = get_drive_file_id(drive_service, file_name, folder_id)
+        media = MediaFileUpload(file_name, mimetype='text/csv', resumable=True)
+        if file_id:
+            drive_service.files().update(fileId=file_id, media_body=media).execute()
+        else:
+            file_metadata = {'name': file_name, 'parents': [folder_id]}
+            drive_service.files().create(body=file_metadata, media_body=media).execute()
+    except Exception:
+        # JIKA GAGAL: Lepaskan Robot Asisten Gaib untuk mencoba lagi 5 detik kemudian!
+        threading.Thread(target=retry_sync_gaib, args=(file_name,), daemon=True).start()
 
-# Menjalankan unduhan dari GDrive SATU KALI saja untuk data dinamis
+# --- SEDOT DATA SAAT APLIKASI PERTAMA DIBUKA ---
 def initial_sync():
-    # Gunakan session_state agar tidak tertipu oleh file bawaan GitHub saat restart
+    # Gunakan session_state agar hanya jalan 1x (Mencegah error berulang)
     if 'drive_synced' not in st.session_state:
-        # Hanya sedot data dinamis dari Google Drive
-        sync_from_drive('pengguna.csv')
-        sync_from_drive('riwayat_pencarian.csv')
-        sync_from_drive('feedback_ai.csv') # <--- Ini dia langkah keduanya
-        
-        # Tandai sinkronisasi selesai
-        st.session_state['drive_synced'] = True
+        try:
+            sync_from_drive('pengguna.csv')
+            sync_from_drive('riwayat_pencarian.csv')
+            sync_from_drive('feedback_ai.csv')
+        except Exception:
+            pass # Tangkap sisa error tak terduga
+        finally:
+            # Berhasil atau gagal, WAJIB stempel selesai!
+            st.session_state['drive_synced'] = True
 
 initial_sync()
 # ====================================================
-
 # --- INISIALISASI SESSION STATE LOGIN & HISTORY ---
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
