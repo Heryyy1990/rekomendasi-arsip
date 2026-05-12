@@ -1208,6 +1208,85 @@ def dapatkan_sapaan():
         return "Selamat Sore!"
     else:
         return "Selamat Malam!"
+
+# =========================================================
+# JURUS ANTI-LEMOT: PEMBEKUAN HTML UNTUK JELAJAH KODE
+# =========================================================
+@st.cache_data(show_spinner=False)
+def render_pohon_html(p, _df):
+    hasil_filter = _df[_df['kode'].str.startswith(p)]
+    if hasil_filter.empty:
+        return ""
+        
+    hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
+    nodes = {}
+    for _, row in hasil_filter.iterrows():
+        k = str(row['kode']).strip()
+        u = str(row['uraian']).title()
+        nodes[k] = {'uraian': u, 'children': []}
+        
+    for k in nodes:
+        if k == p: continue 
+        curr = k
+        parent = None
+        while True:
+            if '.' in curr:
+                curr = curr.rsplit('.', 1)[0]
+            else:
+                if len(curr) == 3 and curr.endswith('00'):
+                    parent = curr
+                    break
+                elif len(curr) > 3:
+                    curr = curr[:-1]
+                elif len(curr) == 3:
+                    if curr.endswith('0'): curr = curr[0] + '00'
+                    else: curr = curr[0:2] + '0'
+                else:
+                    break
+            if curr in nodes:
+                parent = curr
+                break
+        
+        if not parent or parent not in nodes:
+            parent = p
+        if parent in nodes and parent != k:
+            nodes[parent]['children'].append(k)
+            
+    def render_tree(k):
+        node = nodes[k]
+        u = node['uraian']
+        children = node['children']
+        children.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+        
+        titik_count = str(k).count('.')
+        actual_level = titik_count if titik_count < 4 else 3
+        warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B"]
+        warna_bg = warna_level[actual_level]
+        levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
+        label = levels_name[actual_level]
+        
+        badge_style = f"background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);"
+        icon_code_html = f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'><span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span><strong style='margin-top: 2px;'>{k}</strong><span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span></div>"
+        text_html = f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>{u} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i></div>"
+        indikator_html = f"<div style='display: flex; align-items: flex-start; margin-left: 10px; margin-top: 2px; flex-shrink: 0;'><span class='material-symbols-rounded arrow-icon' style='font-size: 1.2rem; background: rgba(0,0,0,0.15); border-radius: 50%; padding: 2px;'>keyboard_arrow_right</span></div>" if children else ""
+        
+        html = ""
+        if children:
+            html += f'<details class="anak-cucu" style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><div style="{badge_style}">{icon_code_html}{text_html}{indikator_html}</div></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #CBD5E1; padding-top: 8px;">'
+            for c in children:
+                html += render_tree(c)
+            html += '</div></details>'
+        else:
+            html += f'<div style="margin-bottom: 8px;"><div style="{badge_style}">{icon_code_html}{text_html}{indikator_html}</div></div>'
+        return html
+
+    full_html = ""
+    if p in nodes:
+        sorted_children = sorted(nodes[p]['children'], key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
+        for child_kode in sorted_children:
+            full_html += render_tree(child_kode)
+    return full_html
+    
 def halaman_utama():
     # INISIALISASI ROUTING HALAMAN
     if 'page' not in st.session_state:
@@ -2058,100 +2137,12 @@ def halaman_utama():
                 cek_df = df[df['kode'] == p]
                 uraian_primer = cek_df.iloc[0]['uraian'].title() if not cek_df.empty else "Detail Klasifikasi"
                 
-                # Menggunakan simbol chevron kekinian seperti halaman AI
                 with st.expander(f"❯ {p} - {uraian_primer}"):
-                    hasil_filter = df[df['kode'].str.startswith(p)]
+                    # Panggil fungsi beku! Mesin tidak akan capek merakit ulang.
+                    pohon_html = render_pohon_html(p, df)
                     
-                    if not hasil_filter.empty:
-                        hasil_filter = hasil_filter[hasil_filter['kode'].str.match(r'^\d')]
-                        
-                        nodes = {}
-                        for _, row in hasil_filter.iterrows():
-                            k = str(row['kode']).strip()
-                            u = str(row['uraian']).title()
-                            nodes[k] = {'uraian': u, 'children': []}
-                            
-                        for k in nodes:
-                            if k == p: continue 
-                            curr = k
-                            parent = None
-                            while True:
-                                if '.' in curr:
-                                    curr = curr.rsplit('.', 1)[0]
-                                else:
-                                    if len(curr) == 3 and curr.endswith('00'):
-                                        parent = curr
-                                        break
-                                    elif len(curr) > 3:
-                                        curr = curr[:-1]
-                                    elif len(curr) == 3:
-                                        if curr.endswith('0'): curr = curr[0] + '00'
-                                        else: curr = curr[0:2] + '0'
-                                    else:
-                                        break
-                                if curr in nodes:
-                                    parent = curr
-                                    break
-                            
-                            if not parent or parent not in nodes:
-                                parent = p
-                            
-                            if parent in nodes and parent != k:
-                                nodes[parent]['children'].append(k)
-                                
-                        def render_tree(k):
-                            node = nodes[k]
-                            u = node['uraian']
-                            children = node['children']
-                            
-                            children.sort(key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
-                            
-                            # Bagian ini yang tadi tidak sengaja terhapus
-                            titik_count = str(k).count('.')
-                            actual_level = titik_count if titik_count < 4 else 3
-                            
-                            warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B"]
-                            warna_bg = warna_level[actual_level]
-                            levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier"]
-                            label = levels_name[actual_level]
-                            
-                            # KUNCI PERBAIKAN: Flexbox Split agar teks panjang rapi & rata (justify)
-                            badge_style = f"background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);"
-                            
-                            # Ruangan Kiri (Ikon & Kode) - Dikunci mati
-                            icon_code_html = f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'><span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span><strong style='margin-top: 2px;'>{k}</strong><span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span></div>"
-                            
-                            # Ruangan Kanan (Uraian Teks) - Bebas melebar & Justify
-                            text_html = f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>{u} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i></div>"
-                            
-                            # =======================================================
-                            # TAMBAHAN BARU: INDIKATOR PANAH (JIKA PUNYA TURUNAN)
-                            # =======================================================
-                            if children:
-                                # 1. Panah diganti jadi "keyboard_arrow_right" (lurus ke kanan)
-                                # 2. Ditambahkan class "arrow-icon" agar bisa diputar oleh CSS
-                                indikator_html = f"<div style='display: flex; align-items: flex-start; margin-left: 10px; margin-top: 2px; flex-shrink: 0;'><span class='material-symbols-rounded arrow-icon' style='font-size: 1.2rem; background: rgba(0,0,0,0.15); border-radius: 50%; padding: 2px;'>keyboard_arrow_right</span></div>"
-                            else:
-                                # Jika mentok (tidak ada turunan/anak), kosongkan
-                                indikator_html = ""
-                            # =======================================================
-                            
-                            html = ""
-                            if children:
-                                html += f'<details class="anak-cucu" style="margin-bottom: 8px;"><summary style="cursor: pointer; list-style: none; outline: none;"><div style="{badge_style}">{icon_code_html}{text_html}{indikator_html}</div></summary><div style="margin-left: 20px; padding-left: 10px; border-left: 2px dashed #CBD5E1; padding-top: 8px;">'
-                                for c in children:
-                                    html += render_tree(c)
-                                html += '</div></details>'
-                            else:
-                                html += f'<div style="margin-bottom: 8px;"><div style="{badge_style}">{icon_code_html}{text_html}{indikator_html}</div></div>'
-                            return html
-                            
-                        if p in nodes:
-                            full_html = ""
-                            sorted_children = sorted(nodes[p]['children'], key=lambda x: [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', x)])
-                            for child_kode in sorted_children:
-                                full_html += render_tree(child_kode)
-                            st.markdown(full_html, unsafe_allow_html=True)
+                    if pohon_html:
+                        st.markdown(pohon_html, unsafe_allow_html=True)
                     else:
                         st.caption("Tidak ada data klasifikasi di dalam rumpun ini.")
 
