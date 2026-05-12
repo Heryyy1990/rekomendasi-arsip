@@ -958,7 +958,7 @@ kamus_birokrasi = {
     "cdm": "clean development mechanism",
     "ppm": "program pengembangan dan pemberdayaan masyarakat",
     "sirup": "sistem informasi rencana umum pengadaan",
-    "rup": "rencana umum pengadaan"
+    "rup": "rencana umum pengadaan",
 }
 
 # --- FUNGSI PENERJEMAH SINGKATAN ---
