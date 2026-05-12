@@ -1268,6 +1268,41 @@ def halaman_utama():
     .section-title { font-weight: 700; color: var(--text-title); font-size: 1.15rem; margin-bottom: 15px; margin-top: 25px; font-family: 'Poppins', sans-serif !important;}
     div[data-testid="stDataFrame"] { background: var(--card-bg); border-radius: 12px; padding: 10px; border: 1px solid var(--card-border); }
     div[data-testid="InputInstructions"] { display: none !important; }
+    
+    /* ========================================================= */
+    /* PINDAHAN CSS KARTU AKSES CEPAT (ANTI TELANJANG / FOUC)    */
+    /* ========================================================= */
+    .card-container { position: relative; height: 160px; margin-bottom: 10px; border-radius: 16px;}
+    .element-container:has(.card-container) + .element-container { margin-top: -170px !important; position: relative !important; z-index: 10 !important; }
+    .element-container:has(.card-container) + .element-container button { height: 160px !important; width: 100% !important; opacity: 0 !important; cursor: pointer !important; background: transparent !important; border: none !important; }
+    .element-container:has(+ .element-container:hover) .saas-card,
+    div[data-testid="column"]:hover .saas-card { border-color: #009DFF !important; box-shadow: 0 10px 25px rgba(0, 157, 255, 0.2) !important; transform: translateY(-5px) !important; }
+    .saas-card { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--sidebar-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px 20px; display: flex; align-items: flex-start; gap: 15px; box-shadow: var(--card-shadow); transition: all 0.3s ease !important; z-index: 1; }
+    .saas-icon-box { width: 50px; height: 50px; min-width: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+    .bg-blue { background-color: rgba(0, 157, 255, 0.15); color: #009DFF; }
+    .bg-orange { background-color: rgba(249, 115, 22, 0.15); color: #F97316; }
+    .bg-purple { background-color: rgba(168, 85, 247, 0.15); color: #A855F7; }
+    .saas-card-content { flex-grow: 1; display: flex; flex-direction: column; height: 100%; justify-content: flex-start;}
+    .saas-card-title { font-weight: 700; color: #FFFFFF; font-size: 1rem; margin-bottom: 5px; font-family: 'Poppins', sans-serif !important;}
+    .saas-card-desc { font-size: 0.8rem; color: #E2E8F0; line-height: 1.4; font-family: 'Poppins', sans-serif !important;}
+    .saas-card-arrow { align-self: flex-end; margin-top: auto; color: #009DFF; font-size: 1.2rem; display: flex; }
+    
+    /* JURUS ANTI KAMUFLASE INPUT */
+    div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] { background-color: #FFFFFF !important; }
+    div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] input { color: #1E1E1E !important; -webkit-text-fill-color: #1E1E1E !important; font-weight: 500 !important; }
+    div[data-testid="stHorizontalBlock"]:has(input) div[data-baseweb="input"] input::placeholder { color: #888888 !important; -webkit-text-fill-color: #888888 !important; }
+
+    /* RESPONSIVE HP UNTUK KARTU (Sama persis dengan milik Bapak) */
+    @media screen and (max-width: 768px) {
+        .card-container { height: 120px; margin-bottom: 15px;}
+        .saas-card { padding: 12px 15px; gap: 10px; }
+        .saas-icon-box { width: 40px; height: 40px; min-width: 40px; font-size: 1.3rem; }
+        .saas-card-title { font-size: 0.85rem; }
+        .saas-card-desc { font-size: 0.7rem; }
+        .saas-card-arrow { font-size: 1rem; }
+        .element-container:has(.card-container) + .element-container { margin-top: -145px !important; }
+        .element-container:has(.card-container) + .element-container button { height: 120px !important; }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1569,17 +1604,20 @@ def halaman_utama():
 </div>
 """, unsafe_allow_html=True)
             
+            # =========================================================
+            # CALLBACK: FUNGSI PINDAH HALAMAN TANPA NGE-FLASH
+            # =========================================================
+            def jalankan_pencarian():
+                if st.session_state.input_beranda:
+                    st.session_state.temp_search = st.session_state.input_beranda
+                st.session_state.page = 'Pencarian AI'
+
             # FORM PENCARIAN 
             col_in, col_btn = st.columns([5, 1])
             with col_in:
-                user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda")
+                user_input = st.text_input("Pencarian AI", placeholder="Ketik perihal surat di sini...", label_visibility="collapsed", key="input_beranda", on_change=jalankan_pencarian)
             with col_btn:
-                btn_cari = st.button("🔍", key="btn_cari_beranda")
-
-            if user_input or btn_cari:
-                st.session_state.temp_search = user_input 
-                ganti_halaman('Pencarian AI')
-                st.rerun()
+                btn_cari = st.button("🔍", key="btn_cari_beranda", on_click=jalankan_pencarian)
                 
             # =========================================================
             # 5. AKSES CEPAT (FINAL DENGAN ANIMASI SIBLING)
@@ -1778,9 +1816,7 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button(" ", key="btn_akses_ai", use_container_width=True):
-                    ganti_halaman('Pencarian AI')
-                    st.rerun()
+                st.button(" ", key="btn_akses_ai", use_container_width=True, on_click=ganti_halaman, args=('Pencarian AI',))
 
             with col2:
                 st.markdown("""
@@ -1795,9 +1831,7 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("  ", key="btn_akses_jelajah", use_container_width=True):
-                    ganti_halaman('Jelajah Kode')
-                    st.rerun()
+                st.button("  ", key="btn_akses_jelajah", use_container_width=True, on_click=ganti_halaman, args=('Jelajah Kode',))
 
             with col3:
                 st.markdown("""
@@ -1812,9 +1846,7 @@ def halaman_utama():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("   ", key="btn_akses_riwayat", use_container_width=True):
-                    ganti_halaman('Riwayat')
-                    st.rerun()
+                st.button("   ", key="btn_akses_riwayat", use_container_width=True, on_click=ganti_halaman, args=('Riwayat',))
                     
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
