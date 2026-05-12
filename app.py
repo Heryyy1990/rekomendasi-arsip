@@ -302,6 +302,10 @@ def ekstrak_inti_surat(teks_user):
     Output: rekonsiliasi barang milik daerah, aset daerah
     Input: "Penetapan status penggunaan barang milik daerah"
     Output: status penggunaan barang milik daerah, aset
+    Input: "Rekonsiliasi dan laporan permintaan barang milik daerah (BMD)"
+    Output: permintaan barang milik daerah, rekonsiliasi bmd
+    Input: "Laporan hasil inventarisasi aset dan barang milik daerah"
+    Output: inventarisasi barang milik daerah, aset
     
     [KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
     Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
