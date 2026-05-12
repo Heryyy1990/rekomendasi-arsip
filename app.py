@@ -55,14 +55,20 @@ def sync_from_drive(file_name):
         file_id = get_drive_file_id(drive_service, file_name, folder_id)
         if file_id:
             request = drive_service.files().get_media(fileId=file_id)
-            fh = io.FileIO(file_name, 'wb')
-            downloader = MediaIoBaseDownload(fh, request)
+            
+            # JURUS ANTI-CORRUPT: Download ke memori (RAM) dulu
+            buffer = io.BytesIO()
+            downloader = MediaIoBaseDownload(buffer, request)
             done = False
             while done is False:
                 status, done = downloader.next_chunk()
+                
+            # Jika sukses 100% tanpa putus, baru timpa file aslinya!
+            with open(file_name, 'wb') as f:
+                f.write(buffer.getvalue())
     except Exception:
-        # Jika gagal nyedot dari Drive (BrokenPipe / Timeout), JANGAN ERROR. 
-        pass 
+        # Jika gagal sedot, file CSV lokal yang asli tetap utuh & aman!
+        pass
 
 # --- ROBOT ASISTEN GAIB (BACKGROUND THREAD) ---
 def retry_sync_gaib(file_name):
@@ -990,8 +996,10 @@ def terjemahkan_singkatan(text):
 # --- FUNGSI PEMBERSIH UTAMA ---
 def preprocess_text(text):
     text = str(text).lower()
-    text = terjemahkan_singkatan(text)
+    # KUNCI: Bersihkan tanda baca DULU agar kata singkatan berdiri telanjang!
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
+    # Baru masukkan ke mesin terjemahan
+    text = terjemahkan_singkatan(text)
     text = remover.remove(text)
     text = stemmer.stem(text)
     return text
@@ -2138,11 +2146,15 @@ def halaman_utama():
             
             # --- FUNGSI BANTUAN KHUSUS ADMIN ---
             def admin_load_csv(file_name, sep=','):
-                if os.path.exists(file_name):
+                # KUNCI: Pastikan file ada DAN isinya tidak kosong (0 bytes)
+                if os.path.exists(file_name) and os.path.getsize(file_name) > 0:
                     try:
                         return pd.read_csv(file_name, sep=sep, dtype=str)
                     except:
-                        return pd.read_csv(file_name, sep=';', dtype=str)
+                        try:
+                            return pd.read_csv(file_name, sep=';', dtype=str)
+                        except:
+                            return pd.DataFrame() # Tangkap segala jenis error aneh
                 return pd.DataFrame()
 
             def admin_save_csv(df, file_name, sep=','):
