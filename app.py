@@ -282,9 +282,12 @@ def ekstrak_inti_surat(teks_user):
     4. RESOLUSI JEBAKAN "ARSIP": 
        - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
        - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
-    5. RESOLUSI JEBAKAN ASET/BANGUNAN:
+    5. RESOLUSI JEBAKAN ASET/BANGUNAN: 
+       - JIKA urusannya berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN, jangan dibuang!
        - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
-       - JANGAN jadikan NAMA BANGUNAN/PROYEK (seperti Perpustakaan, Puskesmas, Sekolah, Jembatan) sebagai inti substansi.
+       - BEDAKAN FISIK BANGUNAN DENGAN LAYANAN/URUSAN:
+         * JIKA konteksnya fisik (contoh: "Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
+         * JIKA konteksnya operasional/layanan (contoh: "Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
 
     BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
     
@@ -295,6 +298,10 @@ def ekstrak_inti_surat(teks_user):
     Output: pencairan dana, sp2d, sppr
     Input: "Usulan persetujuan pinjaman hibah luar negeri (PHLN) dan dana tugas pembantuan"
     Output: pinjaman hibah luar negeri, phln, tugas pembantuan
+    Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
+    Output: rekonsiliasi barang milik daerah, aset daerah
+    Input: "Penetapan status penggunaan barang milik daerah"
+    Output: status penggunaan barang milik daerah, aset
     
     [KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
     Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
@@ -341,6 +348,14 @@ def ekstrak_inti_surat(teks_user):
     Output: operasi pencarian pertolongan, sar, korban banjir
     Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
     Output: organisme pengganggu tumbuhan, pengendalian hama terpadu
+
+    [KASUS PERPUSTAKAAN, PENDIDIKAN & KESEHATAN (FISIK VS LAYANAN)]
+    Input: "Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas"
+    Output: pembangunan gedung, rehab bangunan
+    Input: "Penyelenggaraan pameran perpustakaan keliling dan donasi buku"
+    Output: perpustakaan keliling, donasi buku
+    Input: "Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas"
+    Output: bantuan operasional sekolah, bos, akreditasi puskesmas
     
     [KASUS PERTAMBANGAN, ENERGI & PERHUBUNGAN]
     Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
