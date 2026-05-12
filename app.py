@@ -270,6 +270,7 @@ except:
 client = Groq(api_key=api_key)
 
 # 2. Fungsi "Otak Ekstraktor"
+@st.cache_data(show_spinner=False)
 def ekstrak_inti_surat(teks_user):
     # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
     prompt = f"""
@@ -1093,6 +1094,7 @@ def get_hierarchy(kode_target, df):
     return hierarchy_list
 
 # --- 3. LOGIKA AI HYBRID (RERANKING) ---
+@st.cache_data(show_spinner=False)
 def smart_classify(user_input, df, top_n=3):
     # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
     inti_dari_llm = ekstrak_inti_surat(user_input)
