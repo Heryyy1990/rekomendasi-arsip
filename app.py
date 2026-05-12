@@ -1063,7 +1063,7 @@ def load_data():
     
     return df
 
-# --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
+# --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ANTI MELUBER DI HP) ---
 def get_badge_html(kode, uraian, level):
     levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
     label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
@@ -1071,18 +1071,18 @@ def get_badge_html(kode, uraian, level):
     warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
-    indent = level * 30 
+    # JURUS RESPONSIVE: Gunakan CSS 'clamp' agar jarak margin mengecil otomatis di HP
+    indent = f"clamp(0px, {level * 5}vw, {level * 30}px)" 
     
-    # PERUBAHAN: Flexbox Split agar teks panjang rapi & rata (justify)
-    return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
-           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 16px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
-           f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'>" \
-           f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span>" \
+    return f"<div style='margin-left: {indent}; margin-bottom: 8px; width: 100%; box-sizing: border-box; padding-right: 10px;'>" \
+           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 10px 15px; border-radius: 12px; font-weight: normal; font-size: 0.9rem !important; display: flex; align-items: flex-start; width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
+           f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; margin-right: 8px;'>" \
+           f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 4px; margin-top: 2px;'>folder</span>" \
            f"<strong style='margin-top: 2px;'>{kode}</strong>" \
            f"<span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span>" \
            f"</div>" \
-           f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>" \
-           f"{uraian} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i>" \
+           f"<div style='flex-grow: 1; text-align: left; line-height: 1.4; margin-top: 2px; word-wrap: break-word; overflow-wrap: break-word;'>" \
+           f"{uraian} <i style='opacity: 0.8; margin-left: 4px; display: inline-block; font-size: 0.8rem;'>({label})</i>" \
            f"</div>" \
            f"</div>" \
            f"</div>"
@@ -1962,7 +1962,7 @@ def halaman_utama():
                             rekomendasi_kode.append(res['kode']) # Tangkap kodenya
                             
                             with st.expander(f"❯ KODE {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                                st.markdown(f"<div style='font-size:1.15rem; font-weight:700; color:#009DFF; margin-bottom:15px; line-height:1.4;'>{res['uraian'].title()}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='font-size:1.15rem; font-weight:700; color:#009DFF; margin-bottom:15px; line-height:1.4; word-wrap: break-word; overflow-wrap: break-word;'>{res['uraian'].title()}</div>", unsafe_allow_html=True)
                                 st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#64748B; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;'>JALUR HIERARKI KODE:</div>", unsafe_allow_html=True)
                                 hierarki = get_hierarchy(res['kode'], df)
                                 for h in hierarki: 
