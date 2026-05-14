@@ -379,6 +379,9 @@ def ekstrak_inti_surat(teks_user):
     Output: perjalanan dinas
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
     Output: jadwal retensi arsip, pemusnahan arsip inaktif
+    Input: "apel gabungan"
+    Output: upacara kedinasan
+    
     
     SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
     Input: "{teks_user}"
@@ -388,21 +391,20 @@ def ekstrak_inti_surat(teks_user):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile", # Profesor 70B (Anti Ngarang)
-            temperature=0.0, 
+            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
+            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
-        
+       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
-        # KEMBALI PAKAI [-1] SEPERTI KODE ASLI ANDA! (Pisau bedah paling akurat)
+        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
+        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
         daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
         inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
         
-        # Bersihkan sisa-sisa kotoran teks
-        inti_teks_bersih = inti_teks_bersih.replace('Output:', '').replace('"', '').replace("'", "").strip()
-        
+        # Membersihkan tanda kutip
+        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
         return inti_teks_bersih
-        
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
         return teks_user
@@ -953,8 +955,6 @@ kamus_birokrasi = {
     "npt": "nomor pelumas terdaftar",
     "wps": "welding procedure specification",
     "pqr": "procedure qualification record",
-    "apel": "upacara kedinasan",
-    "senam": "olahraga kebugaran",
     "ebt": "energi baru terbarukan",
     "ebtke": "energi baru terbarukan dan konservasi energi",
     "skt": "surat keterangan terdaftar",
