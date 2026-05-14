@@ -570,15 +570,21 @@ BANK_CONTOH = [
 ]
 
 # ====================================================
-# FUNGSI ASISTEN PINTAR (Memilih 12 Contoh)
+# FUNGSI ASISTEN PINTAR (Diperbaiki dari Bug Claude)
 # ====================================================
 def ambil_contoh_relevan(teks_user: str, top_n: int = 12) -> str:
     semua_input = [c[0] for c in BANK_CONTOH]
+    
+    # thefuzz hanya mengembalikan 2 nilai: teks_cocok dan skor
     hasil = process.extract(teks_user, semua_input, limit=top_n)
     
     contoh_terpilih = ""
-    for teks_cocok, skor, idx in hasil:
+    # Kita ubah dari 3 variabel menjadi 2 variabel saja di sini
+    for teks_cocok, skor in hasil:
+        # Kita cari manual index-nya agar tidak error
+        idx = semua_input.index(teks_cocok)
         contoh_terpilih += f'Input: "{BANK_CONTOH[idx][0]}"\nOutput: {BANK_CONTOH[idx][1]}\n'
+        
     return contoh_terpilih
 
 # ====================================================
