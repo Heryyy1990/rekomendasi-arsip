@@ -952,6 +952,8 @@ kamus_birokrasi = {
     "npt": "nomor pelumas terdaftar",
     "wps": "welding procedure specification",
     "pqr": "procedure qualification record",
+    "apel": "upacara kedinasan",
+    "senam": "olahraga kebugaran",
     "ebt": "energi baru terbarukan",
     "ebtke": "energi baru terbarukan dan konservasi energi",
     "skt": "surat keterangan terdaftar",
