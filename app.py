@@ -920,7 +920,7 @@ kamus_birokrasi = {
     "psat": "pangan segar asal tumbuhan",
     "bumdes": "badan usaha milik desa",
     "apel": "upacara",
-    "apel gabungan": "upacara"
+    "apel gabungan": "upacara",
     "rtrw": "rencana tata ruang wilayah",
     "rdtr": "rencana detail tata ruang",
     "rtbl": "rencana tata bangunan dan lingkungan",
