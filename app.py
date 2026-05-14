@@ -303,31 +303,93 @@ def ekstrak_inti_surat(teks_user):
        - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
        - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
     5. RESOLUSI JEBAKAN ASET/BANGUNAN: 
-       - JIKA berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN.
+       - JIKA urusannya berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN, jangan dibuang!
+       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
        - BEDAKAN FISIK BANGUNAN DENGAN LAYANAN/URUSAN:
-         * JIKA konteks fisik ("Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
-         * JIKA konteks layanan ("Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
-    """
+         * JIKA konteksnya fisik (contoh: "Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
+         * JIKA konteksnya operasional/layanan (contoh: "Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
+
+    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
     
-    # 2. PROMPT UTAMA (Otak Sadar - Contoh Kasus Ekstrem)
-    prompt = f"""
-    BERIKUT ADALAH CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
-    
+    [KASUS KEUANGAN, ANGGARAN & ASET]
     Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
     Output: rencana kerja anggaran, dpa
+    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR untuk kegiatan sosialisasi"
+    Output: pencairan dana, sp2d, sppr
+    Input: "Usulan persetujuan pinjaman hibah luar negeri (PHLN) dan dana tugas pembantuan"
+    Output: pinjaman hibah luar negeri, phln, tugas pembantuan
+    Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
+    Output: rekonsiliasi barang milik daerah, aset daerah
+    Input: "Penetapan status penggunaan barang milik daerah"
+    Output: status penggunaan barang milik daerah, aset
+    Input: "Rekonsiliasi dan laporan permintaan barang milik daerah (BMD)"
+    Output: permintaan barang milik daerah, rekonsiliasi bmd
+    Input: "Laporan hasil inventarisasi aset dan barang milik daerah"
+    Output: inventarisasi barang milik daerah, aset
     
+    [KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
     Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
     Output: tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen
+    Input: "Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi (TPK)"
+    Output: laporan hasil audit investigasi, tindak pidana korupsi
+    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
+    Output: penetapan angka kredit, jabatan fungsional
     
+    [KASUS INFRASTRUKTUR, PEKERJAAN UMUM & TATA RUANG]
+    Input: "Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa"
+    Output: pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa
+    Input: "Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)"
+    Output: rencana detail tata ruang, rencana tata bangunan dan lingkungan
+    Input: "Persetujuan penataan bangunan dan pengelolaan gedung rumah negara"
+    Output: penataan bangunan, pengelolaan rumah negara
+
+    [KASUS KEPENDUDUKAN, KESEHATAN & KESRA]
+    Input: "Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil"
+    Output: sistem informasi administrasi kependudukan, pencatatan sipil
+    Input: "Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)"
+    Output: jaminan kesehatan nasional, national health account
+    Input: "Data Forum Komunikasi Umat Beragama (FKUB) dan penyelesaian kasus aliran keagamaan"
+    Output: forum komunikasi umat beragama, kasus aliran keagamaan
+    
+    [KASUS TEKNOLOGI INFORMASI, KOMUNIKASI & PERSANDIAN]
+    Input: "Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government tingkat kabupaten"
+    Output: sertifikasi elektronik, e government
+    Input: "Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi"
+    Output: jaringan telekomunikasi, keamanan informasi
+
+    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
+    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
+    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
+    Input: "Penyusunan Rencana Anggaran Satuan Kerja (RASK) dan pembiayaan kegiatan operasional (PPKO) pemilu"
+    Output: rencana anggaran satuan kerja, pembiayaan kegiatan operasional pemilu
+    
+    [KASUS PENANAMAN MODAL, LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
+    Input: "Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing"
+    Output: pencabutan pembatalan perizinan penanaman modal
+    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
+    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
+    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
+    Output: operasi pencarian pertolongan, sar, korban banjir
+    Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
+    Output: organisme pengganggu tumbuhan, pengendalian hama terpadu
+
+    [KASUS PERPUSTAKAAN, PENDIDIKAN & KESEHATAN (FISIK VS LAYANAN)]
     Input: "Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas"
     Output: pembangunan gedung, rehab bangunan
-    
+    Input: "Penyelenggaraan pameran perpustakaan keliling dan donasi buku"
+    Output: perpustakaan keliling, donasi buku
     Input: "Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas"
     Output: bantuan operasional sekolah, bos, akreditasi puskesmas
     
-    Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
-    Output: rekonsiliasi barang milik daerah, aset daerah
+    [KASUS PERTAMBANGAN, ENERGI & PERHUBUNGAN]
+    Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
+    Output: sertifikat laik operasi, izin usaha pertambangan batubara
+    Input: "Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal"
+    Output: sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal
     
+    [KASUS PEMERINTAHAN UMUM]
+    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
+    Output: perjalanan dinas
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
     Output: jadwal retensi arsip, pemusnahan arsip inaktif
     
