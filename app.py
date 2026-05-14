@@ -275,434 +275,136 @@ except:
 
 client = Groq(api_key=api_key)
 
-# ====================================================
-# 1.5. Fungsi "Sapu Jagat" (Validasi Pasca-Ekstraksi)
-# ====================================================
-KATA_KERJA_TERLARANG = {
-    "menghadiri", "melaksanakan", "menyampaikan", "memohon",
-    "mengundang", "melaporkan", "menindaklanjuti", "mengusulkan",
-    "mengikuti", "membahas", "mengadakan", "meminta"
-}
-
-def sapu_kata_kerja_bocor(teks: str) -> str:
-    """Fungsi untuk otomatis menghapus kata kerja yang lolos dari AI"""
-    token = teks.lower().split()
-    bocor = set(token) & KATA_KERJA_TERLARANG
+# 2. Fungsi "Otak Ekstraktor"
+@st.cache_data(show_spinner=False)
+def ekstrak_inti_surat(teks_user):
+    # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
+    prompt = f"""
+    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
     
-    if bocor:
-        # Tampilkan pesan ke layar agar Anda tahu AI-nya sedang bandel
-        st.warning(f"🧹 Sistem SIKAP menyapu kata kerja yang lolos dari AI: {bocor}")
-        
-        # Otomatis hapus kata terlarang itu tanpa menghentikan aplikasi
-        token_bersih = [kata for kata in token if kata not in KATA_KERJA_TERLARANG]
-        return " ".join(token_bersih)
-        
-    return teks
-
-from thefuzz import process
-
-# ====================================================
-# BANK DATA ANDA (Sudah dikonversi otomatis ke format pintar)
-# ====================================================
-BANK_CONTOH = [
-    # [PENDIDIKAN]
-    ("Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas", "bantuan operasional sekolah, bos, akreditasi puskesmas"),
-    ("Penetapan kuota dan formasi penerimaan peserta didik baru (PPDB) jenjang SD dan SMP", "penerimaan peserta didik baru, ppdb"),
-    ("Pengajuan tunjangan profesi guru (TPG) dan tunjangan khusus guru daerah terpencil", "tunjangan profesi guru, tunjangan khusus guru"),
-    ("Verifikasi dan validasi data pokok pendidikan (Dapodik) satuan pendidikan negeri", "data pokok pendidikan, dapodik, satuan pendidikan"),
-    ("Penetapan standar pelayanan minimal (SPM) bidang pendidikan dasar dan menengah", "standar pelayanan minimal, pendidikan dasar menengah"),
-    ("Pengembangan kurikulum muatan lokal dan program kegiatan ekstrakurikuler", "kurikulum muatan lokal, ekstrakurikuler"),
-    ("Penyaluran beasiswa bagi siswa kurang mampu dan berprestasi tingkat kabupaten", "beasiswa siswa, kurang mampu berprestasi"),
-    ("Pembangunan ruang kelas baru (RKB) dan pengadaan meubelair sekolah dasar", "pembangunan ruang kelas, pengadaan meubelair sekolah"),
-    # [KESEHATAN]
-    ("Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)", "jaminan kesehatan nasional, national health account"),
-    ("Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas", "pembangunan gedung, rehab bangunan"),
-    ("Penyelenggaraan imunisasi dasar lengkap dan surveilans penyakit menular", "imunisasi dasar lengkap, surveilans penyakit menular"),
-    ("Penanganan kasus gizi buruk dan stunting balita di wilayah terpencil", "gizi buruk, stunting balita"),
-    ("Pengawasan peredaran obat tradisional dan kosmetik ilegal di pasar daerah", "pengawasan obat tradisional, kosmetik ilegal"),
-    ("Akreditasi fasilitas kesehatan tingkat pertama (FKTP) dan rumah sakit daerah", "akreditasi fasilitas kesehatan, fktp, rumah sakit daerah"),
-    ("Pelaksanaan program keluarga berencana (KB) dan kesehatan reproduksi remaja", "keluarga berencana, kesehatan reproduksi remaja"),
-    ("Pengadaan alat kesehatan dan obat-obatan untuk puskesmas pembantu (pustu)", "pengadaan alat kesehatan, obat obatan, puskesmas pembantu"),
-    ("Penanggulangan kejadian luar biasa (KLB) demam berdarah dengue dan malaria", "kejadian luar biasa, demam berdarah dengue, malaria"),
-    ("Rekrutmen dan penempatan tenaga kesehatan di daerah terpencil dan kepulauan", "tenaga kesehatan, daerah terpencil kepulauan"),
-    # [PEKERJAAN UMUM & PENATAAN RUANG]
-    ("Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa", "pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa"),
-    ("Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)", "rencana detail tata ruang, rencana tata bangunan dan lingkungan"),
-    ("Persetujuan penataan bangunan dan pengelolaan gedung rumah negara", "penataan bangunan, pengelolaan rumah negara"),
-    ("Penanganan jalan rusak berat dan pembangunan jembatan penghubung desa terisolir", "penanganan jalan rusak, pembangunan jembatan desa"),
-    ("Pengelolaan sistem penyediaan air minum (SPAM) regional dan jaringan perpipaan", "sistem penyediaan air minum, spam, jaringan perpipaan"),
-    ("Penertiban bangunan tanpa izin mendirikan bangunan (IMB) di kawasan strategis", "penertiban bangunan, izin mendirikan bangunan, imb"),
-    ("Pengelolaan drainase perkotaan dan penanggulangan genangan banjir permukiman", "drainase perkotaan, penanggulangan banjir permukiman"),
-    ("Revisi Rencana Tata Ruang Wilayah (RTRW) dan penetapan kawasan lindung daerah", "rencana tata ruang wilayah, rtrw, kawasan lindung"),
-    # [PERUMAHAN RAKYAT & KAWASAN PERMUKIMAN]
-    ("Penyediaan rumah susun sederhana sewa (rusunawa) bagi masyarakat berpenghasilan rendah", "rumah susun sederhana sewa, rusunawa, masyarakat berpenghasilan rendah"),
-    ("Verifikasi dan penetapan penerima bantuan stimulan perumahan swadaya (BSPS)", "bantuan stimulan perumahan swadaya, bsps"),
-    ("Penataan kawasan kumuh perkotaan dan peningkatan kualitas permukiman nelayan", "penataan kawasan kumuh, permukiman nelayan"),
-    ("Penanganan rumah tidak layak huni (RTLH) dan penyediaan sanitasi berbasis masyarakat", "rumah tidak layak huni, rtlh, sanitasi berbasis masyarakat"),
-    ("Penetapan lokasi perumahan dan permukiman serta prasarana kawasan transmigrasi lokal", "lokasi perumahan permukiman, kawasan transmigrasi"),
-    # [KETENTERAMAN, KETERTIBAN UMUM & PERLINDUNGAN MASYARAKAT]
-    ("Penertiban pedagang kaki lima (PKL) dan penegakan peraturan daerah di kawasan terlarang", "penertiban pedagang kaki lima, penegakan peraturan daerah"),
-    ("Penyelenggaraan pelatihan bela negara dan kesiapsiagaan satuan perlindungan masyarakat", "pelatihan bela negara, kesiapsiagaan perlindungan masyarakat"),
-    ("Penanganan gangguan ketertiban umum akibat konflik sosial antarkelompok warga", "gangguan ketertiban umum, konflik sosial"),
-    ("Pengamanan aset daerah dan penertiban penghuni liar bangunan milik pemerintah", "pengamanan aset daerah, penertiban penghuni liar bangunan"),
-    ("Peningkatan kapasitas Satuan Polisi Pamong Praja (Satpol PP) dan Pemadam Kebakaran", "kapasitas satuan polisi pamong praja, pemadam kebakaran"),
-    # [SOSIAL]
-    ("Verifikasi dan validasi data terpadu kesejahteraan sosial (DTKS) fakir miskin", "data terpadu kesejahteraan sosial, dtks, fakir miskin"),
-    ("Penyaluran bantuan sosial tunai (BST) dan program keluarga harapan (PKH)", "bantuan sosial tunai, bst, program keluarga harapan, pkh"),
-    ("Penyelenggaraan panti sosial dan rehabilitasi sosial gelandangan dan pengemis", "rehabilitasi sosial, gelandangan pengemis"),
-    ("Penanganan penyandang disabilitas dan lanjut usia terlantar melalui program asistensi", "penyandang disabilitas, lanjut usia terlantar, asistensi sosial"),
-    ("Penanggulangan kemiskinan dan pemberdayaan fakir miskin melalui kelompok usaha bersama", "penanggulangan kemiskinan, kelompok usaha bersama"),
-    ("Rekomendasi pengumpulan sumbangan sosial dan undian gratis berhadiah", "pengumpulan sumbangan sosial, undian gratis berhadiah"),
-    # [KETENAGAKERJAAN]
-    ("Penyelenggaraan pelatihan berbasis kompetensi di balai latihan kerja (BLK) daerah", "pelatihan berbasis kompetensi, balai latihan kerja"),
-    ("Penetapan upah minimum kabupaten/kota (UMK) dan upah minimum sektoral", "upah minimum kabupaten, umk, upah minimum sektoral"),
-    ("Penanganan perselisihan hubungan industrial dan mediasi pemutusan hubungan kerja", "perselisihan hubungan industrial, mediasi pemutusan hubungan kerja"),
-    ("Pengawasan pelaksanaan norma kerja dan keselamatan kesehatan kerja (K3)", "norma kerja, keselamatan kesehatan kerja, k3"),
-    ("Penempatan tenaga kerja lokal dan penerbitan izin penggunaan tenaga kerja asing (TKA)", "penempatan tenaga kerja, izin tenaga kerja asing, tka"),
-    ("Penyusunan data dan informasi pasar kerja serta bursa kerja online daerah", "informasi pasar kerja, bursa kerja online"),
-    ("Pembinaan lembaga pelatihan kerja swasta dan sertifikasi kompetensi kerja nasional", "lembaga pelatihan kerja, sertifikasi kompetensi kerja"),
-    ("Pelaksanaan program magang dalam negeri bagi pencari kerja pemuda", "program magang dalam negeri, pencari kerja pemuda"),
-    # [PEMBERDAYAAN PEREMPUAN & PERLINDUNGAN ANAK]
-    ("Penanganan kasus kekerasan dalam rumah tangga (KDRT) dan perlindungan perempuan", "kekerasan dalam rumah tangga, kdrt, perlindungan perempuan"),
-    ("Penyelenggaraan layanan terpadu perlindungan perempuan dan anak (P2A)", "layanan terpadu perlindungan perempuan, perlindungan anak"),
-    ("Pemberdayaan ekonomi perempuan kepala keluarga melalui usaha mikro kecil", "pemberdayaan ekonomi perempuan, usaha mikro kecil"),
-    ("Pencegahan pernikahan dini dan penanganan anak putus sekolah", "pencegahan pernikahan dini, anak putus sekolah"),
-    ("Pemenuhan hak anak dan penilaian kabupaten/kota layak anak (KLA)", "hak anak, kabupaten kota layak anak, kla"),
-    ("Penanganan anak berhadapan dengan hukum (ABH) dan anak terlantar", "anak berhadapan hukum, abh, anak terlantar"),
-    # [PANGAN]
-    ("Penyelenggaraan cadangan pangan pemerintah daerah dan lumbung pangan masyarakat", "cadangan pangan pemerintah daerah, lumbung pangan masyarakat"),
-    ("Pemantauan harga dan pasokan komoditas pangan strategis di tingkat konsumen", "harga pasokan komoditas pangan strategis"),
-    ("Penanganan kerawanan pangan dan penyaluran bantuan pangan non tunai (BPNT)", "kerawanan pangan, bantuan pangan non tunai, bpnt"),
-    ("Pengawasan keamanan pangan segar asal tumbuhan dan hewan di pasar tradisional", "keamanan pangan segar, tumbuhan hewan, pasar tradisional"),
-    ("Penguatan ketahanan pangan daerah melalui diversifikasi konsumsi pangan lokal", "ketahanan pangan, diversifikasi konsumsi pangan lokal"),
-    # [PERTANAHAN]
-    ("Fasilitasi penetapan dan penyelesaian sengketa tanah garapan dan tanah ulayat", "sengketa tanah garapan, tanah ulayat"),
-    ("Inventarisasi dan penatagunaan tanah untuk kepentingan umum dan proyek strategis", "penatagunaan tanah, kepentingan umum, proyek strategis"),
-    ("Penertiban penguasaan, pemilikan, penggunaan dan pemanfaatan tanah (P4T)", "penguasaan pemilikan penggunaan tanah, p4t"),
-    ("Pengadaan tanah bagi pembangunan jalan tol dan infrastruktur publik daerah", "pengadaan tanah, pembangunan infrastruktur publik"),
-    ("Redistribusi tanah objek landreform dan pensertifikatan tanah transmigrasi", "redistribusi tanah objek landreform, pensertifikatan tanah transmigrasi"),
-    # [LINGKUNGAN HIDUP]
-    ("Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL", "analisis mengenai dampak lingkungan, amdal, ukl upl"),
-    ("Penerbitan izin pembuangan air limbah dan izin penyimpanan sementara limbah B3", "izin pembuangan air limbah, izin penyimpanan limbah b3"),
-    ("Pemantauan kualitas udara ambien dan pengendalian pencemaran udara industri", "kualitas udara ambien, pencemaran udara industri"),
-    ("Penilaian proper dan penghargaan lingkungan hidup perusahaan di daerah", "penilaian proper, penghargaan lingkungan hidup"),
-    ("Pengelolaan tempat pemrosesan akhir (TPA) sampah dan fasilitas daur ulang", "tempat pemrosesan akhir, tpa sampah, daur ulang"),
-    ("Rehabilitasi mangrove dan terumbu karang di kawasan pesisir terdampak abrasi", "rehabilitasi mangrove, terumbu karang, kawasan pesisir"),
-    # [ADMINISTRASI KEPENDUDUKAN & CATATAN SIPIL]
-    ("Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil", "sistem informasi administrasi kependudukan, pencatatan sipil"),
-    ("Percepatan perekaman KTP elektronik (KTP-el) dan penerbitan kartu identitas anak (KIA)", "perekaman ktp elektronik, kartu identitas anak, kia"),
-    ("Penerbitan akta kelahiran, akta kematian, dan akta perkawinan bagi penduduk rentan", "akta kelahiran, akta kematian, akta perkawinan"),
-    ("Pembersihan data ganda dan data anomali dalam database kependudukan daerah", "data ganda, data anomali, database kependudukan"),
-    ("Sosialisasi pemutakhiran data mandiri penduduk melalui aplikasi layanan adminduk", "pemutakhiran data penduduk, layanan administrasi kependudukan"),
-    # [PEMBERDAYAAN MASYARAKAT & DESA]
-    ("Penyaluran dana desa dan alokasi dana desa (ADD) tahap pertama tahun anggaran berjalan", "dana desa, alokasi dana desa, add"),
-    ("Pembinaan dan pengawasan pengelolaan keuangan badan usaha milik desa (BUMDes)", "pengelolaan keuangan, badan usaha milik desa, bumdes"),
-    ("Fasilitasi musyawarah desa (musdes) penetapan rencana pembangunan jangka menengah desa", "musyawarah desa, rencana pembangunan jangka menengah desa, rpjmdes"),
-    ("Verifikasi laporan pertanggungjawaban (LPJ) penggunaan dana desa oleh pemerintah desa", "laporan pertanggungjawaban, penggunaan dana desa"),
-    ("Pembentukan dan pembinaan kader pemberdayaan masyarakat desa (KPMD)", "kader pemberdayaan masyarakat desa, kpmd"),
-    ("Pengembangan kawasan perdesaan dan pembangunan desa mandiri melalui program unggulan", "kawasan perdesaan, desa mandiri"),
-    # [PENGENDALIAN PENDUDUK & KB]
-    ("Distribusi alokon (alat kontrasepsi) dan obat-obatan KB ke fasilitas kesehatan", "distribusi alat kontrasepsi, alokon, obat kb"),
-    ("Peningkatan kapasitas penyuluh keluarga berencana (PKB) dan kader posyandu", "penyuluh keluarga berencana, pkb, kader posyandu"),
-    ("Penyelenggaraan kampung keluarga berkualitas dan program genre remaja", "kampung keluarga berkualitas, program genre remaja"),
-    ("Pendataan keluarga dan pemutakhiran basis data keluarga Indonesia (BDKI)", "pendataan keluarga, basis data keluarga indonesia, bdki"),
-    # [PERHUBUNGAN]
-    ("Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal", "sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal"),
-    ("Penetapan tarif angkutan umum dalam trayek perkotaan dan perdesaan", "tarif angkutan umum, trayek perkotaan perdesaan"),
-    ("Pengujian berkala kendaraan bermotor (KIR) dan penertiban kendaraan over dimensi", "pengujian berkala kendaraan bermotor, kir, kendaraan over dimensi"),
-    ("Penetapan lokasi terminal tipe C dan pembangunan halte bus rapid transit (BRT)", "terminal tipe c, halte bus rapid transit, brt"),
-    ("Pengawasan keselamatan pelayaran di alur sungai dan pengelolaan pelabuhan sungai", "keselamatan pelayaran, alur sungai, pelabuhan sungai"),
-    ("Penerbitan izin trayek angkutan kota dan perpanjangan kartu pengawasan kendaraan", "izin trayek angkutan kota, kartu pengawasan kendaraan"),
-    # [KOMUNIKASI & INFORMATIKA]
-    ("Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government", "sertifikasi elektronik, e government"),
-    ("Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi", "jaringan telekomunikasi, keamanan informasi"),
-    ("Pengelolaan sistem penghubung layanan pemerintah (SPLP) dan interoperabilitas data", "sistem penghubung layanan pemerintah, splp, interoperabilitas data"),
-    ("Pengembangan aplikasi SPBE dan audit keamanan sistem informasi pemerintah daerah", "aplikasi spbe, audit keamanan sistem informasi"),
-    ("Diseminasi informasi publik melalui media center dan media sosial resmi pemerintah", "diseminasi informasi publik, media center"),
-    ("Pengelolaan nama domain subdomain pemerintah daerah dan hosting website OPD", "nama domain subdomain, hosting website opd"),
-    ("Pembangunan infrastruktur jaringan fiber optik pemerintah daerah dan wi-fi publik", "infrastruktur jaringan fiber optik, wi fi publik"),
-    # [KOPERASI, USAHA KECIL & MENENGAH]
-    ("Penerbitan izin usaha simpan pinjam (USP) koperasi primer dan pembubaran koperasi", "izin usaha simpan pinjam, koperasi primer"),
-    ("Pembinaan dan pemeringkatan koperasi aktif dan koperasi berprestasi tingkat kabupaten", "pemeringkatan koperasi aktif, koperasi berprestasi"),
-    ("Fasilitasi akses pembiayaan KUR (kredit usaha rakyat) bagi pelaku UMKM daerah", "kredit usaha rakyat, kur, pembiayaan umkm"),
-    ("Penyelenggaraan pelatihan kewirausahaan dan pendampingan usaha mikro naik kelas", "pelatihan kewirausahaan, pendampingan usaha mikro"),
-    ("Pengembangan sentra UMKM dan klaster produk unggulan daerah berbasis potensi lokal", "sentra umkm, klaster produk unggulan daerah"),
-    ("Penerbitan nomor induk berusaha (NIB) dan sertifikat halal produk usaha mikro", "nomor induk berusaha, nib, sertifikat halal produk usaha mikro"),
-    ("Revitalisasi koperasi unit desa (KUD) dan penguatan modal usaha kelompok tani", "koperasi unit desa, kud, modal usaha kelompok tani"),
-    # [PENANAMAN MODAL]
-    ("Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing", "pencabutan pembatalan perizinan penanaman modal"),
-    ("Penyelenggaraan promosi investasi daerah dan forum temu investor dalam negeri", "promosi investasi daerah, forum temu investor"),
-    ("Penerbitan izin prinsip penanaman modal dalam negeri (PMDN) sektor pariwisata", "izin prinsip penanaman modal dalam negeri, pmdn"),
-    ("Pemantauan dan pengawasan kepatuhan pelaksanaan kegiatan usaha penanaman modal", "kepatuhan pelaksanaan kegiatan usaha, penanaman modal"),
-    ("Penyusunan peta potensi investasi daerah dan profil peluang usaha unggulan", "peta potensi investasi, peluang usaha unggulan"),
-    ("Pengelolaan sistem pelayanan perizinan berusaha terintegrasi secara elektronik (OSS)", "perizinan berusaha terintegrasi, oss, elektronik"),
-    # [KEPEMUDAAN & OLAHRAGA]
-    ("Pembinaan organisasi kepemudaan dan seleksi peserta pertukaran pemuda antar negara", "organisasi kepemudaan, pertukaran pemuda antar negara"),
-    ("Penyelenggaraan pekan olahraga daerah (PORDA) dan pekan olahraga pelajar daerah", "pekan olahraga daerah, porda, pekan olahraga pelajar"),
-    ("Pembangunan dan rehabilitasi sarana prasarana olahraga stadion dan GOR daerah", "rehabilitasi sarana prasarana olahraga, stadion gor"),
-    ("Pemberian penghargaan prestasi olahraga dan bantuan atlet berprestasi internasional", "penghargaan prestasi olahraga, bantuan atlet berprestasi"),
-    ("Pengembangan sentra pembinaan olahraga prestasi dan pusat pendidikan latihan pelajar", "sentra pembinaan olahraga prestasi, pusat pendidikan latihan pelajar"),
-    ("Fasilitasi kegiatan kepramukaan dan pembinaan komunitas pemuda kreatif daerah", "kegiatan kepramukaan, komunitas pemuda kreatif"),
-    # [STATISTIK]
-    ("Penyusunan profil daerah dan publikasi daerah dalam angka kabupaten tahun berjalan", "profil daerah, daerah dalam angka"),
-    ("Pengelolaan dan pemutakhiran data statistik sektoral OPD melalui portal satu data", "data statistik sektoral, portal satu data"),
-    ("Koordinasi penyelenggaraan sensus penduduk dan survei sosial ekonomi nasional", "sensus penduduk, survei sosial ekonomi nasional"),
-    ("Penyusunan indeks pembangunan manusia (IPM) dan indeks kesenjangan kemiskinan daerah", "indeks pembangunan manusia, ipm, indeks kesenjangan kemiskinan"),
-    # [PERSANDIAN & KEAMANAN INFORMASI]
-    ("Pengelolaan sertifikat digital dan infrastruktur kunci publik (IKP) pemerintah daerah", "sertifikat digital, infrastruktur kunci publik, ikp"),
-    ("Pengamanan komunikasi sandi antar instansi pemerintah dan klasifikasi informasi rahasia", "komunikasi sandi antar instansi, informasi rahasia"),
-    ("Audit keamanan informasi dan penanganan insiden siber pada sistem pemerintah daerah", "audit keamanan informasi, insiden siber"),
-    # [KEBUDAYAAN]
-    ("Penetapan warisan budaya tak benda (WBTB) dan cagar budaya peringkat kabupaten", "warisan budaya tak benda, wbtb, cagar budaya"),
-    ("Penyelenggaraan festival kesenian daerah dan pagelaran seni pertunjukan tradisional", "festival kesenian daerah, seni pertunjukan tradisional"),
-    ("Pembinaan sanggar seni budaya dan pelestarian bahasa daerah yang terancam punah", "sanggar seni budaya, pelestarian bahasa daerah"),
-    ("Pendataan dan registrasi cagar budaya serta penerbitan izin membawa benda cagar budaya", "registrasi cagar budaya, izin benda cagar budaya"),
-    ("Revitalisasi museum daerah dan pengelolaan koleksi benda bersejarah peninggalan lokal", "revitalisasi museum daerah, koleksi benda bersejarah"),
-    # [PERPUSTAKAAN]
-    ("Penyelenggaraan pameran perpustakaan keliling dan donasi buku", "perpustakaan keliling, donasi buku"),
-    ("Pengembangan koleksi bahan pustaka dan layanan perpustakaan digital daerah", "koleksi bahan pustaka, perpustakaan digital daerah"),
-    ("Akreditasi perpustakaan desa/kelurahan dan perpustakaan sekolah tingkat dasar", "akreditasi perpustakaan desa, perpustakaan sekolah"),
-    ("Peningkatan minat baca masyarakat melalui gerakan literasi dan taman baca masyarakat", "minat baca masyarakat, gerakan literasi, taman baca"),
-    ("Pengelolaan deposit karya cetak dan karya rekam daerah sebagai koleksi wajib simpan", "deposit karya cetak karya rekam, koleksi wajib simpan"),
-    # [KEARSIPAN]
-    ("Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif", "jadwal retensi arsip, pemusnahan arsip inaktif"),
-    ("Penyelamatan arsip statis bernilai sejarah dan alih media arsip konvensional", "arsip statis bernilai sejarah, alih media arsip"),
-    ("Akreditasi lembaga kearsipan daerah dan sertifikasi kompetensi pengelola arsip", "akreditasi lembaga kearsipan, sertifikasi kompetensi arsiparis"),
-    ("Penerapan sistem informasi kearsipan daerah (SIKD) dan pengelolaan arsip elektronik", "sistem informasi kearsipan daerah, sikd, arsip elektronik"),
-    ("Penyerahan arsip statis dari OPD kepada lembaga kearsipan daerah kabupaten", "penyerahan arsip statis, lembaga kearsipan daerah"),
-    # [KELAUTAN & PERIKANAN]
-    ("Penerbitan izin usaha perikanan tangkap di bawah 12 mil dan izin budidaya ikan", "izin usaha perikanan tangkap, izin budidaya ikan"),
-    ("Pengawasan sumber daya kelautan dan penanganan illegal fishing di perairan daerah", "sumber daya kelautan, illegal fishing, perairan daerah"),
-    ("Pengembangan kawasan budidaya ikan air tawar dan pembinaan kelompok pembudidaya ikan", "budidaya ikan air tawar, kelompok pembudidaya ikan"),
-    ("Pengelolaan tempat pelelangan ikan (TPI) dan pembinaan nelayan kecil pesisir", "tempat pelelangan ikan, tpi, nelayan kecil pesisir"),
-    ("Pembangunan cold storage dan sarana penanganan ikan segar di sentra perikanan", "cold storage, sarana penanganan ikan, sentra perikanan"),
-    ("Rehabilitasi terumbu karang dan ekosistem padang lamun di kawasan konservasi laut", "rehabilitasi terumbu karang, ekosistem padang lamun, konservasi laut"),
-    # [PARIWISATA]
-    ("Penyusunan rencana induk pembangunan kepariwisataan daerah (RIPPAR) kabupaten", "rencana induk kepariwisataan daerah, rippar"),
-    ("Pengembangan desa wisata dan pemberdayaan masyarakat sadar wisata (pokdarwis)", "desa wisata, masyarakat sadar wisata, pokdarwis"),
-    ("Penerbitan tanda daftar usaha pariwisata (TDUP) hotel, restoran, dan agen perjalanan", "tanda daftar usaha pariwisata, tdup, hotel restoran agen perjalanan"),
-    ("Penyelenggaraan event pariwisata internasional dan promosi destinasi wisata unggulan", "event pariwisata internasional, promosi destinasi wisata"),
-    ("Peningkatan kapasitas pemandu wisata lokal dan sertifikasi usaha pariwisata", "pemandu wisata lokal, sertifikasi usaha pariwisata"),
-    ("Pengembangan infrastruktur kawasan wisata alam dan ekowisata pesisir", "infrastruktur kawasan wisata alam, ekowisata pesisir"),
-    ("Pengelolaan sistem informasi pariwisata daerah dan kalender event wisata tahunan", "sistem informasi pariwisata, kalender event wisata"),
-    # [PERTANIAN]
-    ("Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)", "organisme pengganggu tumbuhan, pengendalian hama terpadu"),
-    ("Penyaluran pupuk bersubsidi dan benih unggul bersertifikat kepada kelompok tani", "pupuk bersubsidi, benih unggul bersertifikat, kelompok tani"),
-    ("Pengembangan kawasan pertanian komoditas unggulan dan agribisnis hortikultura", "kawasan pertanian komoditas unggulan, agribisnis hortikultura"),
-    ("Penerbitan izin usaha pertanian dan rekomendasi impor komoditas pertanian strategis", "izin usaha pertanian, impor komoditas pertanian"),
-    ("Asuransi usaha tani padi (AUTP) dan asuransi usaha ternak sapi (AUTS)", "asuransi usaha tani padi, autp, asuransi usaha ternak sapi"),
-    ("Pembangunan jaringan irigasi tersier dan rehabilitasi embung pertanian desa", "jaringan irigasi tersier, rehabilitasi embung pertanian"),
-    ("Pengembangan mekanisasi pertanian dan pengadaan alsintan bagi kelompok tani", "mekanisasi pertanian, alsintan, kelompok tani"),
-    # [KEHUTANAN & PERKEBUNAN]
-    ("Penerbitan izin usaha pemanfaatan hasil hutan kayu pada hutan hak/hutan rakyat", "izin usaha pemanfaatan hasil hutan kayu, hutan rakyat"),
-    ("Rehabilitasi hutan dan lahan kritis melalui program penghijauan dan reklamasi", "rehabilitasi hutan lahan kritis, penghijauan reklamasi"),
-    ("Pengawasan peredaran hasil hutan dan penanganan kasus perambahan kawasan hutan", "peredaran hasil hutan, perambahan kawasan hutan"),
-    ("Pengembangan perkebunan kelapa sawit rakyat dan penerbitan sertifikat RSPO", "perkebunan kelapa sawit rakyat, sertifikat rspo"),
-    ("Pengendalian kebakaran hutan dan lahan (karhutla) serta pembentukan MPA desa", "kebakaran hutan lahan, karhutla, masyarakat peduli api"),
-    # [ENERGI & SUMBER DAYA MINERAL]
-    ("Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara", "sertifikat laik operasi, izin usaha pertambangan batubara"),
-    ("Pengelolaan air tanah dan penerbitan surat izin pengambilan air tanah (SIPA)", "pengelolaan air tanah, surat izin pengambilan air tanah, sipa"),
-    ("Pembangunan jaringan listrik pedesaan dan elektrifikasi daerah terpencil 3T", "jaringan listrik pedesaan, elektrifikasi daerah terpencil"),
-    ("Pengembangan energi baru terbarukan (EBT) dan pembangkit listrik tenaga surya", "energi baru terbarukan, ebt, pembangkit listrik tenaga surya"),
-    ("Pengawasan keselamatan pengusahaan tambang mineral bukan logam dan batuan", "keselamatan pengusahaan tambang, mineral bukan logam, batuan"),
-    # [PERDAGANGAN]
-    ("Penerbitan surat izin usaha perdagangan (SIUP) dan tanda daftar perusahaan (TDP)", "surat izin usaha perdagangan, siup, tanda daftar perusahaan"),
-    ("Pengawasan ketersediaan stok dan distribusi barang kebutuhan pokok di pasar", "stok distribusi barang kebutuhan pokok, pasar"),
-    ("Penyelenggaraan pasar lelang daerah dan pameran produk ekspor unggulan", "pasar lelang daerah, pameran produk ekspor"),
-    ("Penerbitan rekomendasi izin usaha pergudangan dan pengendalian distribusi pupuk", "izin usaha pergudangan, distribusi pupuk"),
-    ("Pembangunan dan revitalisasi pasar rakyat tradisional dan pasar seni daerah", "revitalisasi pasar rakyat tradisional, pasar seni"),
-    ("Perlindungan konsumen dan pengawasan barang beredar tidak memenuhi standar SNI", "perlindungan konsumen, barang beredar, standar sni"),
-    # [PERINDUSTRIAN]
-    ("Penyusunan rencana pembangunan industri kabupaten/kota (RPIK) sektor unggulan", "rencana pembangunan industri kabupaten, rpik"),
-    ("Penerbitan izin usaha industri (IUI) dan izin perluasan industri kecil menengah", "izin usaha industri, iui, industri kecil menengah"),
-    ("Pengembangan kawasan industri kecil menengah (KIKIM) dan sentra industri logam", "kawasan industri kecil menengah, kikim, sentra industri"),
-    ("Pembinaan industri kreatif berbasis kearifan lokal dan sertifikasi produk IKM", "industri kreatif kearifan lokal, sertifikasi produk ikm"),
-    ("Fasilitasi penerapan SNI wajib produk industri dan pengujian mutu di laboratorium", "penerapan sni wajib, pengujian mutu produk industri"),
-    # [TRANSMIGRASI]
-    ("Penempatan transmigran umum dan transmigran swakarsa mandiri ke kawasan transmigrasi", "penempatan transmigran umum, transmigrasi swakarsa mandiri"),
-    ("Pembangunan infrastruktur permukiman transmigrasi dan fasilitas umum kawasan SP", "infrastruktur permukiman transmigrasi, fasilitas umum satuan permukiman"),
-    ("Pembinaan masyarakat transmigran dan pengembangan usaha ekonomi di kawasan transmigrasi", "pembinaan masyarakat transmigran, usaha ekonomi kawasan transmigrasi"),
-    # [KEUANGAN, ANGGARAN & ASET]
-    ("Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA)", "rencana kerja anggaran, dpa"),
-    ("Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR", "pencairan dana, sp2d, sppr"),
-    ("Rekonsiliasi dan laporan barang milik daerah (BMD)", "rekonsiliasi barang milik daerah, aset daerah"),
-    ("Penetapan status penggunaan barang milik daerah", "status penggunaan barang milik daerah, aset"),
-    ("Pengelolaan kas daerah dan penempatan investasi jangka pendek pemerintah daerah", "pengelolaan kas daerah, investasi jangka pendek"),
-    ("Penyusunan laporan keuangan pemerintah daerah (LKPD) dan neraca aset", "laporan keuangan pemerintah daerah, lkpd, neraca aset"),
-    ("Penyelesaian tuntutan perbendaharaan dan tuntutan ganti rugi (TP-TGR) keuangan", "tuntutan perbendaharaan, tuntutan ganti rugi, tp tgr"),
-    ("Penganggaran hibah dan bantuan sosial dalam APBD serta pertanggungjawabannya", "hibah bantuan sosial, apbd, pertanggungjawaban"),
-    ("Pengelolaan utang dan piutang daerah serta penerbitan obligasi daerah", "utang piutang daerah, obligasi daerah"),
-    # [PENGAWASAN, KEPEGAWAIAN & HUKUM]
-    ("Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen BPK", "tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen"),
-    ("Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi", "laporan hasil audit investigasi, tindak pidana korupsi"),
-    ("Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli", "penetapan angka kredit, jabatan fungsional"),
-    ("Penyusunan formasi ASN dan usulan pengadaan CPNS serta PPPK daerah", "formasi asn, pengadaan cpns, pppk"),
-    ("Proses kenaikan pangkat reguler, pilihan, dan pengabdian PNS daerah", "kenaikan pangkat pns, pangkat reguler pilihan pengabdian"),
-    ("Penyelesaian kasus pelanggaran disiplin PNS dan penjatuhan hukuman disiplin", "pelanggaran disiplin pns, hukuman disiplin"),
-    ("Pemberhentian PNS atas permintaan sendiri dan pemberhentian tidak dengan hormat", "pemberhentian pns, pemberhentian tidak dengan hormat"),
-    ("Pelaksanaan seleksi terbuka jabatan pimpinan tinggi pratama dan madya", "seleksi terbuka jabatan pimpinan tinggi, pratama madya"),
-    ("Penyusunan produk hukum daerah raperda dan rancangan peraturan bupati/walikota", "produk hukum daerah, raperda, peraturan bupati"),
-    # [PEMILU, KESBANGPOL & KETERTIBAN]
-    ("Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4)", "daftar pemilih sementara, daftar penduduk potensial pemilih"),
-    ("Penanganan konflik sosial berbasis SARA dan deteksi dini potensi kerawanan daerah", "konflik sosial sara, deteksi dini kerawanan daerah"),
-    ("Pemantauan dan pembinaan organisasi kemasyarakatan (ormas) di daerah", "pembinaan organisasi kemasyarakatan, ormas"),
-    ("Fasilitasi pendidikan politik masyarakat dan peningkatan partisipasi pemilih", "pendidikan politik masyarakat, partisipasi pemilih"),
-    ("Penanganan paham radikalisme dan terorisme melalui forum kewaspadaan dini masyarakat", "paham radikalisme terorisme, forum kewaspadaan dini masyarakat"),
-    # [PERENCANAAN, LITBANG & INOVASI]
-    ("Penyusunan rencana pembangunan jangka menengah daerah (RPJMD) dan RKPD", "rencana pembangunan jangka menengah daerah, rpjmd, rkpd"),
-    ("Musyawarah perencanaan pembangunan (musrenbang) kabupaten dan provinsi", "musyawarah perencanaan pembangunan, musrenbang"),
-    ("Evaluasi capaian indikator kinerja utama (IKU) dan indikator kinerja program (IKP)", "capaian indikator kinerja utama, iku, indikator kinerja program"),
-    ("Penyelenggaraan riset inovasi daerah dan lomba inovasi pelayanan publik", "riset inovasi daerah, inovasi pelayanan publik"),
-    ("Penyusunan kajian kebijakan strategis dan naskah akademik rancangan perda", "kajian kebijakan strategis, naskah akademik rancangan perda"),
-    # [PEMERINTAHAN UMUM & KEPROTOKOLAN]
-    ("Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional", "perjalanan dinas"),
-    ("Penyelenggaraan upacara kedinasan hari besar nasional dan daerah", "upacara kedinasan, hari besar nasional daerah"),
-    ("Penyusunan laporan penyelenggaraan pemerintahan daerah (LPPD) tahunan", "laporan penyelenggaraan pemerintahan daerah, lppd"),
-    ("Pengelolaan pengaduan masyarakat dan tindak lanjut laporan SP4N-LAPOR", "pengaduan masyarakat, sp4n lapor"),
-    ("Penyelenggaraan penerimaan kunjungan tamu negara dan delegasi luar negeri", "kunjungan tamu negara, delegasi luar negeri"),
-    ("Koordinasi pelaksanaan tata upacara sipil dan protokol acara kenegaraan daerah", "tata upacara sipil, protokol kenegaraan daerah"),
-    # [BENCANA, SAR & PEMADAM KEBAKARAN]
-    ("Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang", "operasi pencarian pertolongan, sar, korban banjir"),
-    ("Penyusunan dokumen rencana penanggulangan bencana (RPB) dan rencana kontigensi", "rencana penanggulangan bencana, rpb, rencana kontigensi"),
-    ("Distribusi logistik dan peralatan kebencanaan ke daerah terdampak bencana alam", "logistik peralatan kebencanaan, daerah terdampak bencana"),
-    ("Pemulihan pascabencana dan relokasi korban bencana alam ke hunian tetap", "pemulihan pascabencana, relokasi korban bencana, hunian tetap"),
-    ("Penanganan kebakaran permukiman padat dan pemeriksaan instalasi proteksi kebakaran", "kebakaran permukiman, instalasi proteksi kebakaran")
-]
-
-# ====================================================
-# FUNGSI ASISTEN PINTAR (Diperbaiki dari Bug Claude)
-# ====================================================
-def ambil_contoh_relevan(teks_user: str, top_n: int = 12) -> str:
-    semua_input = [c[0] for c in BANK_CONTOH]
-    
-    # thefuzz hanya mengembalikan 2 nilai: teks_cocok dan skor
-    hasil = process.extract(teks_user, semua_input, limit=top_n)
-    
-    contoh_terpilih = ""
-    # Kita ubah dari 3 variabel menjadi 2 variabel saja di sini
-    for teks_cocok, skor in hasil:
-        # Kita cari manual index-nya agar tidak error
-        idx = semua_input.index(teks_cocok)
-        contoh_terpilih += f'Input: "{BANK_CONTOH[idx][0]}"\nOutput: {BANK_CONTOH[idx][1]}\n'
-        
-    return contoh_terpilih
-
-# ====================================================
-# 2. Fungsi "Otak Ekstraktor" (VERSI X-RAY DEBUGGING)
-# ====================================================
-# SEMENTARA CACHE DIMATIKAN DULU AGAR DEBUG SELALU MUNCUL
-# @st.cache_data(show_spinner=False, ttl=3600) 
-def ekstrak_inti_surat(teks_user: str) -> str | None:
-    
-    instruksi_sistem = """
-    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah.
-    Tugas Anda: menganalisis perihal surat dan mengekstrak "Inti Substansi"
-    (maksimal 2-3 frasa nominal) untuk mesin pencari klasifikasi TF-IDF.
-
     GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
-    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (penyampaian, permohonan,
-       undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan,
-       penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
-    2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian,
-       KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang,
-       jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
-    3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya.
-    4. RESOLUSI JEBAKAN "ARSIP":
-       - JANGAN jadikan "arsip" sebagai inti jika hanya lokasi/tujuan
-         (misal: "Bimtek kearsipan" -> intinya "bimbingan teknis").
-       - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip").
-    5. RESOLUSI JEBAKAN ASET/BANGUNAN:
-       - Kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN jika
-         urusan berkaitan dengan BMD.
-       - JIKA konteks FISIK (Pembangunan/Rehab/Keamanan Gedung): buang nama
-         tempatnya, ambil inti "pembangunan gedung" / "rehab bangunan".
-       - JIKA konteks OPERASIONAL/LAYANAN (Pembinaan perpustakaan, Akreditasi
-         puskesmas, Dana BOS Sekolah): kata "Perpustakaan", "Puskesmas",
-         "Sekolah" WAJIB DIPERTAHANKAN.
+    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
+    2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian, KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang, jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
+    3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya (fasilitatif maupun substantif teknis daerah).
+    4. RESOLUSI JEBAKAN "ARSIP": 
+       - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
+       - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
+    5. RESOLUSI JEBAKAN ASET/BANGUNAN: 
+       - JIKA urusannya berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN, jangan dibuang!
+       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
+       - BEDAKAN FISIK BANGUNAN DENGAN LAYANAN/URUSAN:
+         * JIKA konteksnya fisik (contoh: "Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
+         * JIKA konteksnya operasional/layanan (contoh: "Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
 
-    LARANGAN KERAS — PELANGGARAN INI MERUSAK SISTEM:
-    - DILARANG menulis kata kerja dalam output (menghadiri, melaksanakan, dll)
-    - DILARANG menyertakan nama orang, instansi, atau lokasi
-    - DILARANG menulis lebih dari 3 frasa
-    - DILARANG menulis kalimat lengkap ber-subjek-predikat
-    - DILARANG menulis penjelasan, preamble, atau apapun sebelum/sesudah output
-    - OUTPUT HANYA 1 BARIS: frasa dipisah koma, huruf kecil semua
-    """
+    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+    
+    [KASUS KEUANGAN, ANGGARAN & ASET]
+    Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
+    Output: rencana kerja anggaran, dpa
+    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR untuk kegiatan sosialisasi"
+    Output: pencairan dana, sp2d, sppr
+    Input: "Usulan persetujuan pinjaman hibah luar negeri (PHLN) dan dana tugas pembantuan"
+    Output: pinjaman hibah luar negeri, phln, tugas pembantuan
+    Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
+    Output: rekonsiliasi barang milik daerah, aset daerah
+    Input: "Penetapan status penggunaan barang milik daerah"
+    Output: status penggunaan barang milik daerah, aset
+    Input: "Rekonsiliasi dan laporan permintaan barang milik daerah (BMD)"
+    Output: permintaan barang milik daerah, rekonsiliasi bmd
+    Input: "Laporan hasil inventarisasi aset dan barang milik daerah"
+    Output: inventarisasi barang milik daerah, aset
+    
+    [KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
+    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
+    Output: tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen
+    Input: "Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi (TPK)"
+    Output: laporan hasil audit investigasi, tindak pidana korupsi
+    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
+    Output: penetapan angka kredit, jabatan fungsional
+    
+    [KASUS INFRASTRUKTUR, PEKERJAAN UMUM & TATA RUANG]
+    Input: "Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa"
+    Output: pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa
+    Input: "Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)"
+    Output: rencana detail tata ruang, rencana tata bangunan dan lingkungan
+    Input: "Persetujuan penataan bangunan dan pengelolaan gedung rumah negara"
+    Output: penataan bangunan, pengelolaan rumah negara
 
-    # ─── TAHAP 1: ASISTEN PINTAR (THEFUZZ) ───
-    contoh_relevan = ambil_contoh_relevan(teks_user)
+    [KASUS KEPENDUDUKAN, KESEHATAN & KESRA]
+    Input: "Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil"
+    Output: sistem informasi administrasi kependudukan, pencatatan sipil
+    Input: "Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)"
+    Output: jaminan kesehatan nasional, national health account
+    Input: "Data Forum Komunikasi Umat Beragama (FKUB) dan penyelesaian kasus aliran keagamaan"
+    Output: forum komunikasi umat beragama, kasus aliran keagamaan
     
-    with st.expander("🛠️ DEBUG TAHAP 1: Asisten Pencari (thefuzz)"):
-        st.write("Apakah 12 contoh di bawah ini nyambung dengan input surat?")
-        st.code(contoh_relevan, language="text")
-    
-    prompt_user = f"""
-    Pelajari BANK DATA pola pikir berikut, lalu kerjakan input di bawahnya
-    dengan pola yang SAMA PERSIS:
-    
-{contoh_relevan}
+    [KASUS TEKNOLOGI INFORMASI, KOMUNIKASI & PERSANDIAN]
+    Input: "Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government tingkat kabupaten"
+    Output: sertifikasi elektronik, e government
+    Input: "Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi"
+    Output: jaringan telekomunikasi, keamanan informasi
 
-    SEKARANG KERJAKAN:
+    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
+    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
+    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
+    Input: "Penyusunan Rencana Anggaran Satuan Kerja (RASK) dan pembiayaan kegiatan operasional (PPKO) pemilu"
+    Output: rencana anggaran satuan kerja, pembiayaan kegiatan operasional pemilu
+    
+    [KASUS PENANAMAN MODAL, LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
+    Input: "Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing"
+    Output: pencabutan pembatalan perizinan penanaman modal
+    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
+    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
+    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
+    Output: operasi pencarian pertolongan, sar, korban banjir
+    Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
+    Output: organisme pengganggu tumbuhan, pengendalian hama terpadu
+
+    [KASUS PERPUSTAKAAN, PENDIDIKAN & KESEHATAN (FISIK VS LAYANAN)]
+    Input: "Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas"
+    Output: pembangunan gedung, rehab bangunan
+    Input: "Penyelenggaraan pameran perpustakaan keliling dan donasi buku"
+    Output: perpustakaan keliling, donasi buku
+    Input: "Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas"
+    Output: bantuan operasional sekolah, bos, akreditasi puskesmas
+    
+    [KASUS PERTAMBANGAN, ENERGI & PERHUBUNGAN]
+    Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
+    Output: sertifikat laik operasi, izin usaha pertambangan batubara
+    Input: "Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal"
+    Output: sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal
+    
+    [KASUS PEMERINTAHAN UMUM]
+    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
+    Output: perjalanan dinas
+    Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
+    Output: jadwal retensi arsip, pemusnahan arsip inaktif
+    
+    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
     Input: "{teks_user}"
     Output:
     """
-
+    
     try:
-        # ─── TAHAP 2: OUTPUT MENTAH LLM (GROQ 70B) ───
         chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": instruksi_sistem},
-                {"role": "user",   "content": prompt_user},
-            ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.0,
-            max_tokens=80,
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
+            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
         )
-
+       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
-
-        with st.expander("🛠️ DEBUG TAHAP 2: Output Mentah Groq 70B"):
-            st.write("Apakah Groq mematuhi aturan 1 baris, atau malah nulis novel?")
-            st.info(inti_teks_mentah)
-
-        # ─── TAHAP 3: PEMBERSIHAN ARTEFAK ───
-        daftar_baris = [b.strip() for b in inti_teks_mentah.split('\n') if b.strip()]
-
-        if not daftar_baris:
-            st.warning("⚠️ GROQ mengembalikan respons kosong.")
-            return None
-
-        inti_teks_bersih = daftar_baris[-1]
-
-        inti_teks_bersih = (
-            inti_teks_bersih
-            .replace('**', '')
-            .replace('"', '')
-            .replace("'", '')
-            .replace('Output:', '')
-            .strip()
-        )
-
-        with st.expander("🛠️ DEBUG TAHAP 3: Setelah Pembersihan Artefak"):
-            st.write("Hasil setelah bintang, tanda kutip, dan kata 'Output:' dibuang:")
-            st.warning(inti_teks_bersih)
-
-        if not inti_teks_bersih:
-            st.warning("⚠️ Hasil ekstraksi kosong setelah cleaning.")
-            return None
-            
-        # ─── TAHAP 4: SAPU JAGAT ───
-        inti_teks_final = sapu_kata_kerja_bocor(inti_teks_bersih)
-
-        with st.expander("🛠️ DEBUG TAHAP 4: Hasil Final (Dikirim ke Mesin TF-IDF)"):
-            st.write("Ini adalah kata kunci yang dipakai untuk mencari Kode Arsip:")
-            st.success(inti_teks_final)
-
-        return inti_teks_final if inti_teks_final.strip() else None
-
+        
+        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
+        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
+        daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
+        inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
+        
+        # Membersihkan tanda kutip
+        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
+        return inti_teks_bersih
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
-        return None
+        return teks_user
         
 # --- UI & CSS CUSTOM ---
 st.markdown("""
@@ -1089,11 +791,8 @@ def init_nlp():
 
 stemmer, remover = init_nlp()
 
-# --- MEGA KAMUS JARGON & SINGKATAN BIROKRASI PEMDA (VERSI FINAL) ---
+# --- KAMUS JARGON & SINGKATAN BIROKRASI (ASLI 100%) ---
 kamus_birokrasi = {
-    # ========================================================
-    # BAGIAN 1: SINGKATAN RESMI PEMERINTAHAN (DATABASE UTAMA)
-    # ========================================================
     "apbd": "anggaran pendapatan dan belanja daerah",
     "apbn": "anggaran pendapatan dan belanja negara",
     "rapbd": "rencana anggaran pendapatan dan belanja daerah",
@@ -1220,6 +919,8 @@ kamus_birokrasi = {
     "spam": "sistem penyediaan air minum",
     "psat": "pangan segar asal tumbuhan",
     "bumdes": "badan usaha milik desa",
+    "apel": "upacara",
+    "apel gabungan": "upacara"
     "rtrw": "rencana tata ruang wilayah",
     "rdtr": "rencana detail tata ruang",
     "rtbl": "rencana tata bangunan dan lingkungan",
@@ -1286,282 +987,13 @@ kamus_birokrasi = {
     "ppm": "program pengembangan dan pemberdayaan masyarakat",
     "sirup": "sistem informasi rencana umum pengadaan",
     "rup": "rencana umum pengadaan",
-
-    # ========================================================
-    # BAGIAN 2: MEGA TRANSLASI LOGIKA KHUSUS (200+ JARGON)
-    # ========================================================
-    
-    # [A] RUTINITAS, KEBUGARAN & SEREMONIAL PEGAWAI
-    "apel": "upacara kedinasan pegawai",
-    "apel pagi": "upacara kedinasan pegawai",
-    "apel gabungan": "upacara kedinasan pegawai",
-    "apel gelar pasukan": "upacara kedinasan pengamanan",
-    "senam": "olahraga kebugaran pegawai",
-    "jumat sehat": "olahraga kebugaran pegawai",
-    "jumat bersih": "kebersihan gotong royong lingkungan",
-    "kerja bakti": "kebersihan gotong royong lingkungan",
-    "gotong royong": "kebersihan lingkungan",
-    "outbound": "pengembangan kapasitas sumber daya manusia",
-    "family gathering": "pembinaan mental keakraban pegawai",
-    "capacity building": "pendidikan dan pelatihan pegawai",
-
-    # [B] PERJALANAN DINAS, TAMU & STUDI
-    "kunker": "kunjungan kerja",
-    "studi banding": "kunjungan kerja peninjauan",
-    "studi tiru": "kunjungan kerja peninjauan",
-    "benchmarking": "kunjungan kerja peninjauan",
-    "kaji tiru": "kunjungan kerja peninjauan",
-    "kaji banding": "kunjungan kerja peninjauan",
-    "audiensi": "penerimaan tamu daerah",
-    "silaturahmi": "kunjungan sosial kemasyarakatan",
-    "penerimaan tamu": "kunjungan kerja tamu daerah",
-
-    # [C] RAPAT, DISKUSI & EVALUASI
-    "rakor": "rapat koordinasi",
-    "coffee morning": "rapat koordinasi pimpinan",
-    "ngopi bareng": "rapat koordinasi pimpinan",
-    "konsinyering": "rapat kerja teknis",
-    "zoom meeting": "rapat koordinasi virtual",
-    "vidcon": "rapat koordinasi virtual",
-    "webinar": "bimbingan teknis virtual",
-    "blusukan": "pemantauan tinjauan lapangan",
-    "turba": "pemantauan tinjauan lapangan",
-    "sidak": "inspeksi mendadak pengawasan",
-    "rapat dadakan": "rapat koordinasi insidentil",
-    "rapat paripurna istimewa": "sidang dewan perwakilan rakyat daerah",
-    "temu wicara": "forum diskusi masyarakat",
-    "temu kader": "pembinaan kader masyarakat",
-
-    # [D] KARIR, PELATIHAN & JABATAN PEGAWAI
-    "aktualisasi": "laporan pelatihan dasar pegawai",
-    "habituasi": "laporan pelatihan dasar pegawai",
-    "rolling": "mutasi pemindahan jabatan pegawai",
-    "nonjob": "pemberhentian dari jabatan",
-    "non job": "pemberhentian dari jabatan",
-    "dicopot": "pemberhentian dari jabatan",
-    "naik pangkat": "peningkatan golongan pegawai",
-    "kenaikan pangkat": "peningkatan golongan pegawai",
-    "pengambilan sumpah": "pengangkatan jabatan pegawai",
-    "purna tugas": "pemberhentian pegawai pensiun",
-    "lepas sambut": "mutasi pengangkatan jabatan",
-    "pisah sambut": "mutasi pengangkatan jabatan",
-    "inhouse training": "bimbingan teknis pegawai",
-    "ujian dinas": "penilaian kompetensi kenaikan pangkat",
-    "penyesuaian ijazah": "penilaian kompetensi jenjang pendidikan",
-    "izin belajar": "persetujuan pendidikan lanjutan pegawai",
-    "tugas belajar": "penugasan pendidikan lanjutan pegawai",
-    "bebas tugas": "pemberhentian sementara jabatan pegawai",
-    "cuti melahirkan": "hak istirahat bersalin pegawai",
-    "cuti alasan penting": "hak istirahat urusan keluarga pegawai",
-    "cuti besar": "hak istirahat panjang pegawai",
-    "sakit keras": "izin tidak masuk kerja pegawai",
-    "baju keki": "pakaian dinas harian pegawai",
-    "seragam korpri": "pakaian sipil resmi pegawai",
-    "pakai hitam putih": "pakaian dinas hitam putih",
-
-    # [E] KEUANGAN, HONOR & PERTANGGUNGJAWABAN
-    "honorarium": "pembayaran jasa kegiatan",
-    "uang lelah": "honorarium tim kerja",
-    "uang saku": "biaya perjalanan dinas",
-    "uang jalan": "biaya perjalanan dinas",
-    "uang ketik": "honorarium jasa narasumber",
-    "uang duka": "bantuan sosial kematian",
-    "uang transport": "biaya perjalanan dinas",
-    "potong pajak": "pemungutan pajak penghasilan",
-    "gaji ke 13": "tunjangan hari raya kesejahteraan",
-    "gaji ke-13": "tunjangan hari raya kesejahteraan",
-    "tukin": "tambahan penghasilan pegawai",
-    "dana sisa": "sisa lebih perhitungan anggaran",
-    "dana talangan": "pinjaman sementara keuangan daerah",
-    "kas bon": "pinjaman sementara pegawai",
-    "bon sementara": "pinjaman sementara pegawai",
-    "tutup buku": "laporan akhir tahun keuangan",
-    "buka buku": "laporan awal tahun keuangan",
-    "ketok palu": "pengesahan anggaran pendapatan belanja",
-    "pagu indikatif": "rencana batas tertinggi anggaran",
-    "pagu definitif": "alokasi anggaran final",
-    "luncuran kegiatan": "kegiatan lanjutan tahun anggaran berjalan",
-
-    # [F] ACARA DAERAH, FESTIVAL & PERINGATAN
-    "festival daerah": "pameran kebudayaan pariwisata",
-    "festival": "pameran kebudayaan",
-    "hari jadi": "peringatan hari besar daerah",
-    "hut pemda": "peringatan hari besar daerah",
-    "tujuh belasan": "peringatan hari besar nasional",
-    "upacara bendera": "peringatan hari besar nasional",
-    "halal bihalal": "pembinaan mental pegawai keagamaan",
-    "buka puasa bersama": "pembinaan mental pegawai keagamaan",
-    "bukber": "pembinaan mental pegawai keagamaan",
-    "safari ramadhan": "kunjungan sosial keagamaan",
-    "safari jumat": "kunjungan sosial keagamaan",
-    "anjangsana": "kunjungan sosial kemasyarakatan",
-    "takbiran": "peringatan hari besar keagamaan",
-    "tarawih keliling": "kunjungan sosial keagamaan",
-    "pasar murah": "operasi pasar perekonomian",
-    "jalan sehat": "olahraga rekreasi masyarakat",
-    "car free day": "hari bebas kendaraan bermotor",
-    "doorprize": "kegiatan hiburan masyarakat",
-
-    # [G] LOMBA, PENDIDIKAN & KESEHATAN
-    "rembuk stunting": "koordinasi penanganan gizi buruk",
-    "stunting": "penanggulangan gizi buruk anak",
-    "odgj": "penanganan masalah kejiwaan",
-    "fogging": "pengendalian penyakit menular",
-    "bedah rumah": "rehabilitasi rumah tidak layak huni",
-
-    # [H] PENGADAAN, INFRASTRUKTUR & ASET
-    "lelang rongsokan": "penghapusan aset rusak berat",
-    "dum kendaraan": "penjualan lelang aset daerah",
-    "tarik mobil dinas": "penarikan aset kendaraan dinas",
-    "mobil dinas": "kendaraan dinas operasional",
-    "plat merah": "kendaraan dinas operasional",
-    "pinjam pakai gedung": "penggunaan sementara aset daerah",
-    "sewa tenda": "penyewaan perlengkapan acara",
-    "konsumsi rapat": "belanja makanan dan minuman",
-    "snack box": "belanja makanan dan minuman ringan",
-    "nasi kotak": "belanja makanan dan minuman berat",
-    "belanja atk": "pengadaan alat tulis kantor",
-    "kertas hvs": "pengadaan barang habis pakai",
-    "tinta printer": "pengadaan barang habis pakai",
-    "gagal lelang": "pembatalan pengadaan barang jasa",
-    "tender ulang": "pengadaan ulang barang jasa",
-    "harga borongan": "nilai kontrak kerja pengadaan",
-    "peletakan batu pertama": "peresmian dimulainya pembangunan fisik",
-    "ground breaking": "peresmian dimulainya pembangunan fisik",
-    "gunting pita": "peresmian selesainya pembangunan fisik",
-    "potong tumpeng": "acara syukuran peresmian",
-    "teken prasasti": "penandatanganan peresmian infrastruktur",
-    "jalan berlubang": "perbaikan infrastruktur jalan raya",
-    "tambal sulam jalan": "pemeliharaan rutin jalan raya",
-    "normalisasi sungai": "pemeliharaan sumber daya air",
-    "pengerukan sungai": "pemeliharaan sumber daya air",
-    "pembebasan lahan": "pengadaan tanah kepentingan umum",
-
-    # [I] PELAYANAN PUBLIK & PENERTIBAN
-    "jemput bola": "pelayanan publik keliling terpadu",
-    "layanan keliling": "pelayanan publik keliling terpadu",
-    "sim keliling": "pelayanan izin mengemudi keliling",
-    "ktp keliling": "pelayanan administrasi kependudukan keliling",
-    "operasi yustisi": "razia penegakan peraturan daerah",
-    "razia ktp": "pemeriksaan identitas kependudukan",
-    "razia pekat": "penertiban penyakit masyarakat",
-    "razia masker": "penegakan protokol kesehatan masyarakat",
-    "penertiban pkl": "relokasi pedagang kaki lima",
-    "razia gepeng": "penertiban gelandangan dan pengemis",
-    "tilang": "penindakan pelanggaran lalu lintas",
-    "operasi pasar": "pengendalian harga kebutuhan pokok",
-    "gusur lahan": "penertiban lahan pemerintah daerah",
-    "segel bangunan": "penertiban izin mendirikan bangunan",
-
-    # [J] KEARSIPAN & PERPUSTAKAAN (URAT NADI SIKAP)
-    "bakar arsip": "pemusnahan arsip inaktif",
-    "kiloan arsip": "penjualan kertas limbah arsip",
-    "gudang arsip": "pengelolaan depo arsip inaktif",
-    "arsip numpuk": "penataan kembali arsip kacau",
-    "arsip hilang": "laporan kehilangan dokumen negara",
-    "arsip basah": "restorasi perbaikan arsip rusak",
-    "rayap arsip": "fumigasi pemeliharaan fisik arsip",
-    "kunjungan perpus": "layanan sirkulasi perpustakaan daerah",
-    "pinjam buku": "layanan sirkulasi perpustakaan daerah",
-    "kembalikan buku": "layanan sirkulasi perpustakaan daerah",
-    "buku denda": "sanksi keterlambatan pengembalian buku",
-    "perpusling": "layanan perpustakaan keliling daerah",
-    "buku hibah": "penerimaan sumbangan bahan pustaka",
-    "bedah buku": "diskusi literasi perpustakaan",
-    "duta baca": "kampanye budaya gemar membaca",
-
-    # [K] SOSIAL, BENCANA & KEAGAMAAN
-    "siraman rohani": "pembinaan mental keagamaan pegawai",
-    "kultum": "ceramah pembinaan keagamaan",
-    "tarling": "kunjungan safari tarawih keliling",
-    "jumling": "kunjungan safari jumat keliling",
-    "takjil gratis": "pembagian makanan berbuka puasa",
-    "sahur on the road": "kegiatan sosial bulan ramadhan",
-    "qurban": "pemotongan hewan kurban keagamaan",
-    "zakat fitrah": "pengumpulan amal zakat keagamaan",
-    "naik haji": "fasilitasi pemberangkatan jamaah haji",
-    "umroh": "fasilitasi ibadah umrah pegawai",
-    "kebakaran rumah": "bantuan tanggap darurat bencana",
-    "banjir bandang": "penanganan tanggap darurat bencana",
-    "tanah longsor": "penanggulangan bencana alam",
-    "pohon tumbang": "penanganan darurat infrastruktur",
-    "puting beliung": "penanggulangan bencana alam angin",
-    "gempa bumi": "penanganan tanggap darurat bencana alam",
-    "kekeringan": "bantuan pasokan air bersih",
-    "wabah penyakit": "penanganan kejadian luar biasa",
-
-    # [L] PEMERINTAHAN DESA & KEMASYARAKATAN
-    "pemilihan kades": "penyelenggaraan pemilihan kepala desa",
-    "sengketa lahan": "penyelesaian konflik pertanahan",
-    "tapal batas": "penetapan batas wilayah administrasi",
-    "pemekaran desa": "pembentukan wilayah administrasi baru",
-    "dana siluman": "penyelewengan pengelolaan keuangan",
-    "demo warga": "penanganan unjuk rasa masyarakat",
-    "unjuk rasa": "penyampaian aspirasi masyarakat",
-    "mogok kerja": "penyelesaian perselisihan hubungan industrial",
-    "surat kaleng": "pengaduan masyarakat tanpa identitas",
-    "pengaduan warga": "penanganan keluhan pelayanan publik",
-    "kotak saran": "evaluasi indeks kepuasan masyarakat",
-
-    # [M] LEGISLATIF & DOKUMEN HUKUM
-    "pokok pikiran": "usulan dewan perwakilan rakyat daerah",
-    "surat sakti": "surat rekomendasi pimpinan daerah",
-    "surat pengantar": "nota penyampaian dokumen resmi",
-    "surat teguran": "peringatan pelanggaran disiplin",
-    "surat peringatan": "sanksi pelanggaran administrasi",
-    "surat tugas": "perintah pelaksanaan perjalanan dinas",
-    "surat kuasa": "pelimpahan wewenang hukum",
-    "surat keterangan": "pernyataan resmi pemerintah daerah",
-    "surat pernyataan": "deklarasi pertanggungjawaban mutlak",
-    "nota kesepahaman": "perjanjian kerja sama antar lembaga",
-    "perjanjian kerja": "kontrak kerja pelaksanaan tugas",
-    "kontrak kerja": "perjanjian pengadaan barang jasa",
-    "berita acara": "laporan pengesahan kegiatan resmi",
-    "buku tamu": "registrasi kunjungan pihak luar",
-    "buku ekspedisi": "catatan pengiriman penerimaan surat",
-    "lembar disposisi": "catatan arahan pimpinan daerah",
-    "buku register": "pencatatan nomor surat keluar",
-    "cap dinas": "stempel resmi instansi pemerintah",
-    "stempel basah": "pengesahan dokumen resmi negara",
-
-    # [N] EVENT & PUBLIKASI
-    "pameran pembangunan": "publikasi hasil kinerja pemerintah",
-    "expo daerah": "promosi potensi pariwisata daerah",
-    "pawai pembangunan": "kegiatan perayaan masyarakat daerah",
-    "karnaval budaya": "pagelaran seni budaya daerah",
-    "lomba desa": "penilaian prestasi pemerintahan desa",
-    "lomba kelurahan": "penilaian prestasi pemerintahan kelurahan",
-    "lomba kebersihan": "penilaian adipura lingkungan hidup",
-    "penghargaan adipura": "prestasi kebersihan lingkungan hidup",
-    "penghargaan wtp": "prestasi akuntabilitas keuangan daerah",
-    "iklan koran": "publikasi media cetak daerah",
-    "ucapan selamat": "karangan bunga publikasi humas",
-    "karangan bunga": "bantuan sosial ucapan simpati",
-    "baliho": "pemasangan media luar ruang",
-    "spanduk": "pemasangan alat peraga kampanye",
-    "umbul umbul": "dekorasi perayaan acara daerah",
-    "brosur": "penyebaran materi informasi publik",
-
-    # [O] ISTILAH KHAS PEJABAT PEMDA
-    "pejabat teras": "pimpinan tinggi pratama daerah",
-    "pejabat eselon": "pejabat struktural pemerintah daerah",
-    "staf ahli": "penasihat khusus kepala daerah",
-    "asisten sekda": "koordinator bidang sekretariat daerah",
-    "ajudan": "staf pendamping kepala daerah",
-    "walpri": "pengawal pribadi kepala daerah",
-    "sopir bupati": "petugas transportasi kepala daerah",
-    "protokoler": "petugas tata acara keprotokolan"
 }
 
 # --- FUNGSI PENERJEMAH SINGKATAN ---
 def terjemahkan_singkatan(text):
-    text_lower = str(text).lower()
-    # Cek frasa multi-kata dulu (urutkan dari yang terpanjang)
-    kunci_terurut = sorted(kamus_birokrasi.keys(), key=len, reverse=True)
-    for frasa in kunci_terurut:
-        if frasa in text_lower:
-            text_lower = text_lower.replace(frasa, kamus_birokrasi[frasa])
-    return text_lower
+    kata_kata = str(text).lower().split()
+    kata_terjemahan = [kamus_birokrasi.get(kata, kata) for kata in kata_kata]
+    return " ".join(kata_terjemahan)
 
 # --- FUNGSI PEMBERSIH UTAMA ---
 def preprocess_text(text):
@@ -1676,12 +1108,6 @@ def get_hierarchy(kode_target, df):
 def smart_classify(user_input, df, top_n=3):
     # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
     inti_dari_llm = ekstrak_inti_surat(user_input)
-
-    # 🛡️ PASANG GEMBOK KEAMANAN DI SINI 🛡️
-    if not inti_dari_llm:
-        st.error("⚠️ SIKAP gagal mengekstrak inti surat karena kendala teks atau server. Silakan coba lagi atau perbaiki kalimat Anda.")
-        return []  # Langsung hentikan fungsi dan kembalikan list kosong
-        
     # st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
     
     # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
