@@ -292,7 +292,7 @@ client_gemini = genai.Client(api_key=api_key_gemini)
 # ====================================================
 # 2. Fungsi "Otak Ekstraktor" (Garda Depan SIKAP)
 # ====================================================
-@st.cache_data(show_spinner=False)
+# @st.cache_data(show_spinner=False)
 def ekstrak_inti_surat(teks_user):
     # 1. SYSTEM INSTRUCTION
     instruksi_sistem = """Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
