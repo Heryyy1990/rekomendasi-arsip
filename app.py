@@ -9,19 +9,25 @@ import pytz
 import threading
 import time
 import logging
+
 # Membungkam peringatan (warning) gaib dari Google API saat pertama kali load
 logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 from datetime import datetime
+
+# --- NLP & MESIN PENCARI LOKAL ---
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 from thefuzz import process, fuzz
-from groq import Groq
 
+# --- OTAK AI (GROQ & GEMINI) ---
+from groq import Groq
+from google import genai           # <--- Tambahan untuk SDK Gemini baru
+from google.genai import types     # <--- Tambahan konfigurasi Gemini baru
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
 
@@ -265,22 +271,29 @@ def halaman_login():
                 else:
                     st.error("Username atau Password salah!")
 
-# 1. Menarik API Key dengan aman (Bisa jalan di lokal maupun di Streamlit Cloud)
+# ====================================================
+# INISIALISASI CLIENT AI (GROQ & GEMINI)
+# ====================================================
 try:
-    # Membaca dari Streamlit Secrets jika di Cloud
-    api_key = st.secrets["GROQ_API_KEY"]
+    # Membaca dari Streamlit Secrets (Aman untuk Cloud/GitHub)
+    api_key_groq = st.secrets["GROQ_API_KEY"]
+    api_key_gemini = st.secrets["GEMINI_API_KEY"]
 except:
-    # Masukkan API Key manual HANYA untuk tes di laptop lokal (Hapus sebelum di-push ke GitHub!)
-    api_key = "MASUKKAN_API_KEY_GROQ_DI_SINI_UNTUK_TES_LOKAL" 
+    # Fallback HANYA untuk ngetes di laptop lokal (Hapus sebelum di-push!)
+    api_key_groq = "MASUKKAN_API_KEY_GROQ_ANDA_DI_SINI" 
+    api_key_gemini = "MASUKKAN_API_KEY_GEMINI_ANDA_DI_SINI"
 
-client = Groq(api_key=api_key)
+# Bangunkan si Profesor (Llama-3 70B via Groq) untuk Dewan Juri
+client = Groq(api_key=api_key_groq)
+
+# Bangunkan si Ekstraktor Kilat (Gemini 2.5 Flash via Google) untuk Garda Depan
+client_gemini = genai.Client(api_key=api_key_gemini)
 
 # 2. Fungsi "Otak Ekstraktor"
 @st.cache_data(show_spinner=False)
 def ekstrak_inti_surat(teks_user):
-    # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
-    prompt = f"""
-    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
+    # 1. SYSTEM INSTRUCTION (Otak Bawah Sadar)
+    instruksi_sistem = """Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
     
     GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
     1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
@@ -290,93 +303,31 @@ def ekstrak_inti_surat(teks_user):
        - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
        - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
     5. RESOLUSI JEBAKAN ASET/BANGUNAN: 
-       - JIKA urusannya berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN, jangan dibuang!
-       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
+       - JIKA berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN.
        - BEDAKAN FISIK BANGUNAN DENGAN LAYANAN/URUSAN:
-         * JIKA konteksnya fisik (contoh: "Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
-         * JIKA konteksnya operasional/layanan (contoh: "Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
-
-    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+         * JIKA konteks fisik ("Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
+         * JIKA konteks layanan ("Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
+    """
     
-    [KASUS KEUANGAN, ANGGARAN & ASET]
+    # 2. PROMPT UTAMA (Otak Sadar - Contoh Kasus Ekstrem)
+    prompt = f"""
+    BERIKUT ADALAH CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+    
     Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
     Output: rencana kerja anggaran, dpa
-    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR untuk kegiatan sosialisasi"
-    Output: pencairan dana, sp2d, sppr
-    Input: "Usulan persetujuan pinjaman hibah luar negeri (PHLN) dan dana tugas pembantuan"
-    Output: pinjaman hibah luar negeri, phln, tugas pembantuan
-    Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
-    Output: rekonsiliasi barang milik daerah, aset daerah
-    Input: "Penetapan status penggunaan barang milik daerah"
-    Output: status penggunaan barang milik daerah, aset
-    Input: "Rekonsiliasi dan laporan permintaan barang milik daerah (BMD)"
-    Output: permintaan barang milik daerah, rekonsiliasi bmd
-    Input: "Laporan hasil inventarisasi aset dan barang milik daerah"
-    Output: inventarisasi barang milik daerah, aset
     
-    [KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
     Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
     Output: tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen
-    Input: "Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi (TPK)"
-    Output: laporan hasil audit investigasi, tindak pidana korupsi
-    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: penetapan angka kredit, jabatan fungsional
     
-    [KASUS INFRASTRUKTUR, PEKERJAAN UMUM & TATA RUANG]
-    Input: "Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa"
-    Output: pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa
-    Input: "Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)"
-    Output: rencana detail tata ruang, rencana tata bangunan dan lingkungan
-    Input: "Persetujuan penataan bangunan dan pengelolaan gedung rumah negara"
-    Output: penataan bangunan, pengelolaan rumah negara
-
-    [KASUS KEPENDUDUKAN, KESEHATAN & KESRA]
-    Input: "Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil"
-    Output: sistem informasi administrasi kependudukan, pencatatan sipil
-    Input: "Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)"
-    Output: jaminan kesehatan nasional, national health account
-    Input: "Data Forum Komunikasi Umat Beragama (FKUB) dan penyelesaian kasus aliran keagamaan"
-    Output: forum komunikasi umat beragama, kasus aliran keagamaan
-    
-    [KASUS TEKNOLOGI INFORMASI, KOMUNIKASI & PERSANDIAN]
-    Input: "Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government tingkat kabupaten"
-    Output: sertifikasi elektronik, e government
-    Input: "Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi"
-    Output: jaringan telekomunikasi, keamanan informasi
-
-    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
-    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
-    Input: "Penyusunan Rencana Anggaran Satuan Kerja (RASK) dan pembiayaan kegiatan operasional (PPKO) pemilu"
-    Output: rencana anggaran satuan kerja, pembiayaan kegiatan operasional pemilu
-    
-    [KASUS PENANAMAN MODAL, LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
-    Input: "Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing"
-    Output: pencabutan pembatalan perizinan penanaman modal
-    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
-    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: operasi pencarian pertolongan, sar, korban banjir
-    Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
-    Output: organisme pengganggu tumbuhan, pengendalian hama terpadu
-
-    [KASUS PERPUSTAKAAN, PENDIDIKAN & KESEHATAN (FISIK VS LAYANAN)]
     Input: "Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas"
     Output: pembangunan gedung, rehab bangunan
-    Input: "Penyelenggaraan pameran perpustakaan keliling dan donasi buku"
-    Output: perpustakaan keliling, donasi buku
+    
     Input: "Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas"
     Output: bantuan operasional sekolah, bos, akreditasi puskesmas
     
-    [KASUS PERTAMBANGAN, ENERGI & PERHUBUNGAN]
-    Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
-    Output: sertifikat laik operasi, izin usaha pertambangan batubara
-    Input: "Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal"
-    Output: sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal
+    Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
+    Output: rekonsiliasi barang milik daerah, aset daerah
     
-    [KASUS PEMERINTAHAN UMUM]
-    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: perjalanan dinas
     Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
     Output: jadwal retensi arsip, pemusnahan arsip inaktif
     
@@ -386,24 +337,25 @@ def ekstrak_inti_surat(teks_user):
     """
     
     try:
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
-            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
+        # Eksekusi dengan SDK baru dan Model gemini-2.5-flash
+        response = client_gemini.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=instruksi_sistem,
+                temperature=0.0, # Tetap nol agar AI tidak berhalusinasi
+            )
         )
-       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
-        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
-        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
-        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
+        # Pisau Bedah: Ambil hasil teks dan bersihkan
+        inti_teks_mentah = response.text.strip()
         daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
-        inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
+        inti_teks_bersih = daftar_baris[-1].replace('**', '').replace('"', '').replace("'", "").replace('Output:', '').strip()
         
-        # Membersihkan tanda kutip
-        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
         return inti_teks_bersih
+        
     except Exception as e:
-        st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
+        st.error(f"🚨 ERROR GEMINI 2.5 FLASH: {e}")
         return teks_user
         
 # --- UI & CSS CUSTOM ---
