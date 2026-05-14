@@ -588,12 +588,12 @@ def ambil_contoh_relevan(teks_user: str, top_n: int = 12) -> str:
     return contoh_terpilih
 
 # ====================================================
-# 2. Fungsi "Otak Ekstraktor" (Lengkap dengan Instruksi Anda)
+# 2. Fungsi "Otak Ekstraktor" (VERSI X-RAY DEBUGGING)
 # ====================================================
-@st.cache_data(show_spinner=False, ttl=3600)
+# SEMENTARA CACHE DIMATIKAN DULU AGAR DEBUG SELALU MUNCUL
+# @st.cache_data(show_spinner=False, ttl=3600) 
 def ekstrak_inti_surat(teks_user: str) -> str | None:
     
-    # ─── INI INSTRUKSI SISTEM ANDA YANG SANGAT SPESIFIK ───
     instruksi_sistem = """
     Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah.
     Tugas Anda: menganalisis perihal surat dan mengekstrak "Inti Substansi"
@@ -629,8 +629,12 @@ def ekstrak_inti_surat(teks_user: str) -> str | None:
     - OUTPUT HANYA 1 BARIS: frasa dipisah koma, huruf kecil semua
     """
 
-    # ─── PANGGIL ASISTEN UNTUK MENGHEMAT KUOTA ───
+    # ─── TAHAP 1: ASISTEN PINTAR (THEFUZZ) ───
     contoh_relevan = ambil_contoh_relevan(teks_user)
+    
+    with st.expander("🛠️ DEBUG TAHAP 1: Asisten Pencari (thefuzz)"):
+        st.write("Apakah 12 contoh di bawah ini nyambung dengan input surat?")
+        st.code(contoh_relevan, language="text")
     
     prompt_user = f"""
     Pelajari BANK DATA pola pikir berikut, lalu kerjakan input di bawahnya
@@ -644,6 +648,7 @@ def ekstrak_inti_surat(teks_user: str) -> str | None:
     """
 
     try:
+        # ─── TAHAP 2: OUTPUT MENTAH LLM (GROQ 70B) ───
         chat_completion = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": instruksi_sistem},
@@ -656,7 +661,11 @@ def ekstrak_inti_surat(teks_user: str) -> str | None:
 
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
 
-        # PISAU BEDAH PYTHON
+        with st.expander("🛠️ DEBUG TAHAP 2: Output Mentah Groq 70B"):
+            st.write("Apakah Groq mematuhi aturan 1 baris, atau malah nulis novel?")
+            st.info(inti_teks_mentah)
+
+        # ─── TAHAP 3: PEMBERSIHAN ARTEFAK ───
         daftar_baris = [b.strip() for b in inti_teks_mentah.split('\n') if b.strip()]
 
         if not daftar_baris:
@@ -665,7 +674,6 @@ def ekstrak_inti_surat(teks_user: str) -> str | None:
 
         inti_teks_bersih = daftar_baris[-1]
 
-        # BERSHKAN ARTEFAK
         inti_teks_bersih = (
             inti_teks_bersih
             .replace('**', '')
@@ -675,19 +683,26 @@ def ekstrak_inti_surat(teks_user: str) -> str | None:
             .strip()
         )
 
+        with st.expander("🛠️ DEBUG TAHAP 3: Setelah Pembersihan Artefak"):
+            st.write("Hasil setelah bintang, tanda kutip, dan kata 'Output:' dibuang:")
+            st.warning(inti_teks_bersih)
+
         if not inti_teks_bersih:
             st.warning("⚠️ Hasil ekstraksi kosong setelah cleaning.")
             return None
             
-        # 🛡️ SAPU JAGAT DARI CLAUDE
+        # ─── TAHAP 4: SAPU JAGAT ───
         inti_teks_final = sapu_kata_kerja_bocor(inti_teks_bersih)
+
+        with st.expander("🛠️ DEBUG TAHAP 4: Hasil Final (Dikirim ke Mesin TF-IDF)"):
+            st.write("Ini adalah kata kunci yang dipakai untuk mencari Kode Arsip:")
+            st.success(inti_teks_final)
 
         return inti_teks_final if inti_teks_final.strip() else None
 
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
         return None
-
         
 # --- UI & CSS CUSTOM ---
 st.markdown("""
