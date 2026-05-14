@@ -1120,12 +1120,17 @@ def get_hierarchy(kode_target, df):
 def smart_classify(user_input, df, top_n=3):
     # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
     inti_dari_llm = ekstrak_inti_surat(user_input)
-    st.info(f"⚡ Diekstrak super cepat oleh **Gemini 2.5 Flash**: {inti_dari_llm}")
     
-    # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
+    # 🕵️ DETEKTIF 1: Tampilkan apa hasil otak Gemini!
+    st.error(f"DEBUG POS 1 (Hasil Gemini): {inti_dari_llm}")
+    
+    # 2. Lakukan pembersihan teks (Sastrawi & Kamus)
     clean_input = preprocess_text(inti_dari_llm)
     
-   # 3. TF-IDF & Fuzzy Matching (Tugasnya mengambil 10 Nominasi Terbaik)
+    # 🕵️ DETEKTIF 2: Tampilkan hasil setelah masuk Kamus!
+    st.error(f"DEBUG POS 2 (Hasil Kamus Sastrawi): {clean_input}")
+    
+    # 3. TF-IDF & Fuzzy Matching
     vectorizer = TfidfVectorizer(ngram_range=(1, 3)) 
     all_docs = df['clean_uraian'].tolist() + [clean_input]
     tfidf_matrix = vectorizer.fit_transform(all_docs)
@@ -1134,21 +1139,25 @@ def smart_classify(user_input, df, top_n=3):
     
     skor_awal = []
     for idx, score in enumerate(cosine_sim):
-        # GANTI partial_ratio MENJADI token_set_ratio
         fuzzy_score = fuzz.token_set_ratio(clean_input, df.iloc[idx]['clean_uraian']) / 100
-        
-        # --- TAMBAHAN: DEPTH BONUS (BOBOT KEDALAMAN) ---
         kode_item = str(df.iloc[idx]['kode'])
         jumlah_titik = kode_item.count('.')
         depth_bonus = jumlah_titik * 0.05 
         
-        # Ubah porsi bobotnya: Berikan kekuatan lebih besar pada TF-IDF (Score)
-        combined_score = (score * 0.70) + (fuzzy_score * 0.30) + depth_bonus 
-        
+        generic_penalty = 0.0
+        if kode_item.endswith('00') or kode_item.endswith('0'):
+            generic_penalty = -0.05
+            
+        combined_score = (score * 0.70) + (fuzzy_score * 0.30) + depth_bonus + generic_penalty 
         skor_awal.append({'idx': idx, 'skor': combined_score})
         
-    # Ambil 10 besar nominasi untuk dinilai ulang oleh AI
     top_10_kandidat = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:10]
+    
+    # 🕵️ DETEKTIF 3: Intip 3 Nominasi Teratas dari TF-IDF!
+    debug_tfidf = " | ".join([df.iloc[item['idx']]['kode'] for item in top_10_kandidat[:3]])
+    st.error(f"DEBUG POS 3 (Nominasi TF-IDF): {debug_tfidf}")
+    
+    # --- (Lanjut ke FASE JURI AI LLAMA-3 seperti biasa) ---
     
  # 4. FASE JURI AI (Llama-3 memilih 3 terbaik dari 10 nominasi matematis)
     daftar_kandidat = ""
