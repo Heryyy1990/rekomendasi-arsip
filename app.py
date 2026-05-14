@@ -388,20 +388,21 @@ def ekstrak_inti_surat(teks_user):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
-            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
+            model="llama-3.3-70b-versatile", # Profesor 70B (Anti Ngarang)
+            temperature=0.0, 
         )
-       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
+        
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
         
-        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
-        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
+        # KEMBALI PAKAI [-1] SEPERTI KODE ASLI ANDA! (Pisau bedah paling akurat)
         daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
         inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
         
-        # Membersihkan tanda kutip
-        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
+        # Bersihkan sisa-sisa kotoran teks
+        inti_teks_bersih = inti_teks_bersih.replace('Output:', '').replace('"', '').replace("'", "").strip()
+        
         return inti_teks_bersih
+        
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
         return teks_user
