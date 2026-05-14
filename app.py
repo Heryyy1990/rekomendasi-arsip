@@ -299,21 +299,300 @@ def sapu_kata_kerja_bocor(teks: str) -> str:
         
     return teks
 
-# 2. Fungsi "Otak Ekstraktor"
+from thefuzz import process
+
+# ====================================================
+# BANK DATA ANDA (Sudah dikonversi otomatis ke format pintar)
+# ====================================================
+BANK_CONTOH = [
+    # [PENDIDIKAN]
+    ("Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas", "bantuan operasional sekolah, bos, akreditasi puskesmas"),
+    ("Penetapan kuota dan formasi penerimaan peserta didik baru (PPDB) jenjang SD dan SMP", "penerimaan peserta didik baru, ppdb"),
+    ("Pengajuan tunjangan profesi guru (TPG) dan tunjangan khusus guru daerah terpencil", "tunjangan profesi guru, tunjangan khusus guru"),
+    ("Verifikasi dan validasi data pokok pendidikan (Dapodik) satuan pendidikan negeri", "data pokok pendidikan, dapodik, satuan pendidikan"),
+    ("Penetapan standar pelayanan minimal (SPM) bidang pendidikan dasar dan menengah", "standar pelayanan minimal, pendidikan dasar menengah"),
+    ("Pengembangan kurikulum muatan lokal dan program kegiatan ekstrakurikuler", "kurikulum muatan lokal, ekstrakurikuler"),
+    ("Penyaluran beasiswa bagi siswa kurang mampu dan berprestasi tingkat kabupaten", "beasiswa siswa, kurang mampu berprestasi"),
+    ("Pembangunan ruang kelas baru (RKB) dan pengadaan meubelair sekolah dasar", "pembangunan ruang kelas, pengadaan meubelair sekolah"),
+    # [KESEHATAN]
+    ("Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)", "jaminan kesehatan nasional, national health account"),
+    ("Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas", "pembangunan gedung, rehab bangunan"),
+    ("Penyelenggaraan imunisasi dasar lengkap dan surveilans penyakit menular", "imunisasi dasar lengkap, surveilans penyakit menular"),
+    ("Penanganan kasus gizi buruk dan stunting balita di wilayah terpencil", "gizi buruk, stunting balita"),
+    ("Pengawasan peredaran obat tradisional dan kosmetik ilegal di pasar daerah", "pengawasan obat tradisional, kosmetik ilegal"),
+    ("Akreditasi fasilitas kesehatan tingkat pertama (FKTP) dan rumah sakit daerah", "akreditasi fasilitas kesehatan, fktp, rumah sakit daerah"),
+    ("Pelaksanaan program keluarga berencana (KB) dan kesehatan reproduksi remaja", "keluarga berencana, kesehatan reproduksi remaja"),
+    ("Pengadaan alat kesehatan dan obat-obatan untuk puskesmas pembantu (pustu)", "pengadaan alat kesehatan, obat obatan, puskesmas pembantu"),
+    ("Penanggulangan kejadian luar biasa (KLB) demam berdarah dengue dan malaria", "kejadian luar biasa, demam berdarah dengue, malaria"),
+    ("Rekrutmen dan penempatan tenaga kesehatan di daerah terpencil dan kepulauan", "tenaga kesehatan, daerah terpencil kepulauan"),
+    # [PEKERJAAN UMUM & PENATAAN RUANG]
+    ("Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa", "pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa"),
+    ("Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)", "rencana detail tata ruang, rencana tata bangunan dan lingkungan"),
+    ("Persetujuan penataan bangunan dan pengelolaan gedung rumah negara", "penataan bangunan, pengelolaan rumah negara"),
+    ("Penanganan jalan rusak berat dan pembangunan jembatan penghubung desa terisolir", "penanganan jalan rusak, pembangunan jembatan desa"),
+    ("Pengelolaan sistem penyediaan air minum (SPAM) regional dan jaringan perpipaan", "sistem penyediaan air minum, spam, jaringan perpipaan"),
+    ("Penertiban bangunan tanpa izin mendirikan bangunan (IMB) di kawasan strategis", "penertiban bangunan, izin mendirikan bangunan, imb"),
+    ("Pengelolaan drainase perkotaan dan penanggulangan genangan banjir permukiman", "drainase perkotaan, penanggulangan banjir permukiman"),
+    ("Revisi Rencana Tata Ruang Wilayah (RTRW) dan penetapan kawasan lindung daerah", "rencana tata ruang wilayah, rtrw, kawasan lindung"),
+    # [PERUMAHAN RAKYAT & KAWASAN PERMUKIMAN]
+    ("Penyediaan rumah susun sederhana sewa (rusunawa) bagi masyarakat berpenghasilan rendah", "rumah susun sederhana sewa, rusunawa, masyarakat berpenghasilan rendah"),
+    ("Verifikasi dan penetapan penerima bantuan stimulan perumahan swadaya (BSPS)", "bantuan stimulan perumahan swadaya, bsps"),
+    ("Penataan kawasan kumuh perkotaan dan peningkatan kualitas permukiman nelayan", "penataan kawasan kumuh, permukiman nelayan"),
+    ("Penanganan rumah tidak layak huni (RTLH) dan penyediaan sanitasi berbasis masyarakat", "rumah tidak layak huni, rtlh, sanitasi berbasis masyarakat"),
+    ("Penetapan lokasi perumahan dan permukiman serta prasarana kawasan transmigrasi lokal", "lokasi perumahan permukiman, kawasan transmigrasi"),
+    # [KETENTERAMAN, KETERTIBAN UMUM & PERLINDUNGAN MASYARAKAT]
+    ("Penertiban pedagang kaki lima (PKL) dan penegakan peraturan daerah di kawasan terlarang", "penertiban pedagang kaki lima, penegakan peraturan daerah"),
+    ("Penyelenggaraan pelatihan bela negara dan kesiapsiagaan satuan perlindungan masyarakat", "pelatihan bela negara, kesiapsiagaan perlindungan masyarakat"),
+    ("Penanganan gangguan ketertiban umum akibat konflik sosial antarkelompok warga", "gangguan ketertiban umum, konflik sosial"),
+    ("Pengamanan aset daerah dan penertiban penghuni liar bangunan milik pemerintah", "pengamanan aset daerah, penertiban penghuni liar bangunan"),
+    ("Peningkatan kapasitas Satuan Polisi Pamong Praja (Satpol PP) dan Pemadam Kebakaran", "kapasitas satuan polisi pamong praja, pemadam kebakaran"),
+    # [SOSIAL]
+    ("Verifikasi dan validasi data terpadu kesejahteraan sosial (DTKS) fakir miskin", "data terpadu kesejahteraan sosial, dtks, fakir miskin"),
+    ("Penyaluran bantuan sosial tunai (BST) dan program keluarga harapan (PKH)", "bantuan sosial tunai, bst, program keluarga harapan, pkh"),
+    ("Penyelenggaraan panti sosial dan rehabilitasi sosial gelandangan dan pengemis", "rehabilitasi sosial, gelandangan pengemis"),
+    ("Penanganan penyandang disabilitas dan lanjut usia terlantar melalui program asistensi", "penyandang disabilitas, lanjut usia terlantar, asistensi sosial"),
+    ("Penanggulangan kemiskinan dan pemberdayaan fakir miskin melalui kelompok usaha bersama", "penanggulangan kemiskinan, kelompok usaha bersama"),
+    ("Rekomendasi pengumpulan sumbangan sosial dan undian gratis berhadiah", "pengumpulan sumbangan sosial, undian gratis berhadiah"),
+    # [KETENAGAKERJAAN]
+    ("Penyelenggaraan pelatihan berbasis kompetensi di balai latihan kerja (BLK) daerah", "pelatihan berbasis kompetensi, balai latihan kerja"),
+    ("Penetapan upah minimum kabupaten/kota (UMK) dan upah minimum sektoral", "upah minimum kabupaten, umk, upah minimum sektoral"),
+    ("Penanganan perselisihan hubungan industrial dan mediasi pemutusan hubungan kerja", "perselisihan hubungan industrial, mediasi pemutusan hubungan kerja"),
+    ("Pengawasan pelaksanaan norma kerja dan keselamatan kesehatan kerja (K3)", "norma kerja, keselamatan kesehatan kerja, k3"),
+    ("Penempatan tenaga kerja lokal dan penerbitan izin penggunaan tenaga kerja asing (TKA)", "penempatan tenaga kerja, izin tenaga kerja asing, tka"),
+    ("Penyusunan data dan informasi pasar kerja serta bursa kerja online daerah", "informasi pasar kerja, bursa kerja online"),
+    ("Pembinaan lembaga pelatihan kerja swasta dan sertifikasi kompetensi kerja nasional", "lembaga pelatihan kerja, sertifikasi kompetensi kerja"),
+    ("Pelaksanaan program magang dalam negeri bagi pencari kerja pemuda", "program magang dalam negeri, pencari kerja pemuda"),
+    # [PEMBERDAYAAN PEREMPUAN & PERLINDUNGAN ANAK]
+    ("Penanganan kasus kekerasan dalam rumah tangga (KDRT) dan perlindungan perempuan", "kekerasan dalam rumah tangga, kdrt, perlindungan perempuan"),
+    ("Penyelenggaraan layanan terpadu perlindungan perempuan dan anak (P2A)", "layanan terpadu perlindungan perempuan, perlindungan anak"),
+    ("Pemberdayaan ekonomi perempuan kepala keluarga melalui usaha mikro kecil", "pemberdayaan ekonomi perempuan, usaha mikro kecil"),
+    ("Pencegahan pernikahan dini dan penanganan anak putus sekolah", "pencegahan pernikahan dini, anak putus sekolah"),
+    ("Pemenuhan hak anak dan penilaian kabupaten/kota layak anak (KLA)", "hak anak, kabupaten kota layak anak, kla"),
+    ("Penanganan anak berhadapan dengan hukum (ABH) dan anak terlantar", "anak berhadapan hukum, abh, anak terlantar"),
+    # [PANGAN]
+    ("Penyelenggaraan cadangan pangan pemerintah daerah dan lumbung pangan masyarakat", "cadangan pangan pemerintah daerah, lumbung pangan masyarakat"),
+    ("Pemantauan harga dan pasokan komoditas pangan strategis di tingkat konsumen", "harga pasokan komoditas pangan strategis"),
+    ("Penanganan kerawanan pangan dan penyaluran bantuan pangan non tunai (BPNT)", "kerawanan pangan, bantuan pangan non tunai, bpnt"),
+    ("Pengawasan keamanan pangan segar asal tumbuhan dan hewan di pasar tradisional", "keamanan pangan segar, tumbuhan hewan, pasar tradisional"),
+    ("Penguatan ketahanan pangan daerah melalui diversifikasi konsumsi pangan lokal", "ketahanan pangan, diversifikasi konsumsi pangan lokal"),
+    # [PERTANAHAN]
+    ("Fasilitasi penetapan dan penyelesaian sengketa tanah garapan dan tanah ulayat", "sengketa tanah garapan, tanah ulayat"),
+    ("Inventarisasi dan penatagunaan tanah untuk kepentingan umum dan proyek strategis", "penatagunaan tanah, kepentingan umum, proyek strategis"),
+    ("Penertiban penguasaan, pemilikan, penggunaan dan pemanfaatan tanah (P4T)", "penguasaan pemilikan penggunaan tanah, p4t"),
+    ("Pengadaan tanah bagi pembangunan jalan tol dan infrastruktur publik daerah", "pengadaan tanah, pembangunan infrastruktur publik"),
+    ("Redistribusi tanah objek landreform dan pensertifikatan tanah transmigrasi", "redistribusi tanah objek landreform, pensertifikatan tanah transmigrasi"),
+    # [LINGKUNGAN HIDUP]
+    ("Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL", "analisis mengenai dampak lingkungan, amdal, ukl upl"),
+    ("Penerbitan izin pembuangan air limbah dan izin penyimpanan sementara limbah B3", "izin pembuangan air limbah, izin penyimpanan limbah b3"),
+    ("Pemantauan kualitas udara ambien dan pengendalian pencemaran udara industri", "kualitas udara ambien, pencemaran udara industri"),
+    ("Penilaian proper dan penghargaan lingkungan hidup perusahaan di daerah", "penilaian proper, penghargaan lingkungan hidup"),
+    ("Pengelolaan tempat pemrosesan akhir (TPA) sampah dan fasilitas daur ulang", "tempat pemrosesan akhir, tpa sampah, daur ulang"),
+    ("Rehabilitasi mangrove dan terumbu karang di kawasan pesisir terdampak abrasi", "rehabilitasi mangrove, terumbu karang, kawasan pesisir"),
+    # [ADMINISTRASI KEPENDUDUKAN & CATATAN SIPIL]
+    ("Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil", "sistem informasi administrasi kependudukan, pencatatan sipil"),
+    ("Percepatan perekaman KTP elektronik (KTP-el) dan penerbitan kartu identitas anak (KIA)", "perekaman ktp elektronik, kartu identitas anak, kia"),
+    ("Penerbitan akta kelahiran, akta kematian, dan akta perkawinan bagi penduduk rentan", "akta kelahiran, akta kematian, akta perkawinan"),
+    ("Pembersihan data ganda dan data anomali dalam database kependudukan daerah", "data ganda, data anomali, database kependudukan"),
+    ("Sosialisasi pemutakhiran data mandiri penduduk melalui aplikasi layanan adminduk", "pemutakhiran data penduduk, layanan administrasi kependudukan"),
+    # [PEMBERDAYAAN MASYARAKAT & DESA]
+    ("Penyaluran dana desa dan alokasi dana desa (ADD) tahap pertama tahun anggaran berjalan", "dana desa, alokasi dana desa, add"),
+    ("Pembinaan dan pengawasan pengelolaan keuangan badan usaha milik desa (BUMDes)", "pengelolaan keuangan, badan usaha milik desa, bumdes"),
+    ("Fasilitasi musyawarah desa (musdes) penetapan rencana pembangunan jangka menengah desa", "musyawarah desa, rencana pembangunan jangka menengah desa, rpjmdes"),
+    ("Verifikasi laporan pertanggungjawaban (LPJ) penggunaan dana desa oleh pemerintah desa", "laporan pertanggungjawaban, penggunaan dana desa"),
+    ("Pembentukan dan pembinaan kader pemberdayaan masyarakat desa (KPMD)", "kader pemberdayaan masyarakat desa, kpmd"),
+    ("Pengembangan kawasan perdesaan dan pembangunan desa mandiri melalui program unggulan", "kawasan perdesaan, desa mandiri"),
+    # [PENGENDALIAN PENDUDUK & KB]
+    ("Distribusi alokon (alat kontrasepsi) dan obat-obatan KB ke fasilitas kesehatan", "distribusi alat kontrasepsi, alokon, obat kb"),
+    ("Peningkatan kapasitas penyuluh keluarga berencana (PKB) dan kader posyandu", "penyuluh keluarga berencana, pkb, kader posyandu"),
+    ("Penyelenggaraan kampung keluarga berkualitas dan program genre remaja", "kampung keluarga berkualitas, program genre remaja"),
+    ("Pendataan keluarga dan pemutakhiran basis data keluarga Indonesia (BDKI)", "pendataan keluarga, basis data keluarga indonesia, bdki"),
+    # [PERHUBUNGAN]
+    ("Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal", "sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal"),
+    ("Penetapan tarif angkutan umum dalam trayek perkotaan dan perdesaan", "tarif angkutan umum, trayek perkotaan perdesaan"),
+    ("Pengujian berkala kendaraan bermotor (KIR) dan penertiban kendaraan over dimensi", "pengujian berkala kendaraan bermotor, kir, kendaraan over dimensi"),
+    ("Penetapan lokasi terminal tipe C dan pembangunan halte bus rapid transit (BRT)", "terminal tipe c, halte bus rapid transit, brt"),
+    ("Pengawasan keselamatan pelayaran di alur sungai dan pengelolaan pelabuhan sungai", "keselamatan pelayaran, alur sungai, pelabuhan sungai"),
+    ("Penerbitan izin trayek angkutan kota dan perpanjangan kartu pengawasan kendaraan", "izin trayek angkutan kota, kartu pengawasan kendaraan"),
+    # [KOMUNIKASI & INFORMATIKA]
+    ("Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government", "sertifikasi elektronik, e government"),
+    ("Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi", "jaringan telekomunikasi, keamanan informasi"),
+    ("Pengelolaan sistem penghubung layanan pemerintah (SPLP) dan interoperabilitas data", "sistem penghubung layanan pemerintah, splp, interoperabilitas data"),
+    ("Pengembangan aplikasi SPBE dan audit keamanan sistem informasi pemerintah daerah", "aplikasi spbe, audit keamanan sistem informasi"),
+    ("Diseminasi informasi publik melalui media center dan media sosial resmi pemerintah", "diseminasi informasi publik, media center"),
+    ("Pengelolaan nama domain subdomain pemerintah daerah dan hosting website OPD", "nama domain subdomain, hosting website opd"),
+    ("Pembangunan infrastruktur jaringan fiber optik pemerintah daerah dan wi-fi publik", "infrastruktur jaringan fiber optik, wi fi publik"),
+    # [KOPERASI, USAHA KECIL & MENENGAH]
+    ("Penerbitan izin usaha simpan pinjam (USP) koperasi primer dan pembubaran koperasi", "izin usaha simpan pinjam, koperasi primer"),
+    ("Pembinaan dan pemeringkatan koperasi aktif dan koperasi berprestasi tingkat kabupaten", "pemeringkatan koperasi aktif, koperasi berprestasi"),
+    ("Fasilitasi akses pembiayaan KUR (kredit usaha rakyat) bagi pelaku UMKM daerah", "kredit usaha rakyat, kur, pembiayaan umkm"),
+    ("Penyelenggaraan pelatihan kewirausahaan dan pendampingan usaha mikro naik kelas", "pelatihan kewirausahaan, pendampingan usaha mikro"),
+    ("Pengembangan sentra UMKM dan klaster produk unggulan daerah berbasis potensi lokal", "sentra umkm, klaster produk unggulan daerah"),
+    ("Penerbitan nomor induk berusaha (NIB) dan sertifikat halal produk usaha mikro", "nomor induk berusaha, nib, sertifikat halal produk usaha mikro"),
+    ("Revitalisasi koperasi unit desa (KUD) dan penguatan modal usaha kelompok tani", "koperasi unit desa, kud, modal usaha kelompok tani"),
+    # [PENANAMAN MODAL]
+    ("Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing", "pencabutan pembatalan perizinan penanaman modal"),
+    ("Penyelenggaraan promosi investasi daerah dan forum temu investor dalam negeri", "promosi investasi daerah, forum temu investor"),
+    ("Penerbitan izin prinsip penanaman modal dalam negeri (PMDN) sektor pariwisata", "izin prinsip penanaman modal dalam negeri, pmdn"),
+    ("Pemantauan dan pengawasan kepatuhan pelaksanaan kegiatan usaha penanaman modal", "kepatuhan pelaksanaan kegiatan usaha, penanaman modal"),
+    ("Penyusunan peta potensi investasi daerah dan profil peluang usaha unggulan", "peta potensi investasi, peluang usaha unggulan"),
+    ("Pengelolaan sistem pelayanan perizinan berusaha terintegrasi secara elektronik (OSS)", "perizinan berusaha terintegrasi, oss, elektronik"),
+    # [KEPEMUDAAN & OLAHRAGA]
+    ("Pembinaan organisasi kepemudaan dan seleksi peserta pertukaran pemuda antar negara", "organisasi kepemudaan, pertukaran pemuda antar negara"),
+    ("Penyelenggaraan pekan olahraga daerah (PORDA) dan pekan olahraga pelajar daerah", "pekan olahraga daerah, porda, pekan olahraga pelajar"),
+    ("Pembangunan dan rehabilitasi sarana prasarana olahraga stadion dan GOR daerah", "rehabilitasi sarana prasarana olahraga, stadion gor"),
+    ("Pemberian penghargaan prestasi olahraga dan bantuan atlet berprestasi internasional", "penghargaan prestasi olahraga, bantuan atlet berprestasi"),
+    ("Pengembangan sentra pembinaan olahraga prestasi dan pusat pendidikan latihan pelajar", "sentra pembinaan olahraga prestasi, pusat pendidikan latihan pelajar"),
+    ("Fasilitasi kegiatan kepramukaan dan pembinaan komunitas pemuda kreatif daerah", "kegiatan kepramukaan, komunitas pemuda kreatif"),
+    # [STATISTIK]
+    ("Penyusunan profil daerah dan publikasi daerah dalam angka kabupaten tahun berjalan", "profil daerah, daerah dalam angka"),
+    ("Pengelolaan dan pemutakhiran data statistik sektoral OPD melalui portal satu data", "data statistik sektoral, portal satu data"),
+    ("Koordinasi penyelenggaraan sensus penduduk dan survei sosial ekonomi nasional", "sensus penduduk, survei sosial ekonomi nasional"),
+    ("Penyusunan indeks pembangunan manusia (IPM) dan indeks kesenjangan kemiskinan daerah", "indeks pembangunan manusia, ipm, indeks kesenjangan kemiskinan"),
+    # [PERSANDIAN & KEAMANAN INFORMASI]
+    ("Pengelolaan sertifikat digital dan infrastruktur kunci publik (IKP) pemerintah daerah", "sertifikat digital, infrastruktur kunci publik, ikp"),
+    ("Pengamanan komunikasi sandi antar instansi pemerintah dan klasifikasi informasi rahasia", "komunikasi sandi antar instansi, informasi rahasia"),
+    ("Audit keamanan informasi dan penanganan insiden siber pada sistem pemerintah daerah", "audit keamanan informasi, insiden siber"),
+    # [KEBUDAYAAN]
+    ("Penetapan warisan budaya tak benda (WBTB) dan cagar budaya peringkat kabupaten", "warisan budaya tak benda, wbtb, cagar budaya"),
+    ("Penyelenggaraan festival kesenian daerah dan pagelaran seni pertunjukan tradisional", "festival kesenian daerah, seni pertunjukan tradisional"),
+    ("Pembinaan sanggar seni budaya dan pelestarian bahasa daerah yang terancam punah", "sanggar seni budaya, pelestarian bahasa daerah"),
+    ("Pendataan dan registrasi cagar budaya serta penerbitan izin membawa benda cagar budaya", "registrasi cagar budaya, izin benda cagar budaya"),
+    ("Revitalisasi museum daerah dan pengelolaan koleksi benda bersejarah peninggalan lokal", "revitalisasi museum daerah, koleksi benda bersejarah"),
+    # [PERPUSTAKAAN]
+    ("Penyelenggaraan pameran perpustakaan keliling dan donasi buku", "perpustakaan keliling, donasi buku"),
+    ("Pengembangan koleksi bahan pustaka dan layanan perpustakaan digital daerah", "koleksi bahan pustaka, perpustakaan digital daerah"),
+    ("Akreditasi perpustakaan desa/kelurahan dan perpustakaan sekolah tingkat dasar", "akreditasi perpustakaan desa, perpustakaan sekolah"),
+    ("Peningkatan minat baca masyarakat melalui gerakan literasi dan taman baca masyarakat", "minat baca masyarakat, gerakan literasi, taman baca"),
+    ("Pengelolaan deposit karya cetak dan karya rekam daerah sebagai koleksi wajib simpan", "deposit karya cetak karya rekam, koleksi wajib simpan"),
+    # [KEARSIPAN]
+    ("Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif", "jadwal retensi arsip, pemusnahan arsip inaktif"),
+    ("Penyelamatan arsip statis bernilai sejarah dan alih media arsip konvensional", "arsip statis bernilai sejarah, alih media arsip"),
+    ("Akreditasi lembaga kearsipan daerah dan sertifikasi kompetensi pengelola arsip", "akreditasi lembaga kearsipan, sertifikasi kompetensi arsiparis"),
+    ("Penerapan sistem informasi kearsipan daerah (SIKD) dan pengelolaan arsip elektronik", "sistem informasi kearsipan daerah, sikd, arsip elektronik"),
+    ("Penyerahan arsip statis dari OPD kepada lembaga kearsipan daerah kabupaten", "penyerahan arsip statis, lembaga kearsipan daerah"),
+    # [KELAUTAN & PERIKANAN]
+    ("Penerbitan izin usaha perikanan tangkap di bawah 12 mil dan izin budidaya ikan", "izin usaha perikanan tangkap, izin budidaya ikan"),
+    ("Pengawasan sumber daya kelautan dan penanganan illegal fishing di perairan daerah", "sumber daya kelautan, illegal fishing, perairan daerah"),
+    ("Pengembangan kawasan budidaya ikan air tawar dan pembinaan kelompok pembudidaya ikan", "budidaya ikan air tawar, kelompok pembudidaya ikan"),
+    ("Pengelolaan tempat pelelangan ikan (TPI) dan pembinaan nelayan kecil pesisir", "tempat pelelangan ikan, tpi, nelayan kecil pesisir"),
+    ("Pembangunan cold storage dan sarana penanganan ikan segar di sentra perikanan", "cold storage, sarana penanganan ikan, sentra perikanan"),
+    ("Rehabilitasi terumbu karang dan ekosistem padang lamun di kawasan konservasi laut", "rehabilitasi terumbu karang, ekosistem padang lamun, konservasi laut"),
+    # [PARIWISATA]
+    ("Penyusunan rencana induk pembangunan kepariwisataan daerah (RIPPAR) kabupaten", "rencana induk kepariwisataan daerah, rippar"),
+    ("Pengembangan desa wisata dan pemberdayaan masyarakat sadar wisata (pokdarwis)", "desa wisata, masyarakat sadar wisata, pokdarwis"),
+    ("Penerbitan tanda daftar usaha pariwisata (TDUP) hotel, restoran, dan agen perjalanan", "tanda daftar usaha pariwisata, tdup, hotel restoran agen perjalanan"),
+    ("Penyelenggaraan event pariwisata internasional dan promosi destinasi wisata unggulan", "event pariwisata internasional, promosi destinasi wisata"),
+    ("Peningkatan kapasitas pemandu wisata lokal dan sertifikasi usaha pariwisata", "pemandu wisata lokal, sertifikasi usaha pariwisata"),
+    ("Pengembangan infrastruktur kawasan wisata alam dan ekowisata pesisir", "infrastruktur kawasan wisata alam, ekowisata pesisir"),
+    ("Pengelolaan sistem informasi pariwisata daerah dan kalender event wisata tahunan", "sistem informasi pariwisata, kalender event wisata"),
+    # [PERTANIAN]
+    ("Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)", "organisme pengganggu tumbuhan, pengendalian hama terpadu"),
+    ("Penyaluran pupuk bersubsidi dan benih unggul bersertifikat kepada kelompok tani", "pupuk bersubsidi, benih unggul bersertifikat, kelompok tani"),
+    ("Pengembangan kawasan pertanian komoditas unggulan dan agribisnis hortikultura", "kawasan pertanian komoditas unggulan, agribisnis hortikultura"),
+    ("Penerbitan izin usaha pertanian dan rekomendasi impor komoditas pertanian strategis", "izin usaha pertanian, impor komoditas pertanian"),
+    ("Asuransi usaha tani padi (AUTP) dan asuransi usaha ternak sapi (AUTS)", "asuransi usaha tani padi, autp, asuransi usaha ternak sapi"),
+    ("Pembangunan jaringan irigasi tersier dan rehabilitasi embung pertanian desa", "jaringan irigasi tersier, rehabilitasi embung pertanian"),
+    ("Pengembangan mekanisasi pertanian dan pengadaan alsintan bagi kelompok tani", "mekanisasi pertanian, alsintan, kelompok tani"),
+    # [KEHUTANAN & PERKEBUNAN]
+    ("Penerbitan izin usaha pemanfaatan hasil hutan kayu pada hutan hak/hutan rakyat", "izin usaha pemanfaatan hasil hutan kayu, hutan rakyat"),
+    ("Rehabilitasi hutan dan lahan kritis melalui program penghijauan dan reklamasi", "rehabilitasi hutan lahan kritis, penghijauan reklamasi"),
+    ("Pengawasan peredaran hasil hutan dan penanganan kasus perambahan kawasan hutan", "peredaran hasil hutan, perambahan kawasan hutan"),
+    ("Pengembangan perkebunan kelapa sawit rakyat dan penerbitan sertifikat RSPO", "perkebunan kelapa sawit rakyat, sertifikat rspo"),
+    ("Pengendalian kebakaran hutan dan lahan (karhutla) serta pembentukan MPA desa", "kebakaran hutan lahan, karhutla, masyarakat peduli api"),
+    # [ENERGI & SUMBER DAYA MINERAL]
+    ("Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara", "sertifikat laik operasi, izin usaha pertambangan batubara"),
+    ("Pengelolaan air tanah dan penerbitan surat izin pengambilan air tanah (SIPA)", "pengelolaan air tanah, surat izin pengambilan air tanah, sipa"),
+    ("Pembangunan jaringan listrik pedesaan dan elektrifikasi daerah terpencil 3T", "jaringan listrik pedesaan, elektrifikasi daerah terpencil"),
+    ("Pengembangan energi baru terbarukan (EBT) dan pembangkit listrik tenaga surya", "energi baru terbarukan, ebt, pembangkit listrik tenaga surya"),
+    ("Pengawasan keselamatan pengusahaan tambang mineral bukan logam dan batuan", "keselamatan pengusahaan tambang, mineral bukan logam, batuan"),
+    # [PERDAGANGAN]
+    ("Penerbitan surat izin usaha perdagangan (SIUP) dan tanda daftar perusahaan (TDP)", "surat izin usaha perdagangan, siup, tanda daftar perusahaan"),
+    ("Pengawasan ketersediaan stok dan distribusi barang kebutuhan pokok di pasar", "stok distribusi barang kebutuhan pokok, pasar"),
+    ("Penyelenggaraan pasar lelang daerah dan pameran produk ekspor unggulan", "pasar lelang daerah, pameran produk ekspor"),
+    ("Penerbitan rekomendasi izin usaha pergudangan dan pengendalian distribusi pupuk", "izin usaha pergudangan, distribusi pupuk"),
+    ("Pembangunan dan revitalisasi pasar rakyat tradisional dan pasar seni daerah", "revitalisasi pasar rakyat tradisional, pasar seni"),
+    ("Perlindungan konsumen dan pengawasan barang beredar tidak memenuhi standar SNI", "perlindungan konsumen, barang beredar, standar sni"),
+    # [PERINDUSTRIAN]
+    ("Penyusunan rencana pembangunan industri kabupaten/kota (RPIK) sektor unggulan", "rencana pembangunan industri kabupaten, rpik"),
+    ("Penerbitan izin usaha industri (IUI) dan izin perluasan industri kecil menengah", "izin usaha industri, iui, industri kecil menengah"),
+    ("Pengembangan kawasan industri kecil menengah (KIKIM) dan sentra industri logam", "kawasan industri kecil menengah, kikim, sentra industri"),
+    ("Pembinaan industri kreatif berbasis kearifan lokal dan sertifikasi produk IKM", "industri kreatif kearifan lokal, sertifikasi produk ikm"),
+    ("Fasilitasi penerapan SNI wajib produk industri dan pengujian mutu di laboratorium", "penerapan sni wajib, pengujian mutu produk industri"),
+    # [TRANSMIGRASI]
+    ("Penempatan transmigran umum dan transmigran swakarsa mandiri ke kawasan transmigrasi", "penempatan transmigran umum, transmigrasi swakarsa mandiri"),
+    ("Pembangunan infrastruktur permukiman transmigrasi dan fasilitas umum kawasan SP", "infrastruktur permukiman transmigrasi, fasilitas umum satuan permukiman"),
+    ("Pembinaan masyarakat transmigran dan pengembangan usaha ekonomi di kawasan transmigrasi", "pembinaan masyarakat transmigran, usaha ekonomi kawasan transmigrasi"),
+    # [KEUANGAN, ANGGARAN & ASET]
+    ("Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA)", "rencana kerja anggaran, dpa"),
+    ("Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR", "pencairan dana, sp2d, sppr"),
+    ("Rekonsiliasi dan laporan barang milik daerah (BMD)", "rekonsiliasi barang milik daerah, aset daerah"),
+    ("Penetapan status penggunaan barang milik daerah", "status penggunaan barang milik daerah, aset"),
+    ("Pengelolaan kas daerah dan penempatan investasi jangka pendek pemerintah daerah", "pengelolaan kas daerah, investasi jangka pendek"),
+    ("Penyusunan laporan keuangan pemerintah daerah (LKPD) dan neraca aset", "laporan keuangan pemerintah daerah, lkpd, neraca aset"),
+    ("Penyelesaian tuntutan perbendaharaan dan tuntutan ganti rugi (TP-TGR) keuangan", "tuntutan perbendaharaan, tuntutan ganti rugi, tp tgr"),
+    ("Penganggaran hibah dan bantuan sosial dalam APBD serta pertanggungjawabannya", "hibah bantuan sosial, apbd, pertanggungjawaban"),
+    ("Pengelolaan utang dan piutang daerah serta penerbitan obligasi daerah", "utang piutang daerah, obligasi daerah"),
+    # [PENGAWASAN, KEPEGAWAIAN & HUKUM]
+    ("Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen BPK", "tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen"),
+    ("Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi", "laporan hasil audit investigasi, tindak pidana korupsi"),
+    ("Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli", "penetapan angka kredit, jabatan fungsional"),
+    ("Penyusunan formasi ASN dan usulan pengadaan CPNS serta PPPK daerah", "formasi asn, pengadaan cpns, pppk"),
+    ("Proses kenaikan pangkat reguler, pilihan, dan pengabdian PNS daerah", "kenaikan pangkat pns, pangkat reguler pilihan pengabdian"),
+    ("Penyelesaian kasus pelanggaran disiplin PNS dan penjatuhan hukuman disiplin", "pelanggaran disiplin pns, hukuman disiplin"),
+    ("Pemberhentian PNS atas permintaan sendiri dan pemberhentian tidak dengan hormat", "pemberhentian pns, pemberhentian tidak dengan hormat"),
+    ("Pelaksanaan seleksi terbuka jabatan pimpinan tinggi pratama dan madya", "seleksi terbuka jabatan pimpinan tinggi, pratama madya"),
+    ("Penyusunan produk hukum daerah raperda dan rancangan peraturan bupati/walikota", "produk hukum daerah, raperda, peraturan bupati"),
+    # [PEMILU, KESBANGPOL & KETERTIBAN]
+    ("Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4)", "daftar pemilih sementara, daftar penduduk potensial pemilih"),
+    ("Penanganan konflik sosial berbasis SARA dan deteksi dini potensi kerawanan daerah", "konflik sosial sara, deteksi dini kerawanan daerah"),
+    ("Pemantauan dan pembinaan organisasi kemasyarakatan (ormas) di daerah", "pembinaan organisasi kemasyarakatan, ormas"),
+    ("Fasilitasi pendidikan politik masyarakat dan peningkatan partisipasi pemilih", "pendidikan politik masyarakat, partisipasi pemilih"),
+    ("Penanganan paham radikalisme dan terorisme melalui forum kewaspadaan dini masyarakat", "paham radikalisme terorisme, forum kewaspadaan dini masyarakat"),
+    # [PERENCANAAN, LITBANG & INOVASI]
+    ("Penyusunan rencana pembangunan jangka menengah daerah (RPJMD) dan RKPD", "rencana pembangunan jangka menengah daerah, rpjmd, rkpd"),
+    ("Musyawarah perencanaan pembangunan (musrenbang) kabupaten dan provinsi", "musyawarah perencanaan pembangunan, musrenbang"),
+    ("Evaluasi capaian indikator kinerja utama (IKU) dan indikator kinerja program (IKP)", "capaian indikator kinerja utama, iku, indikator kinerja program"),
+    ("Penyelenggaraan riset inovasi daerah dan lomba inovasi pelayanan publik", "riset inovasi daerah, inovasi pelayanan publik"),
+    ("Penyusunan kajian kebijakan strategis dan naskah akademik rancangan perda", "kajian kebijakan strategis, naskah akademik rancangan perda"),
+    # [PEMERINTAHAN UMUM & KEPROTOKOLAN]
+    ("Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional", "perjalanan dinas"),
+    ("Penyelenggaraan upacara kedinasan hari besar nasional dan daerah", "upacara kedinasan, hari besar nasional daerah"),
+    ("Penyusunan laporan penyelenggaraan pemerintahan daerah (LPPD) tahunan", "laporan penyelenggaraan pemerintahan daerah, lppd"),
+    ("Pengelolaan pengaduan masyarakat dan tindak lanjut laporan SP4N-LAPOR", "pengaduan masyarakat, sp4n lapor"),
+    ("Penyelenggaraan penerimaan kunjungan tamu negara dan delegasi luar negeri", "kunjungan tamu negara, delegasi luar negeri"),
+    ("Koordinasi pelaksanaan tata upacara sipil dan protokol acara kenegaraan daerah", "tata upacara sipil, protokol kenegaraan daerah"),
+    # [BENCANA, SAR & PEMADAM KEBAKARAN]
+    ("Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang", "operasi pencarian pertolongan, sar, korban banjir"),
+    ("Penyusunan dokumen rencana penanggulangan bencana (RPB) dan rencana kontigensi", "rencana penanggulangan bencana, rpb, rencana kontigensi"),
+    ("Distribusi logistik dan peralatan kebencanaan ke daerah terdampak bencana alam", "logistik peralatan kebencanaan, daerah terdampak bencana"),
+    ("Pemulihan pascabencana dan relokasi korban bencana alam ke hunian tetap", "pemulihan pascabencana, relokasi korban bencana, hunian tetap"),
+    ("Penanganan kebakaran permukiman padat dan pemeriksaan instalasi proteksi kebakaran", "kebakaran permukiman, instalasi proteksi kebakaran")
+]
+
+# ====================================================
+# FUNGSI ASISTEN PINTAR (Memilih 12 Contoh)
+# ====================================================
+def ambil_contoh_relevan(teks_user: str, top_n: int = 12) -> str:
+    semua_input = [c[0] for c in BANK_CONTOH]
+    hasil = process.extract(teks_user, semua_input, limit=top_n)
+    
+    contoh_terpilih = ""
+    for teks_cocok, skor, idx in hasil:
+        contoh_terpilih += f'Input: "{BANK_CONTOH[idx][0]}"\nOutput: {BANK_CONTOH[idx][1]}\n'
+    return contoh_terpilih
+
+# ====================================================
+# 2. Fungsi "Otak Ekstraktor" (Lengkap dengan Instruksi Anda)
+# ====================================================
 @st.cache_data(show_spinner=False, ttl=3600)
 def ekstrak_inti_surat(teks_user: str) -> str | None:
- 
-    # ─── PERBAIKAN #1: Pisah system & user ────────────────────────
-    # Sebelumnya semua digabung di "user" saja.
-    # Memisahkan keduanya membuat model JAUH lebih patuh pada aturan
-    # karena instruksi sistem tidak bersaing perhatian dengan contoh data.
-    # ──────────────────────────────────────────────────────────────
- 
+    
+    # ─── INI INSTRUKSI SISTEM ANDA YANG SANGAT SPESIFIK ───
     instruksi_sistem = """
     Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah.
     Tugas Anda: menganalisis perihal surat dan mengekstrak "Inti Substansi"
     (maksimal 2-3 frasa nominal) untuk mesin pencari klasifikasi TF-IDF.
- 
+
     GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
     1. HAPUS KATA PENGANTAR: Buang kata basa-basi (penyampaian, permohonan,
        undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan,
@@ -334,7 +613,7 @@ def ekstrak_inti_surat(teks_user: str) -> str | None:
        - JIKA konteks OPERASIONAL/LAYANAN (Pembinaan perpustakaan, Akreditasi
          puskesmas, Dana BOS Sekolah): kata "Perpustakaan", "Puskesmas",
          "Sekolah" WAJIB DIPERTAHANKAN.
- 
+
     LARANGAN KERAS — PELANGGARAN INI MERUSAK SISTEM:
     - DILARANG menulis kata kerja dalam output (menghadiri, melaksanakan, dll)
     - DILARANG menyertakan nama orang, instansi, atau lokasi
@@ -343,602 +622,60 @@ def ekstrak_inti_surat(teks_user: str) -> str | None:
     - DILARANG menulis penjelasan, preamble, atau apapun sebelum/sesudah output
     - OUTPUT HANYA 1 BARIS: frasa dipisah koma, huruf kecil semua
     """
- 
-    prompt_contoh = """
+
+    # ─── PANGGIL ASISTEN UNTUK MENGHEMAT KUOTA ───
+    contoh_relevan = ambil_contoh_relevan(teks_user)
+    
+    prompt_user = f"""
     Pelajari BANK DATA pola pikir berikut, lalu kerjakan input di bawahnya
     dengan pola yang SAMA PERSIS:
- 
-    # ════════════════════════════════════════════════════════════
-# URUSAN WAJIB — PELAYANAN DASAR
-# ════════════════════════════════════════════════════════════
- 
-[PENDIDIKAN]
-Input: "Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas"
-Output: bantuan operasional sekolah, bos, akreditasi puskesmas
-Input: "Penetapan kuota dan formasi penerimaan peserta didik baru (PPDB) jenjang SD dan SMP"
-Output: penerimaan peserta didik baru, ppdb
-Input: "Pengajuan tunjangan profesi guru (TPG) dan tunjangan khusus guru daerah terpencil"
-Output: tunjangan profesi guru, tunjangan khusus guru
-Input: "Verifikasi dan validasi data pokok pendidikan (Dapodik) satuan pendidikan negeri"
-Output: data pokok pendidikan, dapodik, satuan pendidikan
-Input: "Penetapan standar pelayanan minimal (SPM) bidang pendidikan dasar dan menengah"
-Output: standar pelayanan minimal, pendidikan dasar menengah
-Input: "Pengembangan kurikulum muatan lokal dan program kegiatan ekstrakurikuler"
-Output: kurikulum muatan lokal, ekstrakurikuler
-Input: "Penyaluran beasiswa bagi siswa kurang mampu dan berprestasi tingkat kabupaten"
-Output: beasiswa siswa, kurang mampu berprestasi
-Input: "Pembangunan ruang kelas baru (RKB) dan pengadaan meubelair sekolah dasar"
-Output: pembangunan ruang kelas, pengadaan meubelair sekolah
- 
-[KESEHATAN]
-Input: "Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)"
-Output: jaminan kesehatan nasional, national health account
-Input: "Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas"
-Output: pembangunan gedung, rehab bangunan
-Input: "Penyelenggaraan imunisasi dasar lengkap dan surveilans penyakit menular"
-Output: imunisasi dasar lengkap, surveilans penyakit menular
-Input: "Penanganan kasus gizi buruk dan stunting balita di wilayah terpencil"
-Output: gizi buruk, stunting balita
-Input: "Pengawasan peredaran obat tradisional dan kosmetik ilegal di pasar daerah"
-Output: pengawasan obat tradisional, kosmetik ilegal
-Input: "Akreditasi fasilitas kesehatan tingkat pertama (FKTP) dan rumah sakit daerah"
-Output: akreditasi fasilitas kesehatan, fktp, rumah sakit daerah
-Input: "Pelaksanaan program keluarga berencana (KB) dan kesehatan reproduksi remaja"
-Output: keluarga berencana, kesehatan reproduksi remaja
-Input: "Pengadaan alat kesehatan dan obat-obatan untuk puskesmas pembantu (pustu)"
-Output: pengadaan alat kesehatan, obat obatan, puskesmas pembantu
-Input: "Penanggulangan kejadian luar biasa (KLB) demam berdarah dengue dan malaria"
-Output: kejadian luar biasa, demam berdarah dengue, malaria
-Input: "Rekrutmen dan penempatan tenaga kesehatan di daerah terpencil dan kepulauan"
-Output: tenaga kesehatan, daerah terpencil kepulauan
- 
-[PEKERJAAN UMUM & PENATAAN RUANG]
-Input: "Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa"
-Output: pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa
-Input: "Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)"
-Output: rencana detail tata ruang, rencana tata bangunan dan lingkungan
-Input: "Persetujuan penataan bangunan dan pengelolaan gedung rumah negara"
-Output: penataan bangunan, pengelolaan rumah negara
-Input: "Penanganan jalan rusak berat dan pembangunan jembatan penghubung desa terisolir"
-Output: penanganan jalan rusak, pembangunan jembatan desa
-Input: "Pengelolaan sistem penyediaan air minum (SPAM) regional dan jaringan perpipaan"
-Output: sistem penyediaan air minum, spam, jaringan perpipaan
-Input: "Penertiban bangunan tanpa izin mendirikan bangunan (IMB) di kawasan strategis"
-Output: penertiban bangunan, izin mendirikan bangunan, imb
-Input: "Pengelolaan drainase perkotaan dan penanggulangan genangan banjir permukiman"
-Output: drainase perkotaan, penanggulangan banjir permukiman
-Input: "Revisi Rencana Tata Ruang Wilayah (RTRW) dan penetapan kawasan lindung daerah"
-Output: rencana tata ruang wilayah, rtrw, kawasan lindung
- 
-[PERUMAHAN RAKYAT & KAWASAN PERMUKIMAN]
-Input: "Penyediaan rumah susun sederhana sewa (rusunawa) bagi masyarakat berpenghasilan rendah"
-Output: rumah susun sederhana sewa, rusunawa, masyarakat berpenghasilan rendah
-Input: "Verifikasi dan penetapan penerima bantuan stimulan perumahan swadaya (BSPS)"
-Output: bantuan stimulan perumahan swadaya, bsps
-Input: "Penataan kawasan kumuh perkotaan dan peningkatan kualitas permukiman nelayan"
-Output: penataan kawasan kumuh, permukiman nelayan
-Input: "Penanganan rumah tidak layak huni (RTLH) dan penyediaan sanitasi berbasis masyarakat"
-Output: rumah tidak layak huni, rtlh, sanitasi berbasis masyarakat
-Input: "Penetapan lokasi perumahan dan permukiman serta prasarana kawasan transmigrasi lokal"
-Output: lokasi perumahan permukiman, kawasan transmigrasi
- 
-[KETENTERAMAN, KETERTIBAN UMUM & PERLINDUNGAN MASYARAKAT]
-Input: "Penertiban pedagang kaki lima (PKL) dan penegakan peraturan daerah di kawasan terlarang"
-Output: penertiban pedagang kaki lima, penegakan peraturan daerah
-Input: "Penyelenggaraan pelatihan bela negara dan kesiapsiagaan satuan perlindungan masyarakat"
-Output: pelatihan bela negara, kesiapsiagaan perlindungan masyarakat
-Input: "Penanganan gangguan ketertiban umum akibat konflik sosial antarkelompok warga"
-Output: gangguan ketertiban umum, konflik sosial
-Input: "Pengamanan aset daerah dan penertiban penghuni liar bangunan milik pemerintah"
-Output: pengamanan aset daerah, penertiban penghuni liar bangunan
-Input: "Peningkatan kapasitas Satuan Polisi Pamong Praja (Satpol PP) dan Pemadam Kebakaran"
-Output: kapasitas satuan polisi pamong praja, pemadam kebakaran
- 
-[SOSIAL]
-Input: "Verifikasi dan validasi data terpadu kesejahteraan sosial (DTKS) fakir miskin"
-Output: data terpadu kesejahteraan sosial, dtks, fakir miskin
-Input: "Penyaluran bantuan sosial tunai (BST) dan program keluarga harapan (PKH)"
-Output: bantuan sosial tunai, bst, program keluarga harapan, pkh
-Input: "Penyelenggaraan panti sosial dan rehabilitasi sosial gelandangan dan pengemis"
-Output: rehabilitasi sosial, gelandangan pengemis
-Input: "Penanganan penyandang disabilitas dan lanjut usia terlantar melalui program asistensi"
-Output: penyandang disabilitas, lanjut usia terlantar, asistensi sosial
-Input: "Penanggulangan kemiskinan dan pemberdayaan fakir miskin melalui kelompok usaha bersama"
-Output: penanggulangan kemiskinan, kelompok usaha bersama
-Input: "Rekomendasi pengumpulan sumbangan sosial dan undian gratis berhadiah"
-Output: pengumpulan sumbangan sosial, undian gratis berhadiah
- 
-# ════════════════════════════════════════════════════════════
-# URUSAN WAJIB — NON PELAYANAN DASAR
-# ════════════════════════════════════════════════════════════
- 
-[KETENAGAKERJAAN]
-Input: "Penyelenggaraan pelatihan berbasis kompetensi di balai latihan kerja (BLK) daerah"
-Output: pelatihan berbasis kompetensi, balai latihan kerja
-Input: "Penetapan upah minimum kabupaten/kota (UMK) dan upah minimum sektoral"
-Output: upah minimum kabupaten, umk, upah minimum sektoral
-Input: "Penanganan perselisihan hubungan industrial dan mediasi pemutusan hubungan kerja"
-Output: perselisihan hubungan industrial, mediasi pemutusan hubungan kerja
-Input: "Pengawasan pelaksanaan norma kerja dan keselamatan kesehatan kerja (K3)"
-Output: norma kerja, keselamatan kesehatan kerja, k3
-Input: "Penempatan tenaga kerja lokal dan penerbitan izin penggunaan tenaga kerja asing (TKA)"
-Output: penempatan tenaga kerja, izin tenaga kerja asing, tka
-Input: "Penyusunan data dan informasi pasar kerja serta bursa kerja online daerah"
-Output: informasi pasar kerja, bursa kerja online
-Input: "Pembinaan lembaga pelatihan kerja swasta dan sertifikasi kompetensi kerja nasional"
-Output: lembaga pelatihan kerja, sertifikasi kompetensi kerja
-Input: "Pelaksanaan program magang dalam negeri bagi pencari kerja pemuda"
-Output: program magang dalam negeri, pencari kerja pemuda
- 
-[PEMBERDAYAAN PEREMPUAN & PERLINDUNGAN ANAK]
-Input: "Penanganan kasus kekerasan dalam rumah tangga (KDRT) dan perlindungan perempuan"
-Output: kekerasan dalam rumah tangga, kdrt, perlindungan perempuan
-Input: "Penyelenggaraan layanan terpadu perlindungan perempuan dan anak (P2A)"
-Output: layanan terpadu perlindungan perempuan, perlindungan anak
-Input: "Pemberdayaan ekonomi perempuan kepala keluarga melalui usaha mikro kecil"
-Output: pemberdayaan ekonomi perempuan, usaha mikro kecil
-Input: "Pencegahan pernikahan dini dan penanganan anak putus sekolah"
-Output: pencegahan pernikahan dini, anak putus sekolah
-Input: "Pemenuhan hak anak dan penilaian kabupaten/kota layak anak (KLA)"
-Output: hak anak, kabupaten kota layak anak, kla
-Input: "Penanganan anak berhadapan dengan hukum (ABH) dan anak terlantar"
-Output: anak berhadapan hukum, abh, anak terlantar
- 
-[PANGAN]
-Input: "Penyelenggaraan cadangan pangan pemerintah daerah dan lumbung pangan masyarakat"
-Output: cadangan pangan pemerintah daerah, lumbung pangan masyarakat
-Input: "Pemantauan harga dan pasokan komoditas pangan strategis di tingkat konsumen"
-Output: harga pasokan komoditas pangan strategis
-Input: "Penanganan kerawanan pangan dan penyaluran bantuan pangan non tunai (BPNT)"
-Output: kerawanan pangan, bantuan pangan non tunai, bpnt
-Input: "Pengawasan keamanan pangan segar asal tumbuhan dan hewan di pasar tradisional"
-Output: keamanan pangan segar, tumbuhan hewan, pasar tradisional
-Input: "Penguatan ketahanan pangan daerah melalui diversifikasi konsumsi pangan lokal"
-Output: ketahanan pangan, diversifikasi konsumsi pangan lokal
- 
-[PERTANAHAN]
-Input: "Fasilitasi penetapan dan penyelesaian sengketa tanah garapan dan tanah ulayat"
-Output: sengketa tanah garapan, tanah ulayat
-Input: "Inventarisasi dan penatagunaan tanah untuk kepentingan umum dan proyek strategis"
-Output: penatagunaan tanah, kepentingan umum, proyek strategis
-Input: "Penertiban penguasaan, pemilikan, penggunaan dan pemanfaatan tanah (P4T)"
-Output: penguasaan pemilikan penggunaan tanah, p4t
-Input: "Pengadaan tanah bagi pembangunan jalan tol dan infrastruktur publik daerah"
-Output: pengadaan tanah, pembangunan infrastruktur publik
-Input: "Redistribusi tanah objek landreform dan pensertifikatan tanah transmigrasi"
-Output: redistribusi tanah objek landreform, pensertifikatan tanah transmigrasi
- 
-[LINGKUNGAN HIDUP]
-Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL"
-Output: analisis mengenai dampak lingkungan, amdal, ukl upl
-Input: "Penerbitan izin pembuangan air limbah dan izin penyimpanan sementara limbah B3"
-Output: izin pembuangan air limbah, izin penyimpanan limbah b3
-Input: "Pemantauan kualitas udara ambien dan pengendalian pencemaran udara industri"
-Output: kualitas udara ambien, pencemaran udara industri
-Input: "Penilaian proper dan penghargaan lingkungan hidup perusahaan di daerah"
-Output: penilaian proper, penghargaan lingkungan hidup
-Input: "Pengelolaan tempat pemrosesan akhir (TPA) sampah dan fasilitas daur ulang"
-Output: tempat pemrosesan akhir, tpa sampah, daur ulang
-Input: "Rehabilitasi mangrove dan terumbu karang di kawasan pesisir terdampak abrasi"
-Output: rehabilitasi mangrove, terumbu karang, kawasan pesisir
- 
-[ADMINISTRASI KEPENDUDUKAN & CATATAN SIPIL]
-Input: "Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil"
-Output: sistem informasi administrasi kependudukan, pencatatan sipil
-Input: "Percepatan perekaman KTP elektronik (KTP-el) dan penerbitan kartu identitas anak (KIA)"
-Output: perekaman ktp elektronik, kartu identitas anak, kia
-Input: "Penerbitan akta kelahiran, akta kematian, dan akta perkawinan bagi penduduk rentan"
-Output: akta kelahiran, akta kematian, akta perkawinan
-Input: "Pembersihan data ganda dan data anomali dalam database kependudukan daerah"
-Output: data ganda, data anomali, database kependudukan
-Input: "Sosialisasi pemutakhiran data mandiri penduduk melalui aplikasi layanan adminduk"
-Output: pemutakhiran data penduduk, layanan administrasi kependudukan
- 
-[PEMBERDAYAAN MASYARAKAT & DESA]
-Input: "Penyaluran dana desa dan alokasi dana desa (ADD) tahap pertama tahun anggaran berjalan"
-Output: dana desa, alokasi dana desa, add
-Input: "Pembinaan dan pengawasan pengelolaan keuangan badan usaha milik desa (BUMDes)"
-Output: pengelolaan keuangan, badan usaha milik desa, bumdes
-Input: "Fasilitasi musyawarah desa (musdes) penetapan rencana pembangunan jangka menengah desa"
-Output: musyawarah desa, rencana pembangunan jangka menengah desa, rpjmdes
-Input: "Verifikasi laporan pertanggungjawaban (LPJ) penggunaan dana desa oleh pemerintah desa"
-Output: laporan pertanggungjawaban, penggunaan dana desa
-Input: "Pembentukan dan pembinaan kader pemberdayaan masyarakat desa (KPMD)"
-Output: kader pemberdayaan masyarakat desa, kpmd
-Input: "Pengembangan kawasan perdesaan dan pembangunan desa mandiri melalui program unggulan"
-Output: kawasan perdesaan, desa mandiri
- 
-[PENGENDALIAN PENDUDUK & KB]
-Input: "Distribusi alokon (alat kontrasepsi) dan obat-obatan KB ke fasilitas kesehatan"
-Output: distribusi alat kontrasepsi, alokon, obat kb
-Input: "Peningkatan kapasitas penyuluh keluarga berencana (PKB) dan kader posyandu"
-Output: penyuluh keluarga berencana, pkb, kader posyandu
-Input: "Penyelenggaraan kampung keluarga berkualitas dan program genre remaja"
-Output: kampung keluarga berkualitas, program genre remaja
-Input: "Pendataan keluarga dan pemutakhiran basis data keluarga Indonesia (BDKI)"
-Output: pendataan keluarga, basis data keluarga indonesia, bdki
- 
-[PERHUBUNGAN]
-Input: "Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal"
-Output: sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal
-Input: "Penetapan tarif angkutan umum dalam trayek perkotaan dan perdesaan"
-Output: tarif angkutan umum, trayek perkotaan perdesaan
-Input: "Pengujian berkala kendaraan bermotor (KIR) dan penertiban kendaraan over dimensi"
-Output: pengujian berkala kendaraan bermotor, kir, kendaraan over dimensi
-Input: "Penetapan lokasi terminal tipe C dan pembangunan halte bus rapid transit (BRT)"
-Output: terminal tipe c, halte bus rapid transit, brt
-Input: "Pengawasan keselamatan pelayaran di alur sungai dan pengelolaan pelabuhan sungai"
-Output: keselamatan pelayaran, alur sungai, pelabuhan sungai
-Input: "Penerbitan izin trayek angkutan kota dan perpanjangan kartu pengawasan kendaraan"
-Output: izin trayek angkutan kota, kartu pengawasan kendaraan
- 
-[KOMUNIKASI & INFORMATIKA]
-Input: "Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government"
-Output: sertifikasi elektronik, e government
-Input: "Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi"
-Output: jaringan telekomunikasi, keamanan informasi
-Input: "Pengelolaan sistem penghubung layanan pemerintah (SPLP) dan interoperabilitas data"
-Output: sistem penghubung layanan pemerintah, splp, interoperabilitas data
-Input: "Pengembangan aplikasi SPBE dan audit keamanan sistem informasi pemerintah daerah"
-Output: aplikasi spbe, audit keamanan sistem informasi
-Input: "Diseminasi informasi publik melalui media center dan media sosial resmi pemerintah"
-Output: diseminasi informasi publik, media center
-Input: "Pengelolaan nama domain subdomain pemerintah daerah dan hosting website OPD"
-Output: nama domain subdomain, hosting website opd
-Input: "Pembangunan infrastruktur jaringan fiber optik pemerintah daerah dan wi-fi publik"
-Output: infrastruktur jaringan fiber optik, wi fi publik
- 
-[KOPERASI, USAHA KECIL & MENENGAH]
-Input: "Penerbitan izin usaha simpan pinjam (USP) koperasi primer dan pembubaran koperasi"
-Output: izin usaha simpan pinjam, koperasi primer
-Input: "Pembinaan dan pemeringkatan koperasi aktif dan koperasi berprestasi tingkat kabupaten"
-Output: pemeringkatan koperasi aktif, koperasi berprestasi
-Input: "Fasilitasi akses pembiayaan KUR (kredit usaha rakyat) bagi pelaku UMKM daerah"
-Output: kredit usaha rakyat, kur, pembiayaan umkm
-Input: "Penyelenggaraan pelatihan kewirausahaan dan pendampingan usaha mikro naik kelas"
-Output: pelatihan kewirausahaan, pendampingan usaha mikro
-Input: "Pengembangan sentra UMKM dan klaster produk unggulan daerah berbasis potensi lokal"
-Output: sentra umkm, klaster produk unggulan daerah
-Input: "Penerbitan nomor induk berusaha (NIB) dan sertifikat halal produk usaha mikro"
-Output: nomor induk berusaha, nib, sertifikat halal produk usaha mikro
-Input: "Revitalisasi koperasi unit desa (KUD) dan penguatan modal usaha kelompok tani"
-Output: koperasi unit desa, kud, modal usaha kelompok tani
- 
-[PENANAMAN MODAL]
-Input: "Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing"
-Output: pencabutan pembatalan perizinan penanaman modal
-Input: "Penyelenggaraan promosi investasi daerah dan forum temu investor dalam negeri"
-Output: promosi investasi daerah, forum temu investor
-Input: "Penerbitan izin prinsip penanaman modal dalam negeri (PMDN) sektor pariwisata"
-Output: izin prinsip penanaman modal dalam negeri, pmdn
-Input: "Pemantauan dan pengawasan kepatuhan pelaksanaan kegiatan usaha penanaman modal"
-Output: kepatuhan pelaksanaan kegiatan usaha, penanaman modal
-Input: "Penyusunan peta potensi investasi daerah dan profil peluang usaha unggulan"
-Output: peta potensi investasi, peluang usaha unggulan
-Input: "Pengelolaan sistem pelayanan perizinan berusaha terintegrasi secara elektronik (OSS)"
-Output: perizinan berusaha terintegrasi, oss, elektronik
- 
-[KEPEMUDAAN & OLAHRAGA]
-Input: "Pembinaan organisasi kepemudaan dan seleksi peserta pertukaran pemuda antar negara"
-Output: organisasi kepemudaan, pertukaran pemuda antar negara
-Input: "Penyelenggaraan pekan olahraga daerah (PORDA) dan pekan olahraga pelajar daerah"
-Output: pekan olahraga daerah, porda, pekan olahraga pelajar
-Input: "Pembangunan dan rehabilitasi sarana prasarana olahraga stadion dan GOR daerah"
-Output: rehabilitasi sarana prasarana olahraga, stadion gor
-Input: "Pemberian penghargaan prestasi olahraga dan bantuan atlet berprestasi internasional"
-Output: penghargaan prestasi olahraga, bantuan atlet berprestasi
-Input: "Pengembangan sentra pembinaan olahraga prestasi dan pusat pendidikan latihan pelajar"
-Output: sentra pembinaan olahraga prestasi, pusat pendidikan latihan pelajar
-Input: "Fasilitasi kegiatan kepramukaan dan pembinaan komunitas pemuda kreatif daerah"
-Output: kegiatan kepramukaan, komunitas pemuda kreatif
- 
-[STATISTIK]
-Input: "Penyusunan profil daerah dan publikasi daerah dalam angka kabupaten tahun berjalan"
-Output: profil daerah, daerah dalam angka
-Input: "Pengelolaan dan pemutakhiran data statistik sektoral OPD melalui portal satu data"
-Output: data statistik sektoral, portal satu data
-Input: "Koordinasi penyelenggaraan sensus penduduk dan survei sosial ekonomi nasional"
-Output: sensus penduduk, survei sosial ekonomi nasional
-Input: "Penyusunan indeks pembangunan manusia (IPM) dan indeks kesenjangan kemiskinan daerah"
-Output: indeks pembangunan manusia, ipm, indeks kesenjangan kemiskinan
- 
-[PERSANDIAN & KEAMANAN INFORMASI]
-Input: "Pengelolaan sertifikat digital dan infrastruktur kunci publik (IKP) pemerintah daerah"
-Output: sertifikat digital, infrastruktur kunci publik, ikp
-Input: "Pengamanan komunikasi sandi antar instansi pemerintah dan klasifikasi informasi rahasia"
-Output: komunikasi sandi antar instansi, informasi rahasia
-Input: "Audit keamanan informasi dan penanganan insiden siber pada sistem pemerintah daerah"
-Output: audit keamanan informasi, insiden siber
- 
-[KEBUDAYAAN]
-Input: "Penetapan warisan budaya tak benda (WBTB) dan cagar budaya peringkat kabupaten"
-Output: warisan budaya tak benda, wbtb, cagar budaya
-Input: "Penyelenggaraan festival kesenian daerah dan pagelaran seni pertunjukan tradisional"
-Output: festival kesenian daerah, seni pertunjukan tradisional
-Input: "Pembinaan sanggar seni budaya dan pelestarian bahasa daerah yang terancam punah"
-Output: sanggar seni budaya, pelestarian bahasa daerah
-Input: "Pendataan dan registrasi cagar budaya serta penerbitan izin membawa benda cagar budaya"
-Output: registrasi cagar budaya, izin benda cagar budaya
-Input: "Revitalisasi museum daerah dan pengelolaan koleksi benda bersejarah peninggalan lokal"
-Output: revitalisasi museum daerah, koleksi benda bersejarah
- 
-[PERPUSTAKAAN]
-Input: "Penyelenggaraan pameran perpustakaan keliling dan donasi buku"
-Output: perpustakaan keliling, donasi buku
-Input: "Pengembangan koleksi bahan pustaka dan layanan perpustakaan digital daerah"
-Output: koleksi bahan pustaka, perpustakaan digital daerah
-Input: "Akreditasi perpustakaan desa/kelurahan dan perpustakaan sekolah tingkat dasar"
-Output: akreditasi perpustakaan desa, perpustakaan sekolah
-Input: "Peningkatan minat baca masyarakat melalui gerakan literasi dan taman baca masyarakat"
-Output: minat baca masyarakat, gerakan literasi, taman baca
-Input: "Pengelolaan deposit karya cetak dan karya rekam daerah sebagai koleksi wajib simpan"
-Output: deposit karya cetak karya rekam, koleksi wajib simpan
- 
-[KEARSIPAN]
-Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-Output: jadwal retensi arsip, pemusnahan arsip inaktif
-Input: "Penyelamatan arsip statis bernilai sejarah dan alih media arsip konvensional"
-Output: arsip statis bernilai sejarah, alih media arsip
-Input: "Akreditasi lembaga kearsipan daerah dan sertifikasi kompetensi pengelola arsip"
-Output: akreditasi lembaga kearsipan, sertifikasi kompetensi arsiparis
-Input: "Penerapan sistem informasi kearsipan daerah (SIKD) dan pengelolaan arsip elektronik"
-Output: sistem informasi kearsipan daerah, sikd, arsip elektronik
-Input: "Penyerahan arsip statis dari OPD kepada lembaga kearsipan daerah kabupaten"
-Output: penyerahan arsip statis, lembaga kearsipan daerah
- 
-# ════════════════════════════════════════════════════════════
-# URUSAN PILIHAN
-# ════════════════════════════════════════════════════════════
- 
-[KELAUTAN & PERIKANAN]
-Input: "Penerbitan izin usaha perikanan tangkap di bawah 12 mil dan izin budidaya ikan"
-Output: izin usaha perikanan tangkap, izin budidaya ikan
-Input: "Pengawasan sumber daya kelautan dan penanganan illegal fishing di perairan daerah"
-Output: sumber daya kelautan, illegal fishing, perairan daerah
-Input: "Pengembangan kawasan budidaya ikan air tawar dan pembinaan kelompok pembudidaya ikan"
-Output: budidaya ikan air tawar, kelompok pembudidaya ikan
-Input: "Pengelolaan tempat pelelangan ikan (TPI) dan pembinaan nelayan kecil pesisir"
-Output: tempat pelelangan ikan, tpi, nelayan kecil pesisir
-Input: "Pembangunan cold storage dan sarana penanganan ikan segar di sentra perikanan"
-Output: cold storage, sarana penanganan ikan, sentra perikanan
-Input: "Rehabilitasi terumbu karang dan ekosistem padang lamun di kawasan konservasi laut"
-Output: rehabilitasi terumbu karang, ekosistem padang lamun, konservasi laut
- 
-[PARIWISATA]
-Input: "Penyusunan rencana induk pembangunan kepariwisataan daerah (RIPPAR) kabupaten"
-Output: rencana induk kepariwisataan daerah, rippar
-Input: "Pengembangan desa wisata dan pemberdayaan masyarakat sadar wisata (pokdarwis)"
-Output: desa wisata, masyarakat sadar wisata, pokdarwis
-Input: "Penerbitan tanda daftar usaha pariwisata (TDUP) hotel, restoran, dan agen perjalanan"
-Output: tanda daftar usaha pariwisata, tdup, hotel restoran agen perjalanan
-Input: "Penyelenggaraan event pariwisata internasional dan promosi destinasi wisata unggulan"
-Output: event pariwisata internasional, promosi destinasi wisata
-Input: "Peningkatan kapasitas pemandu wisata lokal dan sertifikasi usaha pariwisata"
-Output: pemandu wisata lokal, sertifikasi usaha pariwisata
-Input: "Pengembangan infrastruktur kawasan wisata alam dan ekowisata pesisir"
-Output: infrastruktur kawasan wisata alam, ekowisata pesisir
-Input: "Pengelolaan sistem informasi pariwisata daerah dan kalender event wisata tahunan"
-Output: sistem informasi pariwisata, kalender event wisata
- 
-[PERTANIAN]
-Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
-Output: organisme pengganggu tumbuhan, pengendalian hama terpadu
-Input: "Penyaluran pupuk bersubsidi dan benih unggul bersertifikat kepada kelompok tani"
-Output: pupuk bersubsidi, benih unggul bersertifikat, kelompok tani
-Input: "Pengembangan kawasan pertanian komoditas unggulan dan agribisnis hortikultura"
-Output: kawasan pertanian komoditas unggulan, agribisnis hortikultura
-Input: "Penerbitan izin usaha pertanian dan rekomendasi impor komoditas pertanian strategis"
-Output: izin usaha pertanian, impor komoditas pertanian
-Input: "Asuransi usaha tani padi (AUTP) dan asuransi usaha ternak sapi (AUTS)"
-Output: asuransi usaha tani padi, autp, asuransi usaha ternak sapi
-Input: "Pembangunan jaringan irigasi tersier dan rehabilitasi embung pertanian desa"
-Output: jaringan irigasi tersier, rehabilitasi embung pertanian
-Input: "Pengembangan mekanisasi pertanian dan pengadaan alsintan bagi kelompok tani"
-Output: mekanisasi pertanian, alsintan, kelompok tani
- 
-[KEHUTANAN & PERKEBUNAN]
-Input: "Penerbitan izin usaha pemanfaatan hasil hutan kayu pada hutan hak/hutan rakyat"
-Output: izin usaha pemanfaatan hasil hutan kayu, hutan rakyat
-Input: "Rehabilitasi hutan dan lahan kritis melalui program penghijauan dan reklamasi"
-Output: rehabilitasi hutan lahan kritis, penghijauan reklamasi
-Input: "Pengawasan peredaran hasil hutan dan penanganan kasus perambahan kawasan hutan"
-Output: peredaran hasil hutan, perambahan kawasan hutan
-Input: "Pengembangan perkebunan kelapa sawit rakyat dan penerbitan sertifikat RSPO"
-Output: perkebunan kelapa sawit rakyat, sertifikat rspo
-Input: "Pengendalian kebakaran hutan dan lahan (karhutla) serta pembentukan MPA desa"
-Output: kebakaran hutan lahan, karhutla, masyarakat peduli api
- 
-[ENERGI & SUMBER DAYA MINERAL]
-Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
-Output: sertifikat laik operasi, izin usaha pertambangan batubara
-Input: "Pengelolaan air tanah dan penerbitan surat izin pengambilan air tanah (SIPA)"
-Output: pengelolaan air tanah, surat izin pengambilan air tanah, sipa
-Input: "Pembangunan jaringan listrik pedesaan dan elektrifikasi daerah terpencil 3T"
-Output: jaringan listrik pedesaan, elektrifikasi daerah terpencil
-Input: "Pengembangan energi baru terbarukan (EBT) dan pembangkit listrik tenaga surya"
-Output: energi baru terbarukan, ebt, pembangkit listrik tenaga surya
-Input: "Pengawasan keselamatan pengusahaan tambang mineral bukan logam dan batuan"
-Output: keselamatan pengusahaan tambang, mineral bukan logam, batuan
- 
-[PERDAGANGAN]
-Input: "Penerbitan surat izin usaha perdagangan (SIUP) dan tanda daftar perusahaan (TDP)"
-Output: surat izin usaha perdagangan, siup, tanda daftar perusahaan
-Input: "Pengawasan ketersediaan stok dan distribusi barang kebutuhan pokok di pasar"
-Output: stok distribusi barang kebutuhan pokok, pasar
-Input: "Penyelenggaraan pasar lelang daerah dan pameran produk ekspor unggulan"
-Output: pasar lelang daerah, pameran produk ekspor
-Input: "Penerbitan rekomendasi izin usaha pergudangan dan pengendalian distribusi pupuk"
-Output: izin usaha pergudangan, distribusi pupuk
-Input: "Pembangunan dan revitalisasi pasar rakyat tradisional dan pasar seni daerah"
-Output: revitalisasi pasar rakyat tradisional, pasar seni
-Input: "Perlindungan konsumen dan pengawasan barang beredar tidak memenuhi standar SNI"
-Output: perlindungan konsumen, barang beredar, standar sni
- 
-[PERINDUSTRIAN]
-Input: "Penyusunan rencana pembangunan industri kabupaten/kota (RPIK) sektor unggulan"
-Output: rencana pembangunan industri kabupaten, rpik
-Input: "Penerbitan izin usaha industri (IUI) dan izin perluasan industri kecil menengah"
-Output: izin usaha industri, iui, industri kecil menengah
-Input: "Pengembangan kawasan industri kecil menengah (KIKIM) dan sentra industri logam"
-Output: kawasan industri kecil menengah, kikim, sentra industri
-Input: "Pembinaan industri kreatif berbasis kearifan lokal dan sertifikasi produk IKM"
-Output: industri kreatif kearifan lokal, sertifikasi produk ikm
-Input: "Fasilitasi penerapan SNI wajib produk industri dan pengujian mutu di laboratorium"
-Output: penerapan sni wajib, pengujian mutu produk industri
- 
-[TRANSMIGRASI]
-Input: "Penempatan transmigran umum dan transmigran swakarsa mandiri ke kawasan transmigrasi"
-Output: penempatan transmigran umum, transmigrasi swakarsa mandiri
-Input: "Pembangunan infrastruktur permukiman transmigrasi dan fasilitas umum kawasan SP"
-Output: infrastruktur permukiman transmigrasi, fasilitas umum satuan permukiman
-Input: "Pembinaan masyarakat transmigran dan pengembangan usaha ekonomi di kawasan transmigrasi"
-Output: pembinaan masyarakat transmigran, usaha ekonomi kawasan transmigrasi
- 
-# ════════════════════════════════════════════════════════════
-# URUSAN PENUNJANG PEMERINTAHAN
-# ════════════════════════════════════════════════════════════
- 
-[KEUANGAN, ANGGARAN & ASET]
-Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA)"
-Output: rencana kerja anggaran, dpa
-Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR"
-Output: pencairan dana, sp2d, sppr
-Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
-Output: rekonsiliasi barang milik daerah, aset daerah
-Input: "Penetapan status penggunaan barang milik daerah"
-Output: status penggunaan barang milik daerah, aset
-Input: "Pengelolaan kas daerah dan penempatan investasi jangka pendek pemerintah daerah"
-Output: pengelolaan kas daerah, investasi jangka pendek
-Input: "Penyusunan laporan keuangan pemerintah daerah (LKPD) dan neraca aset"
-Output: laporan keuangan pemerintah daerah, lkpd, neraca aset
-Input: "Penyelesaian tuntutan perbendaharaan dan tuntutan ganti rugi (TP-TGR) keuangan"
-Output: tuntutan perbendaharaan, tuntutan ganti rugi, tp tgr
-Input: "Penganggaran hibah dan bantuan sosial dalam APBD serta pertanggungjawabannya"
-Output: hibah bantuan sosial, apbd, pertanggungjawaban
-Input: "Pengelolaan utang dan piutang daerah serta penerbitan obligasi daerah"
-Output: utang piutang daerah, obligasi daerah
- 
-[PENGAWASAN, KEPEGAWAIAN & HUKUM]
-Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen BPK"
-Output: tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen
-Input: "Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi"
-Output: laporan hasil audit investigasi, tindak pidana korupsi
-Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-Output: penetapan angka kredit, jabatan fungsional
-Input: "Penyusunan formasi ASN dan usulan pengadaan CPNS serta PPPK daerah"
-Output: formasi asn, pengadaan cpns, pppk
-Input: "Proses kenaikan pangkat reguler, pilihan, dan pengabdian PNS daerah"
-Output: kenaikan pangkat pns, pangkat reguler pilihan pengabdian
-Input: "Penyelesaian kasus pelanggaran disiplin PNS dan penjatuhan hukuman disiplin"
-Output: pelanggaran disiplin pns, hukuman disiplin
-Input: "Pemberhentian PNS atas permintaan sendiri dan pemberhentian tidak dengan hormat"
-Output: pemberhentian pns, pemberhentian tidak dengan hormat
-Input: "Pelaksanaan seleksi terbuka jabatan pimpinan tinggi pratama dan madya"
-Output: seleksi terbuka jabatan pimpinan tinggi, pratama madya
-Input: "Penyusunan produk hukum daerah raperda dan rancangan peraturan bupati/walikota"
-Output: produk hukum daerah, raperda, peraturan bupati
- 
-[PEMILU, KESBANGPOL & KETERTIBAN]
-Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4)"
-Output: daftar pemilih sementara, daftar penduduk potensial pemilih
-Input: "Penanganan konflik sosial berbasis SARA dan deteksi dini potensi kerawanan daerah"
-Output: konflik sosial sara, deteksi dini kerawanan daerah
-Input: "Pemantauan dan pembinaan organisasi kemasyarakatan (ormas) di daerah"
-Output: pembinaan organisasi kemasyarakatan, ormas
-Input: "Fasilitasi pendidikan politik masyarakat dan peningkatan partisipasi pemilih"
-Output: pendidikan politik masyarakat, partisipasi pemilih
-Input: "Penanganan paham radikalisme dan terorisme melalui forum kewaspadaan dini masyarakat"
-Output: paham radikalisme terorisme, forum kewaspadaan dini masyarakat
- 
-[PERENCANAAN, LITBANG & INOVASI]
-Input: "Penyusunan rencana pembangunan jangka menengah daerah (RPJMD) dan RKPD"
-Output: rencana pembangunan jangka menengah daerah, rpjmd, rkpd
-Input: "Musyawarah perencanaan pembangunan (musrenbang) kabupaten dan provinsi"
-Output: musyawarah perencanaan pembangunan, musrenbang
-Input: "Evaluasi capaian indikator kinerja utama (IKU) dan indikator kinerja program (IKP)"
-Output: capaian indikator kinerja utama, iku, indikator kinerja program
-Input: "Penyelenggaraan riset inovasi daerah dan lomba inovasi pelayanan publik"
-Output: riset inovasi daerah, inovasi pelayanan publik
-Input: "Penyusunan kajian kebijakan strategis dan naskah akademik rancangan perda"
-Output: kajian kebijakan strategis, naskah akademik rancangan perda
- 
-[PEMERINTAHAN UMUM & KEPROTOKOLAN]
-Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-Output: perjalanan dinas
-Input: "Penyelenggaraan upacara kedinasan hari besar nasional dan daerah"
-Output: upacara kedinasan, hari besar nasional daerah
-Input: "Penyusunan laporan penyelenggaraan pemerintahan daerah (LPPD) tahunan"
-Output: laporan penyelenggaraan pemerintahan daerah, lppd
-Input: "Pengelolaan pengaduan masyarakat dan tindak lanjut laporan SP4N-LAPOR"
-Output: pengaduan masyarakat, sp4n lapor
-Input: "Penyelenggaraan penerimaan kunjungan tamu negara dan delegasi luar negeri"
-Output: kunjungan tamu negara, delegasi luar negeri
-Input: "Koordinasi pelaksanaan tata upacara sipil dan protokol acara kenegaraan daerah"
-Output: tata upacara sipil, protokol kenegaraan daerah
- 
-[BENCANA, SAR & PEMADAM KEBAKARAN]
-Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-Output: operasi pencarian pertolongan, sar, korban banjir
-Input: "Penyusunan dokumen rencana penanggulangan bencana (RPB) dan rencana kontigensi"
-Output: rencana penanggulangan bencana, rpb, rencana kontigensi
-Input: "Distribusi logistik dan peralatan kebencanaan ke daerah terdampak bencana alam"
-Output: logistik peralatan kebencanaan, daerah terdampak bencana
-Input: "Pemulihan pascabencana dan relokasi korban bencana alam ke hunian tetap"
-Output: pemulihan pascabencana, relokasi korban bencana, hunian tetap
-Input: "Penanganan kebakaran permukiman padat dan pemeriksaan instalasi proteksi kebakaran"
-Output: kebakaran permukiman, instalasi proteksi kebakaran
+    
+{contoh_relevan}
 
- 
     SEKARANG KERJAKAN:
     Input: "{teks_user}"
     Output:
-    """.format(teks_user=teks_user)
- 
+    """
+
     try:
         chat_completion = client.chat.completions.create(
             messages=[
-                # PERBAIKAN #1: system terpisah dari user
                 {"role": "system", "content": instruksi_sistem},
-                {"role": "user",   "content": prompt_contoh},
+                {"role": "user",   "content": prompt_user},
             ],
-            # PERBAIKAN #2: 70b untuk produksi — 8b sering lupa aturan di prompt panjang
             model="llama-3.3-70b-versatile",
             temperature=0.0,
-            max_tokens=80,  # Output hanya 1 baris pendek, 80 token lebih dari cukup
+            max_tokens=80,
         )
- 
+
         inti_teks_mentah = chat_completion.choices[0].message.content.strip()
- 
-        # PISAU BEDAH PYTHON: ambil baris terakhir yang tidak kosong
-        # (model kadang masih menulis 1-2 baris analisis sebelum jawaban)
+
+        # PISAU BEDAH PYTHON
         daftar_baris = [b.strip() for b in inti_teks_mentah.split('\n') if b.strip()]
- 
+
         if not daftar_baris:
-            # PERBAIKAN #3: jangan kembalikan teks_user mentah ke TF-IDF
             st.warning("⚠️ GROQ mengembalikan respons kosong.")
             return None
- 
+
         inti_teks_bersih = daftar_baris[-1]
- 
-        # Bersihkan artefak formatting dari model
+
+        # BERSHKAN ARTEFAK
         inti_teks_bersih = (
             inti_teks_bersih
             .replace('**', '')
             .replace('"', '')
             .replace("'", '')
-            .replace('Output:', '')   # Kadang model mengulangi label "Output:"
+            .replace('Output:', '')
             .strip()
         )
- 
-        # PERBAIKAN #5: tangkap string kosong setelah cleaning
+
         if not inti_teks_bersih:
             st.warning("⚠️ Hasil ekstraksi kosong setelah cleaning.")
             return None
             
-        # 🛡️ PASANG SAPU JAGAT DARI CLAUDE DI SINI! 🛡️
+        # 🛡️ SAPU JAGAT DARI CLAUDE
         inti_teks_final = sapu_kata_kerja_bocor(inti_teks_bersih)
 
-        # Kembalikan teks yang sudah benar-benar bersih dan tersapu
         return inti_teks_final if inti_teks_final.strip() else None
 
     except Exception as e:
