@@ -1131,7 +1131,7 @@ def load_data():
     
     return df
 
-# --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ANTI MELUBER DI HP) ---
+# --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
 def get_badge_html(kode, uraian, level):
     levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
     label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
@@ -1139,18 +1139,18 @@ def get_badge_html(kode, uraian, level):
     warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
-    # JURUS RESPONSIVE: Gunakan CSS 'clamp' agar jarak margin mengecil otomatis di HP
-    indent = f"clamp(0px, {level * 5}vw, {level * 30}px)" 
+    indent = level * 30 
     
-    return f"<div style='margin-left: {indent}; margin-bottom: 8px; width: 100%; box-sizing: border-box; padding-right: 10px;'>" \
-           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 10px 15px; border-radius: 12px; font-weight: normal; font-size: 0.9rem !important; display: flex; align-items: flex-start; width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
-           f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; margin-right: 8px;'>" \
-           f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 4px; margin-top: 2px;'>folder</span>" \
+    # PERUBAHAN: Padding dan Border-radius diubah agar jadi bentuk kapsul/pil (Gambar 2)
+    return f"<div style='margin-left: {indent}px; margin-bottom: 8px;'>" \
+           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 6px 18px; border-radius: 50px; font-weight: normal; font-size: 0.95rem !important; display: inline-flex; align-items: flex-start; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
+           f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; white-space: nowrap; margin-right: 8px;'>" \
+           f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 6px; margin-top: 2px;'>folder</span>" \
            f"<strong style='margin-top: 2px;'>{kode}</strong>" \
            f"<span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span>" \
            f"</div>" \
-           f"<div style='flex-grow: 1; text-align: left; line-height: 1.4; margin-top: 2px; word-wrap: break-word; overflow-wrap: break-word;'>" \
-           f"{uraian} <i style='opacity: 0.8; margin-left: 4px; display: inline-block; font-size: 0.8rem;'>({label})</i>" \
+           f"<div style='flex-grow: 1; text-align: justify; line-height: 1.5; margin-top: 2px; word-break: break-word;'>" \
+           f"{uraian} <i style='opacity: 0.8; margin-left: 6px; white-space: nowrap;'>({label})</i>" \
            f"</div>" \
            f"</div>" \
            f"</div>"
@@ -2007,10 +2007,10 @@ def halaman_utama():
             <style>
             /* 1. Bersihkan Kotak Expander (Hasil Pencarian) */
             div[data-testid="stExpander"] {
-                border: 2px solid var(--input-border) !important; /* <--- OUTLINE BIRU KEKINIAN */
+                border: 2px solid rgba(0, 157, 255, 0.6) !important; /* <--- OUTLINE BIRU KEKINIAN */
                 border-radius: 16px !important;
                 box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; /* <--- GLOW BIRU HALUS */
-                background: var(--card-bg) !important; /* <--- UBAH DI SINI */
+                background: #FFFFFF !important;
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
