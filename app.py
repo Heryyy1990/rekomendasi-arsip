@@ -2094,23 +2094,21 @@ def halaman_utama():
                     results, inti_surat = smart_classify(user_input, df)
                     
                     if results:
-                        # BANNER SUKSES KUSTOM DENGAN INFO TAHAP 1
-                        st.markdown(f"""
-<div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; flex-direction:column; gap:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-    <div style="display:flex; align-items:center; gap:10px;">
-        <span class="material-symbols-rounded" style="color:#009DFF; font-size:1.5rem;">check_circle</span>
-        <span style="font-weight: 800; color: #0369A1; font-size: 1.1rem; font-family: 'Poppins', sans-serif;">Analisis Selesai!</span>
-    </div>
-    
-    <!-- KOTAK INFO TAHAP 1 -->
-    <div style="background: #FFFFFF; padding: 12px 15px; border-radius: 8px; border: 1px dashed #7DD3FC;">
-        <div style="font-size: 0.75rem; color: #0284C7; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase;">Inti Surat Adalah (Tahap 1):</div>
-        <div style="color: #0F172A; font-weight: 600; font-size: 0.95rem;">"{inti_surat.title()}"</div>
-    </div>
-    
-    <div style="color:#334155; font-size:0.95rem; font-weight: 500; margin-top: 4px;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</div>
-</div>
-""", unsafe_allow_html=True)
+                        # CARA PALING AMAN: Pakai kurung biasa agar tidak kena jebakan Indentasi Python/Streamlit
+                        html_tahap1 = (
+                            '<div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; flex-direction:column; gap:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">'
+                                '<div style="display:flex; align-items:center; gap:10px;">'
+                                    '<span class="material-symbols-rounded" style="color:#009DFF; font-size:1.5rem;">check_circle</span>'
+                                    '<span style="font-weight: 800; color: #0369A1; font-size: 1.1rem; font-family: \'Poppins\', sans-serif;">Analisis Selesai!</span>'
+                                '</div>'
+                                '<div style="background: #FFFFFF; padding: 12px 15px; border-radius: 8px; border: 1px dashed #7DD3FC;">'
+                                    '<div style="font-size: 0.75rem; color: #0284C7; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase;">Inti Surat Adalah (Tahap 1):</div>'
+                                    f'<div style="color: #0F172A; font-weight: 600; font-size: 0.95rem;">"{inti_surat.title()}"</div>'
+                                '</div>'
+                                '<div style="color:#334155; font-size:0.95rem; font-weight: 500; margin-top: 4px;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</div>'
+                            '</div>'
+                        )
+                        st.markdown(html_tahap1, unsafe_allow_html=True)
                         
                         rekomendasi_kode = [] # List untuk menyimpan kode yang dihasilkan AI
                         
@@ -2121,7 +2119,7 @@ def halaman_utama():
                             
                             with st.expander(f"❯ KODE {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
                                 st.markdown(f"<div style='font-size:1.15rem; font-weight:700; color:#009DFF; margin-bottom:15px; line-height:1.4; word-wrap: break-word; overflow-wrap: break-word;'>{res['uraian'].title()}</div>", unsafe_allow_html=True)
-                                st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#64748B; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;'>JALUR HIERARKI KODE:</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#64748B; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;'>Inti Surat Adalah:</div>", unsafe_allow_html=True)
                                 hierarki = get_hierarchy(res['kode'], df)
                                 for h in hierarki: 
                                     st.markdown(h, unsafe_allow_html=True)
