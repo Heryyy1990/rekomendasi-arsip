@@ -1139,21 +1139,35 @@ def get_badge_html(kode, uraian, level):
     warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
-    # JURUS RESPONSIVE: Gunakan CSS 'clamp' agar jarak margin mengecil otomatis di HP
-    indent = f"clamp(0px, {level * 5}vw, {level * 30}px)" 
+    indent = f"clamp(0px, {level * 5}vw, {level * 30}px)"
     
-    return f"<div style='margin-left: {indent}; margin-bottom: 8px; width: 100%; box-sizing: border-box; padding-right: 10px;'>" \
-           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 10px 15px; border-radius: 12px; font-weight: normal; font-size: 0.9rem !important; display: flex; align-items: flex-start; width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
-           f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; margin-right: 8px;'>" \
-           f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 4px; margin-top: 2px;'>folder</span>" \
-           f"<strong style='margin-top: 2px;'>{kode}</strong>" \
-           f"<span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span>" \
-           f"</div>" \
-           f"<div style='flex-grow: 1; text-align: left; line-height: 1.4; margin-top: 2px; word-wrap: break-word; overflow-wrap: break-word;'>" \
-           f"{uraian} <i style='opacity: 0.8; margin-left: 4px; display: inline-block; font-size: 0.8rem;'>({label})</i>" \
-           f"</div>" \
-           f"</div>" \
-           f"</div>"
+    # PERBAIKAN: outer wrapper pakai box-sizing border-box + overflow hidden
+    # PERBAIKAN: badge pakai display:flex (bukan inline-flex) + max-width:100%
+    return (
+        f"<div style='margin-left:{indent}; margin-bottom:8px; "
+        f"width:100%; max-width:100%; box-sizing:border-box; "
+        f"padding-right:10px; overflow:hidden;'>"
+        f"<div style='background-color:{warna_bg}; color:#ffffff; "
+        f"padding:10px 15px; border-radius:12px; font-size:0.9rem !important; "
+        f"display:flex; align-items:flex-start; "
+        f"width:100%; max-width:100%; box-sizing:border-box; "
+        f"box-shadow:0px 3px 6px rgba(0,0,0,0.15); overflow:hidden;'>"
+        f"<div style='display:flex; align-items:flex-start; flex-shrink:0; "
+        f"margin-right:8px; white-space:nowrap;'>"
+        f"<span class='material-symbols-rounded' "
+        f"style='font-size:1.15rem; margin-right:4px; margin-top:2px;'>folder</span>"
+        f"<strong style='margin-top:2px;'>{kode}</strong>"
+        f"<span style='margin:2px 4px 0 4px; opacity:0.6;'>|</span>"
+        f"</div>"
+        f"<div style='flex:1 1 0; min-width:0; text-align:left; line-height:1.4; "
+        f"margin-top:2px; word-break:break-word; overflow-wrap:break-word; "
+        f"overflow:hidden;'>"
+        f"{uraian} "
+        f"<i style='opacity:0.8; margin-left:4px; font-size:0.8rem;'>({label})</i>"
+        f"</div>"
+        f"</div>"
+        f"</div>"
+    )
 
 # --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
 def get_hierarchy(kode_target, df):
