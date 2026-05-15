@@ -2091,31 +2091,30 @@ def halaman_utama():
                     simpan_riwayat_csv(st.session_state['nama'], user_input)
 
                 with st.spinner('AI sedang membedah dokumen Anda...'):
-                    # TANGKAP 2 VARIABEL: results dan inti_surat
                     results, inti_surat = smart_classify(user_input, df)
                     
-                                                if results:
-                                                    # BANNER SUKSES KUSTOM DENGAN INFO TAHAP 1
-                                                    st.markdown(f"""
-                        <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; flex-direction:column; gap:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span class="material-symbols-rounded" style="color:#009DFF; font-size:1.5rem;">check_circle</span>
-                                <span style="font-weight: 800; color: #0369A1; font-size: 1.1rem; font-family: 'Poppins', sans-serif;">Analisis Selesai!</span>
-                            </div>
-                            
-                            <!-- KOTAK INFO TAHAP 1 -->
-                            <div style="background: #FFFFFF; padding: 12px 15px; border-radius: 8px; border: 1px dashed #7DD3FC;">
-                                <div style="font-size: 0.75rem; color: #0284C7; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase;">Inti Surat Adalah (Tahap 1):</div>
-                                <div style="color: #0F172A; font-weight: 600; font-size: 0.95rem;">"{inti_surat.title()}"</div>
-                            </div>
-                            
-                            <div style="color:#334155; font-size:0.95rem; font-weight: 500; margin-top: 4px;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    if results:
+                        # BANNER SUKSES KUSTOM DENGAN INFO TAHAP 1
+                        st.markdown(f"""
+<div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; flex-direction:column; gap:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+    <div style="display:flex; align-items:center; gap:10px;">
+        <span class="material-symbols-rounded" style="color:#009DFF; font-size:1.5rem;">check_circle</span>
+        <span style="font-weight: 800; color: #0369A1; font-size: 1.1rem; font-family: 'Poppins', sans-serif;">Analisis Selesai!</span>
+    </div>
+    
+    <!-- KOTAK INFO TAHAP 1 -->
+    <div style="background: #FFFFFF; padding: 12px 15px; border-radius: 8px; border: 1px dashed #7DD3FC;">
+        <div style="font-size: 0.75rem; color: #0284C7; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase;">Inti Surat Adalah (Tahap 1):</div>
+        <div style="color: #0F172A; font-weight: 600; font-size: 0.95rem;">"{inti_surat.title()}"</div>
+    </div>
+    
+    <div style="color:#334155; font-size:0.95rem; font-weight: 500; margin-top: 4px;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</div>
+</div>
+""", unsafe_allow_html=True)
                         
                         rekomendasi_kode = [] # List untuk menyimpan kode yang dihasilkan AI
                         
-                        # LOOPING HASIL PENCARIAN (Tetap sama seperti aslinya)
+                        # LOOPING HASIL PENCARIAN
                         for i, (idx, score) in enumerate(results):
                             res = df.iloc[idx]
                             rekomendasi_kode.append(res['kode']) # Tangkap kodenya
