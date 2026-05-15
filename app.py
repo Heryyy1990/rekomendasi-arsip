@@ -1142,7 +1142,7 @@ def get_badge_html(kode, uraian, level):
     # JURUS RESPONSIVE HP: Margin otomatis mengecil di HP agar teks tidak tergencet
     indent = f"clamp(0px, {level * 5}vw, {level * 30}px)" 
     
-    # --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
+    # --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (PENCARIAN AI - PC & HP AMAN) ---
 def get_badge_html(kode, uraian, level):
     levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
     label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
@@ -1150,12 +1150,38 @@ def get_badge_html(kode, uraian, level):
     warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
-    # JURUS RESPONSIVE HP: Margin otomatis mengecil di HP agar teks tidak tergencet
+    # Margin untuk Laptop (Aman)
     indent = f"clamp(0px, {level * 5}vw, {level * 30}px)" 
     
-    # PERBAIKAN FINAL: Hapus width 100% dan flex-grow, gunakan width: fit-content
-    return f"<div style='margin-left: {indent}; margin-bottom: 8px; display: flex;'>" \
-           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 6px 18px; border-radius: 50px; font-weight: normal; font-size: 0.9rem !important; display: inline-flex; align-items: flex-start; width: fit-content; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
+    # =======================================================================
+    # JURUS GAIB: CSS INI HANYA AKTIF DI HP (LAPTOP TIDAK DISENTUH SAMA SEKALI)
+    # =======================================================================
+    css_hp = """
+    <style>
+    @media screen and (max-width: 768px) {
+        .wadah-kapsul {
+            /* Di HP, margin kiri kita pangkas agar tidak mendorong kotak sampai habis layar */
+            margin-left: calc(var(--level) * 15px) !important;
+        }
+        .kapsul-pintar {
+            /* Di HP, bentuk kapsul berubah jadi kotak biasa agar teks lega dan tidak memanjang ke bawah */
+            border-radius: 12px !important; 
+            padding: 10px 15px !important;
+            display: flex !important;
+            flex-direction: column !important; /* Trik: Kode di atas, teks turun ke bawah */
+            width: 100% !important; 
+        }
+        .kapsul-pintar > div:first-child {
+            margin-bottom: 5px !important; /* Jarak antara baris kode dan teks uraian */
+        }
+    }
+    </style>
+    """
+    
+    # KODE UTAMA (Sesuai kode aslimu yang sudah bagus di laptop, ditambah class pemanggil)
+    return f"{css_hp}" \
+           f"<div class='wadah-kapsul' style='--level: {level}; margin-left: {indent}; margin-bottom: 8px; display: flex;'>" \
+           f"<div class='kapsul-pintar' style='background-color: {warna_bg}; color: #ffffff; padding: 6px 18px; border-radius: 50px; font-weight: normal; font-size: 0.9rem !important; display: inline-flex; align-items: flex-start; width: fit-content; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
            f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; margin-right: 8px;'>" \
            f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 4px; margin-top: 2px;'>folder</span>" \
            f"<strong style='margin-top: 2px;'>{kode}</strong>" \
