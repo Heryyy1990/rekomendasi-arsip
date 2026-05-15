@@ -276,138 +276,203 @@ except:
 client = Groq(api_key=api_key)
 
 # 2. Fungsi "Otak Ekstraktor"
+ 
+KATA_PENGANTAR = {
+    "penyampaian", "permohonan", "undangan", "laporan", "tindak",
+    "lanjut", "usulan", "hal", "mengenai", "draf", "rancangan",
+    "penerbitan", "fasilitasi", "perihal", "rekomendasi", "sosialisasi",
+    "pelaksanaan", "penyelenggaraan", "pembahasan", "pengajuan",
+    "penyusunan", "pembuatan", "pemberitahuan", "pelaporan",
+    "penetapan", "pengiriman", "pengesahan", "permintaan", "data",
+    "hasil", "tindaklanjut", "konfirmasi", "koordinasi", "pemantauan",
+}
+ 
+def _fallback_ekstraksi_manual(teks):
+    """
+    Lapis ke-3: ekstraksi Python murni, tidak pakai LLM, tidak bisa gagal.
+    Buang kata pengantar di awal, ambil sisa (maks 10 kata).
+    """
+    teks_bersih = re.sub(r'[^a-zA-Z0-9\s(),/-]', ' ', teks.lower()).strip()
+    kata = teks_bersih.split()
+    while kata and kata[0] in KATA_PENGANTAR:
+        kata.pop(0)
+    hasil_singkat = " ".join(kata[:10])
+    return hasil_singkat if hasil_singkat else teks.lower()[:80]
+ 
+def _validasi_output_ekstraksi(teks):
+    """
+    Cek apakah output LLM adalah frasa inti yang valid,
+    bukan penjelasan atau disclaimer.
+    """
+    if not teks or len(teks.strip()) < 3:
+        return False
+    if len(teks) > 150:
+        return False
+    penanda_gagal = [
+        "maaf", "saya tidak", "adalah:", "berikut adalah", "output:",
+        "berdasarkan", "dapat disimpulkan", "perlu dicatat",
+        "i cannot", "i don't", "i'm sorry", "as an ai",
+        "note:", "catatan:", "semoga membantu",
+    ]
+    if any(p in teks.lower() for p in penanda_gagal):
+        return False
+    return True
+ 
 @st.cache_data(show_spinner=False)
 def ekstrak_inti_surat(teks_user):
-    # TERA PROMPT: Transplantasi Otak Logika Klasifikasi Arsip (The Final Boss Version)
-    prompt = f"""
-    Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
-    
-    GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
-    1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
-    2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian, KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang, jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
-    3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya (fasilitatif maupun substantif teknis daerah).
-    4. RESOLUSI JEBAKAN "ARSIP": 
-       - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
-       - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
-    5. RESOLUSI JEBAKAN ASET/BANGUNAN: 
-       - JIKA urusannya berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN, jangan dibuang!
-       - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
-       - BEDAKAN FISIK BANGUNAN DENGAN LAYANAN/URUSAN:
-         * JIKA konteksnya fisik (contoh: "Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
-         * JIKA konteksnya operasional/layanan (contoh: "Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
-
-    BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
-    
-    [KASUS KEUANGAN, ANGGARAN & ASET]
-    Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
-    Output: rencana kerja anggaran, dpa
-    Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR untuk kegiatan sosialisasi"
-    Output: pencairan dana, sp2d, sppr
-    Input: "Usulan persetujuan pinjaman hibah luar negeri (PHLN) dan dana tugas pembantuan"
-    Output: pinjaman hibah luar negeri, phln, tugas pembantuan
-    Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
-    Output: rekonsiliasi barang milik daerah, aset daerah
-    Input: "Penetapan status penggunaan barang milik daerah"
-    Output: status penggunaan barang milik daerah, aset
-    Input: "Rekonsiliasi dan laporan permintaan barang milik daerah (BMD)"
-    Output: permintaan barang milik daerah, rekonsiliasi bmd
-    Input: "Laporan hasil inventarisasi aset dan barang milik daerah"
-    Output: inventarisasi barang milik daerah, aset
-    
-    [KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
-    Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
-    Output: tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen
-    Input: "Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi (TPK)"
-    Output: laporan hasil audit investigasi, tindak pidana korupsi
-    Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
-    Output: penetapan angka kredit, jabatan fungsional
-    
-    [KASUS INFRASTRUKTUR, PEKERJAAN UMUM & TATA RUANG]
-    Input: "Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa"
-    Output: pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa
-    Input: "Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)"
-    Output: rencana detail tata ruang, rencana tata bangunan dan lingkungan
-    Input: "Persetujuan penataan bangunan dan pengelolaan gedung rumah negara"
-    Output: penataan bangunan, pengelolaan rumah negara
-
-    [KASUS KEPENDUDUKAN, KESEHATAN & KESRA]
-    Input: "Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil"
-    Output: sistem informasi administrasi kependudukan, pencatatan sipil
-    Input: "Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)"
-    Output: jaminan kesehatan nasional, national health account
-    Input: "Data Forum Komunikasi Umat Beragama (FKUB) dan penyelesaian kasus aliran keagamaan"
-    Output: forum komunikasi umat beragama, kasus aliran keagamaan
-    
-    [KASUS TEKNOLOGI INFORMASI, KOMUNIKASI & PERSANDIAN]
-    Input: "Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government tingkat kabupaten"
-    Output: sertifikasi elektronik, e government
-    Input: "Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi"
-    Output: jaringan telekomunikasi, keamanan informasi
-
-    [KASUS PEMILU, KESBANGPOL & KETERTIBAN]
-    Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
-    Output: daftar pemilih sementara, daftar penduduk potensial pemilih
-    Input: "Penyusunan Rencana Anggaran Satuan Kerja (RASK) dan pembiayaan kegiatan operasional (PPKO) pemilu"
-    Output: rencana anggaran satuan kerja, pembiayaan kegiatan operasional pemilu
-    
-    [KASUS PENANAMAN MODAL, LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
-    Input: "Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing"
-    Output: pencabutan pembatalan perizinan penanaman modal
-    Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
-    Output: analisis mengenai dampak lingkungan, amdal, ukl upl
-    Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
-    Output: operasi pencarian pertolongan, sar, korban banjir
-    Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
-    Output: organisme pengganggu tumbuhan, pengendalian hama terpadu
-
-    [KASUS PERPUSTAKAAN, PENDIDIKAN & KESEHATAN (FISIK VS LAYANAN)]
-    Input: "Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas"
-    Output: pembangunan gedung, rehab bangunan
-    Input: "Penyelenggaraan pameran perpustakaan keliling dan donasi buku"
-    Output: perpustakaan keliling, donasi buku
-    Input: "Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas"
-    Output: bantuan operasional sekolah, bos, akreditasi puskesmas
-    
-    [KASUS PERTAMBANGAN, ENERGI & PERHUBUNGAN]
-    Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
-    Output: sertifikat laik operasi, izin usaha pertambangan batubara
-    Input: "Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal"
-    Output: sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal
-    
-    [KASUS PEMERINTAHAN UMUM]
-    Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
-    Output: perjalanan dinas
-    Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
-    Output: jadwal retensi arsip, pemusnahan arsip inaktif
-    Input: "apel gabungan"
-    Output: upacara kedinasan
-    
-    
-    SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
-    Input: "{teks_user}"
-    Output:
-    """
-    
+    prompt = f"""Anda adalah Sistem AI Ahli Kearsipan Pemerintahan Daerah. Tugas Anda menganalisis perihal surat dan mengekstrak "Inti Substansi" (maksimal 2-3 frasa) untuk mesin pencari klasifikasi.
+ 
+GUNAKAN LOGIKA BERPIKIR BERIKUT SECARA BERURUTAN:
+1. HAPUS KATA PENGANTAR: Buang kata basa-basi (contoh: penyampaian, permohonan, undangan, laporan, tindak lanjut, usulan, hal, mengenai, draf, rancangan, penerbitan, fasilitasi, perihal, rekomendasi, sosialisasi).
+2. HAPUS ENTITAS & LOKASI: Buang nama instansi (Dinas, Badan, Kementerian, KPU, Bawaslu, RSUD), nama tempat (Provinsi, Kabupaten, Desa), nama orang, jabatan (Bupati, Kadis, Kades), dan tahun/tanggal.
+3. CARI SUBSTANSI UTAMA: Temukan urusan aslinya (fasilitatif maupun substantif teknis daerah).
+4. RESOLUSI JEBAKAN "ARSIP": 
+   - JANGAN jadikan "arsip" sebagai inti jika itu hanya lokasi/tujuan (misal: "Bimtek kearsipan" -> intinya "Bimbingan Teknis").
+   - GUNAKAN "arsip" JIKA teknis murni (misal: "jadwal retensi arsip", "pemusnahan arsip").
+5. RESOLUSI JEBAKAN ASET/BANGUNAN: 
+   - JIKA urusannya berkaitan dengan Aset atau Barang Milik Daerah (BMD), kata "Barang Milik Daerah" atau "Aset" WAJIB DIPERTAHANKAN, jangan dibuang!
+   - Jika urusannya adalah tanah/lahan/bangunan, ambil status hukumnya (Sertifikat Tanah, Pengadaan Lahan, Hibah Tanah).
+   - BEDAKAN FISIK BANGUNAN DENGAN LAYANAN/URUSAN:
+     * JIKA konteksnya fisik (contoh: "Pembangunan / Rehab / Keamanan Gedung"), MAKA buang nama tempatnya (Perpustakaan, Puskesmas, Sekolah) dan ambil inti "Pembangunan / Rehab Gedung".
+     * JIKA konteksnya operasional/layanan (contoh: "Pembinaan perpustakaan keliling", "Akreditasi puskesmas", "Dana BOS Sekolah"), MAKA kata "Perpustakaan", "Puskesmas", "Sekolah" WAJIB DIPERTAHANKAN.
+ 
+ATURAN FORMAT OUTPUT (WAJIB DIPATUHI):
+- Tulis HANYA frasa-frasa inti, dipisah koma, huruf kecil semua.
+- DILARANG KERAS menulis penjelasan, kalimat lengkap, atau teks apapun di luar frasa inti.
+- Bungkus jawaban Anda TEPAT seperti contoh: <inti>frasa inti di sini</inti>
+ 
+BERIKUT ADALAH BANK DATA CONTOH POLA PIKIR YANG WAJIB ANDA TIRU 100%:
+ 
+[KASUS KEUANGAN, ANGGARAN & ASET]
+Input: "Penyampaian dokumen rencana kerja anggaran (RKA) dan dokumen pelaksanaan anggaran (DPA) tahun anggaran 2026"
+Output: <inti>rencana kerja anggaran, dpa</inti>
+Input: "Permohonan penerbitan surat perintah pencairan dana (SP2D) dan SPPR untuk kegiatan sosialisasi"
+Output: <inti>pencairan dana, sp2d, sppr</inti>
+Input: "Usulan persetujuan pinjaman hibah luar negeri (PHLN) dan dana tugas pembantuan"
+Output: <inti>pinjaman hibah luar negeri, phln, tugas pembantuan</inti>
+Input: "Rekonsiliasi dan laporan barang milik daerah (BMD)"
+Output: <inti>rekonsiliasi barang milik daerah, aset daerah</inti>
+Input: "Penetapan status penggunaan barang milik daerah"
+Output: <inti>status penggunaan barang milik daerah, aset</inti>
+Input: "Rekonsiliasi dan laporan permintaan barang milik daerah (BMD)"
+Output: <inti>permintaan barang milik daerah, rekonsiliasi bmd</inti>
+Input: "Laporan hasil inventarisasi aset dan barang milik daerah"
+Output: <inti>inventarisasi barang milik daerah, aset</inti>
+ 
+[KASUS PENGAWASAN, KEPEGAWAIAN & HUKUM]
+Input: "Tindak lanjut temuan laporan hasil pemeriksaan (LHP) dan Laporan Auditor Independen (LAI) BPK RI"
+Output: <inti>tindak lanjut temuan, laporan hasil pemeriksaan, laporan auditor independen</inti>
+Input: "Laporan hasil audit investigasi (LHAI) yang mengandung unsur tindak pidana korupsi (TPK)"
+Output: <inti>laporan hasil audit investigasi, tindak pidana korupsi</inti>
+Input: "Usulan penetapan angka kredit (PAK) jabatan fungsional arsiparis tingkat ahli"
+Output: <inti>penetapan angka kredit, jabatan fungsional</inti>
+ 
+[KASUS INFRASTRUKTUR, PEKERJAAN UMUM & TATA RUANG]
+Input: "Laporan progres pemeliharaan jalan bebas hambatan dan pengelolaan irigasi rawa"
+Output: <inti>pemeliharaan jalan bebas hambatan, pengelolaan irigasi rawa</inti>
+Input: "Pengajuan Rencana Detail Tata Ruang (RDTR) dan Rencana Tata Bangunan dan Lingkungan (RTBL)"
+Output: <inti>rencana detail tata ruang, rencana tata bangunan dan lingkungan</inti>
+Input: "Persetujuan penataan bangunan dan pengelolaan gedung rumah negara"
+Output: <inti>penataan bangunan, pengelolaan rumah negara</inti>
+ 
+[KASUS KEPENDUDUKAN, KESEHATAN & KESRA]
+Input: "Laporan pelaksanaan Sistem Informasi Administrasi Kependudukan (SIAK) dan pencatatan sipil"
+Output: <inti>sistem informasi administrasi kependudukan, pencatatan sipil</inti>
+Input: "Pelaksanaan program Jaminan Kesehatan Nasional (JKN) dan National Health Account (NHA)"
+Output: <inti>jaminan kesehatan nasional, national health account</inti>
+Input: "Data Forum Komunikasi Umat Beragama (FKUB) dan penyelesaian kasus aliran keagamaan"
+Output: <inti>forum komunikasi umat beragama, kasus aliran keagamaan</inti>
+ 
+[KASUS TEKNOLOGI INFORMASI, KOMUNIKASI & PERSANDIAN]
+Input: "Permohonan layanan sertifikasi elektronik dan evaluasi tata kelola e-government tingkat kabupaten"
+Output: <inti>sertifikasi elektronik, e government</inti>
+Input: "Pemantauan layanan jaringan telekomunikasi dan pengawasan keamanan informasi"
+Output: <inti>jaringan telekomunikasi, keamanan informasi</inti>
+ 
+[KASUS PEMILU, KESBANGPOL & KETERTIBAN]
+Input: "Penyampaian daftar pemilih sementara (DPS) dan daftar penduduk potensial pemilih (DP4) Pilkada"
+Output: <inti>daftar pemilih sementara, daftar penduduk potensial pemilih</inti>
+Input: "Penyusunan Rencana Anggaran Satuan Kerja (RASK) dan pembiayaan kegiatan operasional (PPKO) pemilu"
+Output: <inti>rencana anggaran satuan kerja, pembiayaan kegiatan operasional pemilu</inti>
+ 
+[KASUS PENANAMAN MODAL, LINGKUNGAN HIDUP, BENCANA & PERTANIAN]
+Input: "Fasilitasi penyelesaian masalah pencabutan pembatalan perizinan penanaman modal asing"
+Output: <inti>pencabutan pembatalan perizinan penanaman modal</inti>
+Input: "Pembahasan dokumen analisis mengenai dampak lingkungan (AMDAL) dan UKL-UPL pabrik kelapa sawit"
+Output: <inti>analisis mengenai dampak lingkungan, amdal, ukl upl</inti>
+Input: "Laporan operasi pencarian dan pertolongan (SAR) korban banjir bandang"
+Output: <inti>operasi pencarian pertolongan, sar, korban banjir</inti>
+Input: "Pengendalian Organisme Pengganggu Tumbuhan (OPT) dan Pengendalian Hama Terpadu (PHT)"
+Output: <inti>organisme pengganggu tumbuhan, pengendalian hama terpadu</inti>
+ 
+[KASUS PERPUSTAKAAN, PENDIDIKAN & KESEHATAN (FISIK VS LAYANAN)]
+Input: "Laporan progres pembangunan gedung perpustakaan daerah dan rehab puskesmas"
+Output: <inti>pembangunan gedung, rehab bangunan</inti>
+Input: "Penyelenggaraan pameran perpustakaan keliling dan donasi buku"
+Output: <inti>perpustakaan keliling, donasi buku</inti>
+Input: "Pemotongan dana bantuan operasional sekolah (BOS) dan akreditasi puskesmas"
+Output: <inti>bantuan operasional sekolah, bos, akreditasi puskesmas</inti>
+ 
+[KASUS PERTAMBANGAN, ENERGI & PERHUBUNGAN]
+Input: "Penerbitan Sertifikat Laik Operasi (SLO) dan Izin Usaha Pertambangan (IUP) Batubara"
+Output: <inti>sertifikat laik operasi, izin usaha pertambangan batubara</inti>
+Input: "Sertifikasi uji tipe kendaraan bermotor dan pengesahan kualifikasi petugas terminal"
+Output: <inti>sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas terminal</inti>
+ 
+[KASUS PEMERINTAHAN UMUM]
+Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
+Output: <inti>perjalanan dinas</inti>
+Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
+Output: <inti>jadwal retensi arsip, pemusnahan arsip inaktif</inti>
+Input: "apel gabungan"
+Output: <inti>upacara kedinasan</inti>
+ 
+ 
+SEKARANG, KERJAKAN DENGAN POLA LOGIKA YANG SAMA:
+Input: "{teks_user}"
+Output:"""
+ 
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant", # Model terbaru, pengganti llama3-8b
-            temperature=0.0, # 0.0 membuat AI tidak berhalusinasi/kreatif, murni mengekstrak
+            model="llama-3.3-70b-versatile",  # Naik dari 8b -> 70b
+            temperature=0.0,
+            max_tokens=80,  # Paksa ringkas, cegah ceramah
         )
-       # Mengambil balasan cerewet dari Groq (Biarkan dia berpikir agar pintar)
-        inti_teks_mentah = chat_completion.choices[0].message.content.strip()
-        
-        # PISAU BEDAH PYTHON: Kita ambil baris paling bawah saja dari curhatan Groq
-        # Karena kesimpulan jawaban selalu ada di baris paling bawah.
-        daftar_baris = [baris for baris in inti_teks_mentah.split('\n') if baris.strip() != '']
-        inti_teks_bersih = daftar_baris[-1].replace('**', '').strip()
-        
-        # Membersihkan tanda kutip
-        inti_teks_bersih = inti_teks_bersih.replace('"', '').replace("'", "")
-        return inti_teks_bersih
+        respons_mentah = chat_completion.choices[0].message.content.strip()
+ 
+        # Lapis 1: Cari dengan Regex (Paling Akurat)
+        match = re.search(r'<inti>(.*?)</inti>', respons_mentah, re.IGNORECASE | re.DOTALL)
+        if match:
+            hasil = match.group(1).strip().lower()
+            if _validasi_output_ekstraksi(hasil):
+                return hasil
+
+        # Lapis 2: Jika tag rusak (misal lupa tutup tag), coba ambil teks setelah <inti>
+        if "<inti>" in respons_mentah.lower():
+            potongan = respons_mentah.lower().split("<inti>")[-1].split("</inti>")[0].strip()
+            if _validasi_output_ekstraksi(potongan):
+                return potongan
+
+        # Lapis 3: Pembersihan karakter sampah jika LLM curhat di luar tag
+        # (Mengambil baris terakhir yang mengandung teks)
+        baris = [b.strip() for b in respons_mentah.split('\n') if b.strip()]
+        if baris:
+            kandidat = re.sub(r'<.*?>', '', baris[-1]).strip().lower() # Buang sisa tag html
+            if _validasi_output_ekstraksi(kandidat):
+                return kandidat
+
+        # Lapis Terakhir: Emergency Fallback (Python murni)
+        return _fallback_ekstraksi_manual(teks_user)
+
+    except Exception as e:
+        # Jika API Groq mati atau error lainnya
+        return _fallback_ekstraksi_manual(teks_user)
+ 
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Ekstraksi): {e}")
-        return teks_user
+        return _fallback_ekstraksi_manual(teks_user)
+
         
 # --- UI & CSS CUSTOM ---
 st.markdown("""
