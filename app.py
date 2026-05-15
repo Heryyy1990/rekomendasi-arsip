@@ -2102,7 +2102,7 @@ def halaman_utama():
                                     '<span style="font-weight: 800; color: #0369A1; font-size: 1.1rem; font-family: \'Poppins\', sans-serif;">Analisis Selesai!</span>'
                                 '</div>'
                                 '<div style="background: #FFFFFF; padding: 12px 15px; border-radius: 8px; border: 1px dashed #7DD3FC;">'
-                                    '<div style="font-size: 0.75rem; color: #0284C7; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase;">Inti Surat Adalah (Tahap 1):</div>'
+                                    '<div style="font-size: 0.75rem; color: #0284C7; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase;">Inti Surat Adalah :</div>'
                                     f'<div style="color: #0F172A; font-weight: 600; font-size: 0.95rem;">"{inti_surat.title()}"</div>'
                                 '</div>'
                                 '<div style="color:#334155; font-size:0.95rem; font-weight: 500; margin-top: 4px;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</div>'
