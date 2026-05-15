@@ -1139,35 +1139,21 @@ def get_badge_html(kode, uraian, level):
     warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
     warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
     
-    indent = f"clamp(0px, {level * 5}vw, {level * 30}px)"
+    # JURUS RESPONSIVE: Gunakan CSS 'clamp' agar jarak margin mengecil otomatis di HP
+    indent = f"clamp(0px, {level * 5}vw, {level * 30}px)" 
     
-    # PERBAIKAN: outer wrapper pakai box-sizing border-box + overflow hidden
-    # PERBAIKAN: badge pakai display:flex (bukan inline-flex) + max-width:100%
-    return (
-        f"<div style='margin-left:{indent}; margin-bottom:8px; "
-        f"width:100%; max-width:100%; box-sizing:border-box; "
-        f"padding-right:10px; overflow:hidden;'>"
-        f"<div style='background-color:{warna_bg}; color:#ffffff; "
-        f"padding:10px 15px; border-radius:12px; font-size:0.9rem !important; "
-        f"display:flex; align-items:flex-start; "
-        f"width:100%; max-width:100%; box-sizing:border-box; "
-        f"box-shadow:0px 3px 6px rgba(0,0,0,0.15); overflow:hidden;'>"
-        f"<div style='display:flex; align-items:flex-start; flex-shrink:0; "
-        f"margin-right:8px; white-space:nowrap;'>"
-        f"<span class='material-symbols-rounded' "
-        f"style='font-size:1.15rem; margin-right:4px; margin-top:2px;'>folder</span>"
-        f"<strong style='margin-top:2px;'>{kode}</strong>"
-        f"<span style='margin:2px 4px 0 4px; opacity:0.6;'>|</span>"
-        f"</div>"
-        f"<div style='flex:1 1 0; min-width:0; text-align:left; line-height:1.4; "
-        f"margin-top:2px; word-break:break-word; overflow-wrap:break-word; "
-        f"overflow:hidden;'>"
-        f"{uraian} "
-        f"<i style='opacity:0.8; margin-left:4px; font-size:0.8rem;'>({label})</i>"
-        f"</div>"
-        f"</div>"
-        f"</div>"
-    )
+    return f"<div style='margin-left: {indent}; margin-bottom: 8px; width: 100%; box-sizing: border-box; padding-right: 10px;'>" \
+           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 10px 15px; border-radius: 12px; font-weight: normal; font-size: 0.9rem !important; display: flex; align-items: flex-start; width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
+           f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; margin-right: 8px;'>" \
+           f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 4px; margin-top: 2px;'>folder</span>" \
+           f"<strong style='margin-top: 2px;'>{kode}</strong>" \
+           f"<span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span>" \
+           f"</div>" \
+           f"<div style='flex-grow: 1; text-align: left; line-height: 1.4; margin-top: 2px; word-wrap: break-word; overflow-wrap: break-word;'>" \
+           f"{uraian} <i style='opacity: 0.8; margin-left: 4px; display: inline-block; font-size: 0.8rem;'>({label})</i>" \
+           f"</div>" \
+           f"</div>" \
+           f"</div>"
 
 # --- 2. FITUR HIERARKI TAB 1 (ASLI 100%) ---
 def get_hierarchy(kode_target, df):
@@ -2090,90 +2076,10 @@ def halaman_utama():
             div[data-testid="stHorizontalBlock"] button:hover {
                 border-color: #009DFF !important;
                 transform: translateY(-3px);
-                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important;
-            }
- 
-            /* =====================================================
-               FIX OVERFLOW: KODE & URAIAN TIDAK MELUBER
-               Berlaku untuk laptop dan HP
-            ===================================================== */
- 
-            /* Paksa seluruh expander tidak meluber keluar layar */
-            div[data-testid="stExpander"] {
-                max-width: 100% !important;
-                box-sizing: border-box !important;
-                overflow: hidden !important;
-            }
- 
-            /* Konten dalam expander: paksa wrap, no overflow */
-            div[data-testid="stExpanderDetails"] {
-                overflow-x: hidden !important;
-                word-break: break-word !important;
-                overflow-wrap: break-word !important;
-            }
- 
-            /* Semua teks di dalam expander details: wajib wrap */
-            div[data-testid="stExpanderDetails"] * {
-                max-width: 100% !important;
-                word-break: break-word !important;
-                overflow-wrap: break-word !important;
-                white-space: normal !important;
-            }
- 
-            /* Chip KODE di judul expander: tidak boleh memanjang melewati layar */
-            div[data-testid="stExpander"] summary p {
-                white-space: normal !important;
-                word-break: break-all !important;
-                line-height: 1.4 !important;
-            }
- 
-            /* =====================================================
-               RESPONSIVE MOBILE (HP): max-width 768px
-            ===================================================== */
-            @media screen and (max-width: 768px) {
- 
-                /* Expander: kurangi padding agar tidak terlalu sempit */
-                div[data-testid="stExpanderDetails"] {
-                    padding: 16px 12px !important;
-                }
- 
-                /* Judul uraian (teks biru besar) */
-                div[data-testid="stExpanderDetails"] > div[style*="font-size:1.15rem"] {
-                    font-size: 1rem !important;
-                }
- 
-                /* Header expander: font lebih kecil di HP */
-                div[data-testid="stExpander"] summary p {
-                    font-size: 0.9rem !important;
-                }
- 
-                /* Hierarki kode: biarkan wrap, jangan terpotong */
-                div[data-testid="stExpanderDetails"] p,
-                div[data-testid="stExpanderDetails"] span,
-                div[data-testid="stExpanderDetails"] div {
-                    font-size: 0.82rem !important;
-                    line-height: 1.5 !important;
-                }
- 
-                /* Chip inti surat: menyesuaikan lebar layar HP */
-                div[style*="psychology"] span[style*="border-radius: 999px"] {
-                    font-size: 0.82rem !important;
-                    padding: 3px 10px !important;
-                }
- 
-                /* Tombol feedback: stack vertikal di HP */
-                div[data-testid="stHorizontalBlock"] {
-                    flex-wrap: wrap !important;
-                }
-                div[data-testid="stHorizontalBlock"] button {
-                    font-size: 0.8rem !important;
-                    height: 46px !important;
-                    padding: 0 8px !important;
-                }
+                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important; /* Glow menguat saat kursor mendekat */
             }
             </style>
             """, unsafe_allow_html=True)
-
 
             default_val = st.session_state.pop('temp_search', '') 
             user_input = st.text_input("Ketik perihal surat:", value=default_val, placeholder="Contoh: penyusunan rencana kerja anggaran...", key="input_halaman_ai")
