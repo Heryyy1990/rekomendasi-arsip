@@ -2066,7 +2066,7 @@ def halaman_utama():
             /* Bangkitkan HANYA teks judul (p) kita agar tampil sempurna */
             div[data-testid="stExpander"] summary p {
                 font-weight: 700 !important;
-                color: var(--text-title) !important; /* <--- UBAH DI SINI */
+                color: #0F172A !important;
                 font-size: 1.05rem !important;
                 font-family: 'Poppins', sans-serif !important;
                 margin: 0 !important;
