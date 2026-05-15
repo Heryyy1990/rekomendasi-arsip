@@ -2043,25 +2043,23 @@ def halaman_utama():
             # =========================================================
             st.markdown("""
             <style>
-            /* 1. Bersihkan Kotak Expander (Hasil Pencarian) */
+            /* 1. Kotak Expander Hasil Pencarian (DENGAN OUTLINE BIRU) */
             div[data-testid="stExpander"] {
-                border: 1px solid #E2E8F0 !important;
-                border-radius: 12px !important;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.02) !important;
+                border: 2px solid rgba(0, 157, 255, 0.5) !important; /* <--- OUTLINE BIRU DIKEMBALIKAN */
+                border-radius: 16px !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; /* <--- GLOW BIRU HALUS */
                 background: #FFFFFF !important;
                 margin-bottom: 15px !important;
                 overflow: hidden !important;
             }
             
-            /* 2. PERBAIKAN TOTAL: BUNUH TEKS HANTU "arrow" ("arr") */
-            div[data-testid="stExpander"] summary {
+            /* 2. PERBAIKAN TOTAL: BUNUH TEKS HANTU "arrow" ("arr") + Garis Bawah Biru */
+            div[data-testid="stExpander"] > details > summary {
                 padding: 15px 20px !important;
-                background: var(--expander-bg) !important; /* <--- UBAH DI SINI */
-                border-bottom: 1px solid var(--card-border) !important; /* <--- UBAH DI SINI */
+                background: #F8FAFC !important;
+                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important; /* <--- GARIS BAWAH BIRU SENADA */
                 border-radius: 16px 16px 0 0 !important;
-                
-                /* JURUS PAMUNGKAS: Jadikan semua ukuran teks di sini 0 agar teks hantu lenyap */
-                font-size: 0px !important; 
+                font-size: 0px !important; /* JURUS ANTI HANTU */
                 color: transparent !important;
             }
             
