@@ -1142,16 +1142,27 @@ def get_badge_html(kode, uraian, level):
     # JURUS RESPONSIVE HP: Margin otomatis mengecil di HP agar teks tidak tergencet
     indent = f"clamp(0px, {level * 5}vw, {level * 30}px)" 
     
-    # PERBAIKAN FINAL: Hapus width 100% dan flex-grow, gunakan width: fit-content
-    return f"<div style='margin-left: {indent}; margin-bottom: 8px; display: flex;'>" \
-           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 6px 18px; border-radius: 50px; font-weight: normal; font-size: 0.9rem !important; display: inline-flex; align-items: flex-start; width: fit-content; max-width: 100%; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
+    # --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (ASLI 100%) ---
+def get_badge_html(kode, uraian, level):
+    levels_name = ["Primer", "Sekunder", "Tersier", "Kuartier", "Kuintier"]
+    label = levels_name[level] if level < len(levels_name) else f"Level {level+1}"
+    
+    warna_level = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
+    warna_bg = warna_level[level] if level < len(warna_level) else "#424242"
+    
+    # PERBAIKAN HP: Margin kiri di HP hanya bergeser sedikit (3vw per level), di PC maksimal 25px per level
+    indent = f"clamp(0px, {level * 3}vw, {level * 25}px)" 
+    
+    # PERBAIKAN HP: border-radius jadi 20px agar tidak jadi oval ekstrem saat teks panjang
+    return f"<div style='margin-left: {indent}; margin-bottom: 8px; width: 100%;'>" \
+           f"<div style='background-color: {warna_bg}; color: #ffffff; padding: 8px 16px; border-radius: 20px; font-weight: normal; font-size: 0.9rem !important; display: inline-flex; align-items: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; box-shadow: 0px 3px 6px rgba(0,0,0,0.15);'>" \
            f"<div style='display: flex; align-items: flex-start; flex-shrink: 0; margin-right: 8px;'>" \
            f"<span class='material-symbols-rounded' style='font-size: 1.15rem; margin-right: 4px; margin-top: 2px;'>folder</span>" \
            f"<strong style='margin-top: 2px;'>{kode}</strong>" \
            f"<span style='margin: 2px 4px 0 4px; opacity: 0.6;'>|</span>" \
            f"</div>" \
-           f"<div style='text-align: left; line-height: 1.4; margin-top: 2px; word-wrap: break-word; overflow-wrap: break-word;'>" \
-           f"{uraian} <i style='opacity: 0.8; margin-left: 4px; display: inline-block; font-size: 0.8rem;'>({label})</i>" \
+           f"<div style='flex-grow: 1; text-align: left; line-height: 1.4; margin-top: 2px; word-wrap: break-word;'>" \
+           f"{uraian} <i style='opacity: 0.8; margin-left: 4px; white-space: nowrap; font-size: 0.8rem;'>({label})</i>" \
            f"</div>" \
            f"</div>" \
            f"</div>"
