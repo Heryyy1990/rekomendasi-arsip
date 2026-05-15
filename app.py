@@ -2094,9 +2094,9 @@ def halaman_utama():
                     # TANGKAP 2 VARIABEL: results dan inti_surat
                     results, inti_surat = smart_classify(user_input, df)
                     
-                    if results:
-                        # BANNER SUKSES KUSTOM DENGAN INFO TAHAP 1
-                        st.markdown(f"""
+                                                if results:
+                                                    # BANNER SUKSES KUSTOM DENGAN INFO TAHAP 1
+                                                    st.markdown(f"""
                         <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; flex-direction:column; gap:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                             <div style="display:flex; align-items:center; gap:10px;">
                                 <span class="material-symbols-rounded" style="color:#009DFF; font-size:1.5rem;">check_circle</span>
