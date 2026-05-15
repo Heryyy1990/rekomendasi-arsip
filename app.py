@@ -2076,10 +2076,90 @@ def halaman_utama():
             div[data-testid="stHorizontalBlock"] button:hover {
                 border-color: #009DFF !important;
                 transform: translateY(-3px);
-                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important; /* Glow menguat saat kursor mendekat */
+                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important;
+            }
+ 
+            /* =====================================================
+               FIX OVERFLOW: KODE & URAIAN TIDAK MELUBER
+               Berlaku untuk laptop dan HP
+            ===================================================== */
+ 
+            /* Paksa seluruh expander tidak meluber keluar layar */
+            div[data-testid="stExpander"] {
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+            }
+ 
+            /* Konten dalam expander: paksa wrap, no overflow */
+            div[data-testid="stExpanderDetails"] {
+                overflow-x: hidden !important;
+                word-break: break-word !important;
+                overflow-wrap: break-word !important;
+            }
+ 
+            /* Semua teks di dalam expander details: wajib wrap */
+            div[data-testid="stExpanderDetails"] * {
+                max-width: 100% !important;
+                word-break: break-word !important;
+                overflow-wrap: break-word !important;
+                white-space: normal !important;
+            }
+ 
+            /* Chip KODE di judul expander: tidak boleh memanjang melewati layar */
+            div[data-testid="stExpander"] summary p {
+                white-space: normal !important;
+                word-break: break-all !important;
+                line-height: 1.4 !important;
+            }
+ 
+            /* =====================================================
+               RESPONSIVE MOBILE (HP): max-width 768px
+            ===================================================== */
+            @media screen and (max-width: 768px) {
+ 
+                /* Expander: kurangi padding agar tidak terlalu sempit */
+                div[data-testid="stExpanderDetails"] {
+                    padding: 16px 12px !important;
+                }
+ 
+                /* Judul uraian (teks biru besar) */
+                div[data-testid="stExpanderDetails"] > div[style*="font-size:1.15rem"] {
+                    font-size: 1rem !important;
+                }
+ 
+                /* Header expander: font lebih kecil di HP */
+                div[data-testid="stExpander"] summary p {
+                    font-size: 0.9rem !important;
+                }
+ 
+                /* Hierarki kode: biarkan wrap, jangan terpotong */
+                div[data-testid="stExpanderDetails"] p,
+                div[data-testid="stExpanderDetails"] span,
+                div[data-testid="stExpanderDetails"] div {
+                    font-size: 0.82rem !important;
+                    line-height: 1.5 !important;
+                }
+ 
+                /* Chip inti surat: menyesuaikan lebar layar HP */
+                div[style*="psychology"] span[style*="border-radius: 999px"] {
+                    font-size: 0.82rem !important;
+                    padding: 3px 10px !important;
+                }
+ 
+                /* Tombol feedback: stack vertikal di HP */
+                div[data-testid="stHorizontalBlock"] {
+                    flex-wrap: wrap !important;
+                }
+                div[data-testid="stHorizontalBlock"] button {
+                    font-size: 0.8rem !important;
+                    height: 46px !important;
+                    padding: 0 8px !important;
+                }
             }
             </style>
             """, unsafe_allow_html=True)
+
 
             default_val = st.session_state.pop('temp_search', '') 
             user_input = st.text_input("Ketik perihal surat:", value=default_val, placeholder="Contoh: penyusunan rencana kerja anggaran...", key="input_halaman_ai")
