@@ -1291,13 +1291,13 @@ def smart_classify(user_input, df, top_n=3):
                 hasil_akhir.append((top_10_kandidat[idx_kandidat]['idx'], skor_simulasi))
                 
         if hasil_akhir:
-            return hasil_akhir
+            return hasil_akhir, inti_dari_llm # <--- TAMBAHKAN , inti_dari_llm
             
     except Exception as e:
         st.error(f"🚨 ERROR GROQ (Tahap Juri AI): {e}")
         
     # Fallback
-    return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]]
+    return [(item['idx'], item['skor']) for item in top_10_kandidat[:top_n]], inti_dari_llm # <--- TAMBAHKAN , inti_dari_llm
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
 def dapatkan_sapaan():
@@ -2126,14 +2126,23 @@ def halaman_utama():
                     simpan_riwayat_csv(st.session_state['nama'], user_input)
 
                 with st.spinner('AI sedang membedah dokumen Anda...'):
-                    results = smart_classify(user_input, df)
+                    # TANGKAP HASIL INTI SURAT DARI FUNGSI
+                    results, inti_dari_llm = smart_classify(user_input, df) 
                     
                     if results:
-                        # BANNER SUKSES KUSTOM
-                        st.markdown("""
-                        <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:center; gap:10px;">
+                        # BANNER SUKSES KUSTOM & KOTAK HASIL EKSTRAKSI (ADAPTIF LIGHT/DARK MODE)
+                        st.markdown(f"""
+                        <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:center; gap:10px;">
                             <span class="material-symbols-rounded" style="color:#009DFF;">check_circle</span>
                             <div><span style="font-weight: 700; color: #0369A1;">Analisis Selesai!</span> <span style="color:#0F172A; font-size:0.95rem;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</span></div>
+                        </div>
+                        
+                        <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
+                            <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
+                            <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5;">
+                                <strong>Inti Substansi (Hasil Bedah AI):</strong> <br>
+                                <span style="color: var(--text-subtitle); font-style: italic;">"{inti_dari_llm.title()}"</span>
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
                         
