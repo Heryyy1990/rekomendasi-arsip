@@ -422,6 +422,8 @@ Output: <inti>sertifikasi uji tipe kendaraan bermotor, kualifikasi petugas termi
 [KASUS PEMERINTAHAN UMUM]
 Input: "Penyampaian laporan hasil perjalanan dinas ke Arsip Nasional"
 Output: <inti>perjalanan dinas</inti>
+Input: "perjalanan dinas pegawai ke selat hormuz"
+Output: <inti>perjalanan dinas luar negeri</inti>
 Input: "Persetujuan draf jadwal retensi arsip dan pemusnahan arsip inaktif"
 Output: <inti>jadwal retensi arsip, pemusnahan arsip inaktif</inti>
 Input: "apel gabungan"
