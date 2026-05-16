@@ -1504,9 +1504,11 @@ def halaman_utama():
         with st.sidebar:
             st.markdown("""
             <style>
-            /* 1. Ubah Background Sidebar Jadi Biru Gelap Gradasi */
-            [data-testid="stSidebar"] {
+            /* 1. Ubah Background Sidebar Jadi Biru Gelap Gradasi (Kebal Dark Mode) */
+            [data-testid="stSidebar"], 
+            [data-testid="stSidebar"] > div:first-child {
                 background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%) !important;
+                background-color: transparent !important;
                 border-right: none !important;
             }
             [data-testid="stSidebar"] * {
