@@ -2655,12 +2655,12 @@ def halaman_utama():
             st.write("SIKAP (Sistem Informasi Klasifikasi Arsip Pintar) adalah inovasi digital cerdas yang dirancang untuk membantu aparatur pemerintah daerah dalam mengklasifikasikan dan menemukan kode arsip secara presisi, cepat, dan modern.")
             
             st.markdown("""
-            <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: #FFFFFF; border-left: 4px solid #009DFF; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+            <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: var(--card-bg); color: var(--text-title); border-left: 4px solid #009DFF; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                 <strong>Versi Aplikasi:</strong> Ver. 1.0<br>
                 <strong>Status:</strong> Rilis Perdana
             </div>
             """, unsafe_allow_html=True)
-
+            
         # --- HALAMAN 8: PROFIL SAYA ---
         elif st.session_state.page == 'Profil Saya':
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">manage_accounts</span> Pengaturan Profil</div>', unsafe_allow_html=True)
