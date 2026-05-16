@@ -2456,7 +2456,6 @@ def halaman_utama():
                 overflow: hidden !important;
             }
             
-            /* Sembunyikan teks sistem bawaan (JURUS ANTI HANTU) */
             div[data-testid="stExpander"] > details > summary {
                 padding: 15px 20px !important;
                 background: var(--expander-bg) !important;
@@ -2466,7 +2465,6 @@ def halaman_utama():
                 color: transparent !important;
             }
             
-            /* Bangkitkan kembali teks judul kita dengan font Poppins */
             div[data-testid="stExpander"] > details > summary p {
                 font-weight: 700 !important;
                 color: var(--text-title) !important;
@@ -2498,17 +2496,17 @@ def halaman_utama():
                 transition: transform 0.3s ease !important;
             }
             div[data-testid="stImage"] img:hover {
-                transform: scale(1.01); /* Efek pop-up tipis saat kursor mendekat */
+                transform: scale(1.01);
             }
             
             /* --- PENGATURAN GAMBAR KHUSUS DI HP (MOBILE) --- */
             @media screen and (max-width: 768px) {
                 div[data-testid="stImage"] img {
-                    max-width: 100% !important; /* Paksa 100% agar teks gambar terbaca di HP */
+                    max-width: 100% !important;
                     border-radius: 8px !important;
                 }
                 div[data-testid="stExpanderDetails"] {
-                    padding: 15px 10px !important; /* Lebarkan sedikit ruang teks di HP */
+                    padding: 15px 10px !important;
                 }
             }
             </style>
@@ -2526,7 +2524,7 @@ def halaman_utama():
 
             # --- BAB 1: LOGIN ---
             with st.expander("❯ 1. Cara Masuk (Login)"):
-                st.image("panduan_login.png", caption="Tampilan Halaman Login SIKAP", use_container_width=True)
+                # st.image("panduan_login.png", caption="Tampilan Halaman Login SIKAP", use_container_width=True)
                 st.markdown("""
                 **Cara Masuk ke Aplikasi (Login):**
                 * **❶ Username:** Masukkan nama pengguna yang telah didaftarkan oleh Administrator pada kolom pertama.
@@ -2536,7 +2534,7 @@ def halaman_utama():
 
             # --- BAB 2: BERANDA ---
             with st.expander("❯ 2. Mengenal Halaman Utama (Beranda)"):
-                st.image("panduan_beranda.png", caption="Tampilan Navigasi Halaman Utama SIKAP", use_container_width=True)
+                # st.image("panduan_beranda.png", caption="Tampilan Navigasi Halaman Utama SIKAP", use_container_width=True)
                 st.markdown("""
                 **Mengenal Fitur di Halaman Beranda:**
                 * **❶ Pencarian Cepat:** Anda dapat langsung mengetikkan perihal surat pada kolom yang tersedia di tengah layar untuk mencari kode klasifikasi tanpa harus berpindah menu.
@@ -2553,14 +2551,14 @@ def halaman_utama():
                 * Klik menu **Pencarian AI** di sidebar kiri atau gunakan kotak pencarian di halaman Beranda.
                 * **❶ Ketik Perihal Surat:** Pada kolom yang tersedia, ketikkan perihal surat atau dokumen Anda (Contoh: *"perjalanan dinas pegawai ke kendari"*). Kemudian tekan **Enter** pada *keyboard* Anda.
                 """)
-                st.image("panduan_ai_awal.png", caption="Proses Mengetik Perihal Surat", use_container_width=True)
+                # st.image("panduan_ai_awal.png", caption="Proses Mengetik Perihal Surat", use_container_width=True)
 
                 st.markdown("""
                 ---
                 **Langkah Lanjutan (Membaca Hasil & Validasi):**
                 Setelah AI memproses teks Anda, sistem akan menampilkan layar hasil analisis seperti di bawah ini:
                 """)
-                st.image("panduan_ai_hasil.png", caption="Tampilan Hasil Bedah AI dan Rekomendasi Kode", use_container_width=True)
+                # st.image("panduan_ai_hasil.png", caption="Tampilan Hasil Bedah AI dan Rekomendasi Kode", use_container_width=True)
 
                 st.markdown("""
                 * **❷ Inti Substansi (Hasil Bedah AI):** Sistem pertama-tama akan membuang kata-basi dan menangkap inti urusannya saja (Misal: *"Perjalanan Dinas"*). Ini membuktikan AI memahami esensi surat Anda.
@@ -2577,14 +2575,14 @@ def halaman_utama():
                 * **❶ Buka Halaman:** Klik menu **Jelajah Kode** di sidebar kiri. Anda akan melihat daftar Rumpun Utama (Primer) klasifikasi arsip dari 000 hingga 900.
                 * **❷ Pilih Rumpun:** Klik pada salah satu kotak Rumpun yang ingin Anda lihat (misalnya: *> 000 - Umum*).
                 """)
-                st.image("panduan_jelajah_awal.png", caption="Memilih Rumpun Utama Klasifikasi", use_container_width=True)
+                # st.image("panduan_jelajah_awal.png", caption="Memilih Rumpun Utama Klasifikasi", use_container_width=True)
 
                 st.markdown("""
                 ---
                 **Langkah 2: Menelusuri Hierarki (Anak & Cucu Kode)**
                 Setelah Anda mengklik salah satu Rumpun Utama, struktur di dalamnya akan terbuka kebawah.
                 """)
-                st.image("panduan_jelajah_buka.png", caption="Struktur Detail Hierarki Kode yang Terbuka", use_container_width=True)
+                # st.image("panduan_jelajah_buka.png", caption="Struktur Detail Hierarki Kode yang Terbuka", use_container_width=True)
 
                 st.markdown("""
                 * **❸ Buka Turunan Kode:** Perhatikan ikon panah kecil (❯) di ujung kanan setiap kotak. Klik kotak tersebut untuk melihat rincian kode turunan di bawahnya.
@@ -2597,7 +2595,7 @@ def halaman_utama():
 
             # --- BAB 5: RIWAYAT ---
             with st.expander("❯ 5. Melihat dan Menghapus Riwayat Pencarian"):
-                st.image("panduan_riwayat.png", caption="Tampilan Halaman Riwayat Pencarian", use_container_width=True)
+                # st.image("panduan_riwayat.png", caption="Tampilan Halaman Riwayat Pencarian", use_container_width=True)
                 st.markdown("""
                 Sistem SIKAP secara otomatis mengingat perihal surat yang pernah Anda cari selama menggunakan aplikasi agar Anda tidak perlu mengetik ulang pencarian yang sama.
                 
@@ -2607,9 +2605,20 @@ def halaman_utama():
                 * **❸ Hapus Riwayat:** Jika ingin membersihkan daftar ini, cukup klik tombol **Hapus Riwayat**. Seluruh riwayat Anda akan langsung dibersihkan dari layar.
                 """)
 
-            # --- BAB 6: TENTANG SIKAP ---
-            with st.expander("❯ 6. Informasi Tentang SIKAP"):
-                st.image("panduan_tentang.png", caption="Tampilan Halaman Tentang SIKAP", use_container_width=True)
+            # --- BAB 6: PETUNJUK PENGGUNAAN (HALAMAN INI) ---
+            with st.expander("❯ 6. Membaca Petunjuk Penggunaan"):
+                # st.image("panduan_petunjuk.png", caption="Tampilan Halaman Petunjuk Penggunaan", use_container_width=True)
+                st.markdown("""
+                Halaman ini berisi kumpulan panduan lengkap mengenai tata cara penggunaan aplikasi SIKAP dari awal hingga akhir.
+                
+                **Cara Mengakses Panduan:**
+                * **❶ Buka Halaman:** Klik menu **Petunjuk Penggunaan** pada bagian *Lainnya* di sidebar sebelah kiri.
+                * **❷ Pilih Topik:** Klik pada salah satu baris panduan (seperti yang sedang Anda lakukan saat ini) untuk melihat langkah-langkah detail beserta gambarnya.
+                """)
+
+            # --- BAB 7: TENTANG SIKAP ---
+            with st.expander("❯ 7. Informasi Tentang SIKAP"):
+                # st.image("panduan_tentang.png", caption="Tampilan Halaman Tentang SIKAP", use_container_width=True)
                 st.markdown("""
                 Halaman ini berisi profil singkat mengenai identitas, tujuan pembuatan, dan versi dari aplikasi SIKAP.
                 
@@ -2618,9 +2627,9 @@ def halaman_utama():
                 * **❷ Lihat Detail Informasi:** Pada halaman ini, Anda dapat membaca deskripsi mengenai latar belakang inovasi SIKAP, beserta informasi **Versi Aplikasi** dan **Status Rilis** untuk memastikan sistem berjalan pada versi resmi.
                 """)
 
-            # --- BAB 7: PROFIL & LOGOUT ---
-            with st.expander("❯ 7. Pengaturan Profil dan Keluar (Logout)"):
-                st.image("panduan_profil.png", caption="Tampilan Halaman Pengaturan Profil", use_container_width=True)
+            # --- BAB 8: PROFIL & LOGOUT ---
+            with st.expander("❯ 8. Pengaturan Profil dan Keluar (Logout)"):
+                # st.image("panduan_profil.png", caption="Tampilan Halaman Pengaturan Profil", use_container_width=True)
                 st.markdown("""
                 Halaman ini digunakan untuk mengelola data akun pribadi Anda agar tetap aman.
                 
