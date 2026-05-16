@@ -143,13 +143,13 @@ def validasi_login(user, pwd):
         st.error(f"File pengguna.csv tidak ditemukan atau format salah: {e}")
     return False, None, None
 
-# --- FUNGSI RIWAYAT PERMANEN (CSV) ---
+# --- FUNGSI RIWAYAT PERMANEN (SOFT DELETE) ---
 def simpan_riwayat_csv(nama_user, pencarian):
     file_riwayat = 'riwayat_pencarian.csv'
     waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'pencarian': [pencarian]})
+    # KUNCI: Kita tambahkan kolom baru bernama 'status_tampil'
+    df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'pencarian': [pencarian], 'status_tampil': ['aktif']})
     
-    # PERBAIKAN: Baca, Gabungkan, lalu Simpan (Anti Hilang Header)
     if os.path.isfile(file_riwayat) and os.path.getsize(file_riwayat) > 0:
         try:
             df_lama = pd.read_csv(file_riwayat)
@@ -162,14 +162,16 @@ def simpan_riwayat_csv(nama_user, pencarian):
     df_final.to_csv(file_riwayat, index=False)
     sync_to_drive(file_riwayat)
 
-
 def baca_riwayat_csv(nama_user):
     file_riwayat = 'riwayat_pencarian.csv'
     if os.path.isfile(file_riwayat):
         try:
             df_riwayat = pd.read_csv(file_riwayat)
-            # Pastikan kolom 'nama' dan 'pencarian' ada untuk mencegah error
             if 'nama' in df_riwayat.columns and 'pencarian' in df_riwayat.columns:
+                # KUNCI: Filter data, JANGAN baca yang statusnya 'dihapus'
+                if 'status_tampil' in df_riwayat.columns:
+                    df_riwayat = df_riwayat[df_riwayat['status_tampil'] != 'dihapus']
+                    
                 riwayat_user = df_riwayat[df_riwayat['nama'] == nama_user]['pencarian'].tolist()
                 return list(dict.fromkeys(riwayat_user)) # Hapus duplikat
         except:
@@ -2265,14 +2267,37 @@ def halaman_utama():
         elif st.session_state.page == 'Riwayat':
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">history</span> Riwayat Pencarian Lengkap</div>', unsafe_allow_html=True)
     
-            
             if st.session_state.search_history:
                 for riwayat in reversed(st.session_state.search_history):
                     st.markdown(f"🔹 {riwayat}")
                 
+                # --- TOMBOL HAPUS SEMU (SOFT DELETE) ---
                 if st.button("Hapus Riwayat"):
+                    # 1. Kosongkan tampilan di layar user
                     st.session_state.search_history = []
-                    # (Opsional: Kamu bisa tambahkan fungsi hapus file CSV di Drive juga di sini)
+                    
+                    # 2. Ubah status di CSV menjadi "dihapus" (bukan dibuang fisik)
+                    file_riwayat = 'riwayat_pencarian.csv'
+                    if os.path.exists(file_riwayat):
+                        try:
+                            df_riwayat = pd.read_csv(file_riwayat, dtype=str)
+                            if 'nama' in df_riwayat.columns:
+                                # Jika kolom status belum ada (untuk file CSV lama), kita buatkan
+                                if 'status_tampil' not in df_riwayat.columns:
+                                    df_riwayat['status_tampil'] = 'aktif'
+                                    
+                                # Ganti status menjadi 'dihapus' HANYA untuk user yang sedang login
+                                mask = df_riwayat['nama'] == st.session_state['nama']
+                                df_riwayat.loc[mask, 'status_tampil'] = 'dihapus'
+                                
+                                # Simpan perubahan
+                                df_riwayat.to_csv(file_riwayat, index=False)
+                                sync_to_drive(file_riwayat)
+                        except Exception as e:
+                            st.error(f"Gagal menyembunyikan riwayat: {e}")
+                            
+                    st.success("Riwayat berhasil dihapus dari tampilan Anda!")
+                    time.sleep(1) # Jeda agar pesan terbaca sebelum refresh
                     st.rerun()
             else:
                 st.info("Belum ada riwayat.")
