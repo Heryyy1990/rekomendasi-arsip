@@ -2522,22 +2522,6 @@ def halaman_utama():
                             
                             st.markdown('<div style="background:#D1FAE5; border-left:4px solid #10B981; padding:12px; border-radius:8px; display:flex; align-items:center; gap:8px; margin-top:10px;"><span class="material-symbols-rounded" style="color:#10B981;">check_circle</span><span style="color:#064E3B; font-size:0.9rem;">Profil berhasil diperbarui!</span></div>', unsafe_allow_html=True)
                             st.rerun()
-
-            # Statistik (Tetap dipertahankan di bawah)
-            st.markdown('<div style="display:flex; align-items:center; gap:8px; margin-top:40px; margin-bottom:10px;"><span class="material-symbols-rounded" style="color:#475569; font-size:1.4rem;">trending_up</span><span style="font-weight:700; color:#0F172A; font-size:1.1rem; font-family:\'Poppins\';">Statistik Penggunaan</span></div>', unsafe_allow_html=True)
-            riwayat_pribadi = baca_riwayat_csv(st.session_state['nama'])
-            
-            st.markdown(f"""
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 20px; border-radius: 16px; display:flex; align-items:center; gap:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 400px;">
-                <div style="background: #E0F2FE; width: 54px; height: 54px; border-radius: 14px; display:flex; align-items:center; justify-content:center;">
-                    <span class="material-symbols-rounded" style="color:#009DFF; font-size:2rem;">manage_search</span>
-                </div>
-                <div>
-                    <div style="color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:4px;">Total Pencarian AI</div>
-                    <div style="color: #0F172A; font-size: 1.6rem; font-weight: 800; line-height: 1;">{len(riwayat_pribadi)} <span style="font-size: 1rem; color: #475569; font-weight: 600;">kali</span></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
         
 
     except Exception as e:
