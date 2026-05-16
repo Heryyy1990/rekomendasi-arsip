@@ -2130,19 +2130,19 @@ def halaman_utama():
                     results, inti_dari_llm = smart_classify(user_input, df) 
                     
                     if results:
-                        # BANNER SUKSES KUSTOM & KOTAK HASIL EKSTRAKSI (ADAPTIF LIGHT/DARK MODE)
+                        # KOTAK HASIL EKSTRAKSI DULU, BARU BANNER SUKSES (ADAPTIF LIGHT/DARK MODE)
                         st.markdown(f"""
-                        <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:center; gap:10px;">
-                            <span class="material-symbols-rounded" style="color:#009DFF;">check_circle</span>
-                            <div><span style="font-weight: 700; color: #0369A1;">Analisis Selesai!</span> <span style="color:#0F172A; font-size:0.95rem;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</span></div>
-                        </div>
-                        
-                        <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
+                        <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
                             <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
                             <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5;">
                                 <strong>Inti Substansi (Hasil Bedah AI):</strong> <br>
                                 <span style="color: var(--text-subtitle); font-style: italic;">"{inti_dari_llm.title()}"</span>
                             </div>
+                        </div>
+
+                        <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:center; gap:10px;">
+                            <span class="material-symbols-rounded" style="color:#009DFF;">check_circle</span>
+                            <div><span style="font-weight: 700; color: #0369A1;">Analisis Selesai!</span> <span style="color:#0F172A; font-size:0.95rem;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</span></div>
                         </div>
                         """, unsafe_allow_html=True)
                         
