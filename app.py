@@ -487,6 +487,13 @@ st.markdown("""
     box-sizing: border-box !important;
 }
 
+/* ======================================================= */
+/* JURUS ANTI REFRESH SAAT SCROLL KE ATAS DI HP            */
+/* ======================================================= */
+html, body, [data-testid="stAppViewContainer"] {
+    overscroll-behavior-y: none !important;
+}
+
 :root {
     /* Background Utama & Kartu */
     --bg-app: #F8FAFC; 
