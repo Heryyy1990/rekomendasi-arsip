@@ -2442,12 +2442,50 @@ def halaman_utama():
             st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">menu_book</span> Panduan Penggunaan SIKAP</div>', unsafe_allow_html=True)
             
             # =========================================================
-            # JURUS GAIB: CSS PEMISAH TAMPILAN GAMBAR LAPTOP VS HP
+            # CSS ANTI-HANTU & RESPONSIVE IMAGE UNTUK HP VS LAPTOP
             # =========================================================
             st.markdown("""
             <style>
-            /* --- 1. PENGATURAN DI LAPTOP / PC --- */
-            /* Gambar dibuat proporsional (75%), melengkung, dan otomatis di tengah */
+            /* --- KOTAK EXPANDER & ANTI HANTU "ARROW" --- */
+            div[data-testid="stExpander"] {
+                border: 2px solid var(--input-border) !important;
+                border-radius: 16px !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.05) !important;
+                background: var(--card-bg) !important;
+                margin-bottom: 15px !important;
+                overflow: hidden !important;
+            }
+            
+            /* Sembunyikan teks sistem bawaan (JURUS ANTI HANTU) */
+            div[data-testid="stExpander"] > details > summary {
+                padding: 15px 20px !important;
+                background: var(--expander-bg) !important;
+                border-bottom: 1px solid var(--card-border) !important;
+                border-radius: 16px 16px 0 0 !important;
+                font-size: 0px !important; 
+                color: transparent !important;
+            }
+            
+            /* Bangkitkan kembali teks judul kita dengan font Poppins */
+            div[data-testid="stExpander"] > details > summary p {
+                font-weight: 700 !important;
+                color: var(--text-title) !important;
+                font-size: 1.05rem !important;
+                font-family: 'Poppins', sans-serif !important;
+                margin: 0 !important;
+            }
+            
+            div[data-testid="stExpander"] > details > summary svg {
+                color: var(--text-muted) !important;
+                width: 24px !important;
+                height: 24px !important;
+            }
+            
+            div[data-testid="stExpanderDetails"] {
+                padding: 25px 20px !important;
+            }
+
+            /* --- PENGATURAN GAMBAR DI LAPTOP / PC --- */
             div[data-testid="stImage"] img {
                 max-width: 75% !important;
                 height: auto !important;
@@ -2460,18 +2498,17 @@ def halaman_utama():
                 transition: transform 0.3s ease !important;
             }
             div[data-testid="stImage"] img:hover {
-                transform: scale(1.01); /* Efek pop-up tipis saat di-hover di laptop */
+                transform: scale(1.01); /* Efek pop-up tipis saat kursor mendekat */
             }
             
-            /* --- 2. PENGATURAN KHUSUS DI HP (MOBILE) --- */
-            /* Menggunakan Media Query murni sehingga TIDAK AKAN mengganggu laptop */
+            /* --- PENGATURAN GAMBAR KHUSUS DI HP (MOBILE) --- */
             @media screen and (max-width: 768px) {
                 div[data-testid="stImage"] img {
-                    max-width: 100% !important; /* Paksa 100% memenuhi layar HP agar teks terbaca */
+                    max-width: 100% !important; /* Paksa 100% agar teks gambar terbaca di HP */
                     border-radius: 8px !important;
                 }
                 div[data-testid="stExpanderDetails"] {
-                    padding: 15px 10px !important; /* Merapatkan margin dalam di HP agar hemat ruang */
+                    padding: 15px 10px !important; /* Lebarkan sedikit ruang teks di HP */
                 }
             }
             </style>
@@ -2482,13 +2519,13 @@ def halaman_utama():
             <div style="background: var(--card-bg); border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: var(--card-shadow); border-top: 1px solid var(--card-border); border-right: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border);">
                 <div style="font-weight: 700; color: var(--text-title); font-size: 1.1rem; margin-bottom: 5px;">Selamat Datang di Menu Panduan!</div>
                 <div style="color: var(--text-subtitle); font-size: 0.95rem; line-height: 1.5;">
-                    Sistem Informasi Klasifikasi Arsip Pintar (SIKAP) dirancang untuk membantu Anda menemukan kode klasifikasi arsip daerah dengan cepat dan presisi. Silakan buka expander di bawah ini untuk mempelajari langkah demi langkah penggunaan sistem.
+                    Sistem Informasi Klasifikasi Arsip Pintar (SIKAP) dirancang untuk membantu Anda menemukan kode klasifikasi arsip daerah dengan cepat dan presisi. Silakan buka menu di bawah ini untuk mempelajari langkah demi langkah penggunaan sistem.
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
             # --- BAB 1: LOGIN ---
-            with st.expander("🔑 1. Cara Masuk (Login)"):
+            with st.expander("❯ 1. Cara Masuk (Login)"):
                 st.image("panduan_login.png", caption="Tampilan Halaman Login SIKAP", use_container_width=True)
                 st.markdown("""
                 **Cara Masuk ke Aplikasi (Login):**
@@ -2498,7 +2535,7 @@ def halaman_utama():
                 """)
 
             # --- BAB 2: BERANDA ---
-            with st.expander("🏠 2. Mengenal Halaman Utama (Beranda)"):
+            with st.expander("❯ 2. Mengenal Halaman Utama (Beranda)"):
                 st.image("panduan_beranda.png", caption="Tampilan Navigasi Halaman Utama SIKAP", use_container_width=True)
                 st.markdown("""
                 **Mengenal Fitur di Halaman Beranda:**
@@ -2508,7 +2545,7 @@ def halaman_utama():
                 """)
 
             # --- BAB 3: PENCARIAN AI ---
-            with st.expander("🤖 3. Cara Menggunakan Pencarian AI (Cerdas)"):
+            with st.expander("❯ 3. Cara Menggunakan Pencarian AI (Cerdas)"):
                 st.markdown("""
                 Ini adalah fitur unggulan SIKAP. Anda tidak perlu menghafal ratusan kode klasifikasi, cukup ceritakan perihal surat Anda secara natural menggunakan bahasa sehari-hari!
                 
@@ -2532,7 +2569,7 @@ def halaman_utama():
                 """)
 
             # --- BAB 4: JELAJAH KODE ---
-            with st.expander("📁 4. Cara Menjelajah Kode Secara Manual"):
+            with st.expander("❯ 4. Cara Menjelajah Kode Secara Manual"):
                 st.markdown("""
                 Jika Anda ingin melihat struktur kode secara keseluruhan layaknya buku induk klasifikasi arsip, Anda bisa menggunakan fitur ini untuk menelusuri hierarki tradisional.
                 
@@ -2545,7 +2582,7 @@ def halaman_utama():
                 st.markdown("""
                 ---
                 **Langkah 2: Menelusuri Hierarki (Anak & Cucu Kode)**
-                Setelah Anda mengklik salah satu Rumpun Utama, struktur di dalamnya akan terbuka ke bawah.
+                Setelah Anda mengklik salah satu Rumpun Utama, struktur di dalamnya akan terbuka kebawah.
                 """)
                 st.image("panduan_jelajah_buka.png", caption="Struktur Detail Hierarki Kode yang Terbuka", use_container_width=True)
 
@@ -2559,7 +2596,7 @@ def halaman_utama():
                 """)
 
             # --- BAB 5: RIWAYAT ---
-            with st.expander("🕒 5. Melihat dan Menghapus Riwayat Pencarian"):
+            with st.expander("❯ 5. Melihat dan Menghapus Riwayat Pencarian"):
                 st.image("panduan_riwayat.png", caption="Tampilan Halaman Riwayat Pencarian", use_container_width=True)
                 st.markdown("""
                 Sistem SIKAP secara otomatis mengingat perihal surat yang pernah Anda cari selama menggunakan aplikasi agar Anda tidak perlu mengetik ulang pencarian yang sama.
@@ -2571,7 +2608,7 @@ def halaman_utama():
                 """)
 
             # --- BAB 6: TENTANG SIKAP ---
-            with st.expander("ℹ️ 6. Informasi Tentang SIKAP"):
+            with st.expander("❯ 6. Informasi Tentang SIKAP"):
                 st.image("panduan_tentang.png", caption="Tampilan Halaman Tentang SIKAP", use_container_width=True)
                 st.markdown("""
                 Halaman ini berisi profil singkat mengenai identitas, tujuan pembuatan, dan versi dari aplikasi SIKAP.
@@ -2582,7 +2619,7 @@ def halaman_utama():
                 """)
 
             # --- BAB 7: PROFIL & LOGOUT ---
-            with st.expander("👤 7. Pengaturan Profil dan Keluar (Logout)"):
+            with st.expander("❯ 7. Pengaturan Profil dan Keluar (Logout)"):
                 st.image("panduan_profil.png", caption="Tampilan Halaman Pengaturan Profil", use_container_width=True)
                 st.markdown("""
                 Halaman ini digunakan untuk mengelola data akun pribadi Anda agar tetap aman.
