@@ -420,11 +420,12 @@ Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
  
 def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
     """
-    Panggil Gemini 2.5 Flash dengan exponential backoff dan JSON Mode.
+    Panggil Gemini 2.5 Flash dengan thinking dimatikan.
+    Thinking_budget=0 mencegah konsumsi kuota berlebihan.
     """
     if not GEMINI_TERSEDIA:
         return None
- 
+
     for percobaan in range(max_retries):
         try:
             response = client_gemini.models.generate_content(
@@ -432,24 +433,23 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
-                    max_output_tokens=1000, # <--- KUNCI 1: NAFAS DIPERPANJANG JADI 1000
-                    response_mime_type="application/json", # <--- KUNCI 2: PAKSA KELUARKAN JSON MURNI
+                    max_output_tokens=500,
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=0  # Matikan thinking mode
+                    )
                 )
             )
-            raw = response.text.strip()
-            return raw
-            
+            return response.text.strip()
+
         except Exception as e:
             pesan = str(e).lower()
-            # 503 = server sibuk, 429 = rate limit → worth retrying
-            if any(kode in pesan for kode in ["503", "429", "quota", "overloaded", "busy"]):
+            if any(k in pesan for k in ["503", "429", "quota", "overloaded", "busy", "rate"]):
                 if percobaan < max_retries - 1:
-                    jeda = 2 ** percobaan  # 1s, 2s, 4s
+                    jeda = (2 ** percobaan) * 2  # 2s, 4s, 8s — lebih sabar
                     time.sleep(jeda)
                     continue
-            # Error lain (auth, format, dll) → langsung ke fallback
             break
- 
+
     return None
  
     for percobaan in range(max_retries):
