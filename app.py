@@ -419,14 +419,32 @@ Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
  
  
 def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
-    """
-    Panggil Gemini 2.5 Flash dengan exponential backoff.
-    Mengembalikan string respons atau None jika semua retry gagal.
-    """
-    # --- CCTV 1: CEK APAKAH GEMINI TERBACA AKTIF ---
-    st.sidebar.warning(f"Cek Status Gemini: {GEMINI_TERSEDIA}")
     if not GEMINI_TERSEDIA:
         return None
+ 
+    for percobaan in range(max_retries):
+        try:
+            response = client_gemini.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.0,
+                    max_output_tokens=200,
+                )
+            )
+            raw = response.text.strip()
+            
+            # --- CCTV ANTI-CSS: TAMPILKAN HASIL MENTAH PAKAI KOTAK HIJAU RAKSASA ---
+            st.markdown(f"<div style='background:green; color:white; padding:20px; font-size:18px; border-radius:10px; margin-bottom:10px;'><b>✅ GEMINI BERHASIL MENGELUARKAN TEKS:</b><br>{raw}</div>", unsafe_allow_html=True)
+            
+            return raw
+            
+        except Exception as e:
+            # --- CCTV ANTI-CSS: TAMPILKAN ERROR PAKAI KOTAK MERAH RAKSASA ---
+            st.markdown(f"<div style='background:red; color:white; padding:20px; font-size:18px; border-radius:10px; margin-bottom:10px;'><b>🚨 GEMINI MELEDAK ({type(e).__name__}):</b><br>{str(e)}</div>", unsafe_allow_html=True)
+            break
+            
+    return None
  
     for percobaan in range(max_retries):
         try:
