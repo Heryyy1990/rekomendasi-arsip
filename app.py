@@ -287,6 +287,8 @@ try:
 except Exception:
     GEMINI_TERSEDIA = False
 
+st.sidebar.caption(f"Gemini: {'✅' if GEMINI_TERSEDIA else '❌'}")
+
 
 KATA_PENGANTAR = {
     "penyampaian", "permohonan", "undangan", "laporan", "tindak",
@@ -340,6 +342,7 @@ def _fallback_ekstraksi_manual(teks):
         "kegiatan": "pelaksanaan",
         "produk": "laporan",
         "inti": inti,
+        "_model": "python",
     }
     return inti, atribut_default
  
@@ -521,6 +524,7 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
         data = _parse_json_atribut(raw_gemini)
         if data and _validasi_json_atribut(data):
             inti = str(data["inti"]).strip().lower()
+            data["_model"] = "gemini"
             return inti, data
  
     # === LAPIS 2: Groq (inti saja, atribut dikonstruksi minimal) ===
@@ -534,6 +538,7 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
             "kegiatan": "pelaksanaan",
             "produk": "laporan",
             "inti": inti_groq,
+            "_model": "groq",
         }
         return inti_groq, atribut_groq
  
@@ -1271,6 +1276,7 @@ def smart_classify(user_input, df, top_n=3):
     inti_dari_llm, atribut_6 = ekstrak_inti_surat(user_input)
     # atribut_6 akan dipakai di Perubahan 2 (filter rumpun)
     # Untuk sekarang, alur di bawahnya tidak berubah sama sekali
+    st.sidebar.info(f"Model Aktif: {atribut_6.get('_model')}")
     st.info(f"🧠 Inti: **{inti_dari_llm}**")
     st.json(atribut_6)
     
