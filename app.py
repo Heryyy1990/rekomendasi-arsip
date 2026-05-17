@@ -24,7 +24,6 @@ from groq import Groq
 from google import genai
 from google.genai import types
 
-st.sidebar.caption(f"Gemini: {'✅' if GEMINI_TERSEDIA else '❌'}")
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
