@@ -24,6 +24,7 @@ from groq import Groq
 from google import genai
 from google.genai import types
 
+st.sidebar.caption(f"Gemini: {'✅' if GEMINI_TERSEDIA else '❌'}")
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
@@ -433,7 +434,10 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
                     max_output_tokens=200,
                 )
             )
-            return response.text.strip()
+            raw = response.text.strip()
+            st.sidebar.code(raw[:200])  # Tampilkan 200 karakter pertama output Gemini
+            return raw
+            
  
         except Exception as e:
             pesan = str(e).lower()
