@@ -423,6 +423,8 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
     Panggil Gemini 2.5 Flash dengan exponential backoff.
     Mengembalikan string respons atau None jika semua retry gagal.
     """
+    # --- CCTV 1: CEK APAKAH GEMINI TERBACA AKTIF ---
+    st.sidebar.warning(f"Cek Status Gemini: {GEMINI_TERSEDIA}")
     if not GEMINI_TERSEDIA:
         return None
  
@@ -444,6 +446,8 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
         except Exception as e:
             st.sidebar.error(f"🚨 ERROR GEMINI: {e}")
             pesan = str(e).lower()
+            # --- CCTV 2: TANGKAP PESAN ERROR ASLI DARI GOOGLE ---
+            st.sidebar.error(f"🚨 GOOGLE API ERROR: {e}")
             # 503 = server sibuk, 429 = rate limit → worth retrying
             if any(kode in pesan for kode in ["503", "429", "quota", "overloaded", "busy"]):
                 if percobaan < max_retries - 1:
