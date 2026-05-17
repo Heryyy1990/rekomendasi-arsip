@@ -442,6 +442,7 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
             
  
         except Exception as e:
+            st.sidebar.error(f"🚨 ERROR GEMINI: {e}")
             pesan = str(e).lower()
             # 503 = server sibuk, 429 = rate limit → worth retrying
             if any(kode in pesan for kode in ["503", "429", "quota", "overloaded", "busy"]):
