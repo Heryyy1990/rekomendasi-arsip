@@ -419,6 +419,9 @@ Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
  
  
 def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
+    """
+    Panggil Gemini 2.5 Flash dengan exponential backoff dan JSON Mode.
+    """
     if not GEMINI_TERSEDIA:
         return None
  
@@ -429,21 +432,24 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
-                    max_output_tokens=200,
+                    max_output_tokens=1000, # <--- KUNCI 1: NAFAS DIPERPANJANG JADI 1000
+                    response_mime_type="application/json", # <--- KUNCI 2: PAKSA KELUARKAN JSON MURNI
                 )
             )
             raw = response.text.strip()
-            
-            # --- CCTV ANTI-CSS: TAMPILKAN HASIL MENTAH PAKAI KOTAK HIJAU RAKSASA ---
-            st.markdown(f"<div style='background:green; color:white; padding:20px; font-size:18px; border-radius:10px; margin-bottom:10px;'><b>✅ GEMINI BERHASIL MENGELUARKAN TEKS:</b><br>{raw}</div>", unsafe_allow_html=True)
-            
             return raw
             
         except Exception as e:
-            # --- CCTV ANTI-CSS: TAMPILKAN ERROR PAKAI KOTAK MERAH RAKSASA ---
-            st.markdown(f"<div style='background:red; color:white; padding:20px; font-size:18px; border-radius:10px; margin-bottom:10px;'><b>🚨 GEMINI MELEDAK ({type(e).__name__}):</b><br>{str(e)}</div>", unsafe_allow_html=True)
+            pesan = str(e).lower()
+            # 503 = server sibuk, 429 = rate limit → worth retrying
+            if any(kode in pesan for kode in ["503", "429", "quota", "overloaded", "busy"]):
+                if percobaan < max_retries - 1:
+                    jeda = 2 ** percobaan  # 1s, 2s, 4s
+                    time.sleep(jeda)
+                    continue
+            # Error lain (auth, format, dll) → langsung ke fallback
             break
-            
+ 
     return None
  
     for percobaan in range(max_retries):
