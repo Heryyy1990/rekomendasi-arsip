@@ -425,7 +425,7 @@ def _panggil_gemini(prompt: str, max_retries: int = 4) -> str | None:
     for percobaan in range(max_retries):
         try:
             response = client_gemini.models.generate_content(
-                model="gemini-1.5-flash",
+                model="gemini-1.5-flash-8b",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
