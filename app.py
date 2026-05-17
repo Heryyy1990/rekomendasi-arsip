@@ -420,8 +420,8 @@ Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
  
 def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
     """
-    Panggil Gemini 2.5 Flash dengan thinking dimatikan.
-    Thinking_budget=0 mencegah konsumsi kuota berlebihan.
+    Panggil Gemini dengan kecerdasan penuh (Thinking menyala natural).
+    Menggunakan jeda eksponensial yang lebih sabar untuk mengatasi limit kuota gratis.
     """
     if not GEMINI_TERSEDIA:
         return None
@@ -433,23 +433,26 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
-                    max_output_tokens=500,
-                    thinking_config=types.ThinkingConfig(
-                        thinking_budget=0  # Matikan thinking mode
-                    )
+                    max_output_tokens=1000, 
+                    response_mime_type="application/json"
+                    # KUNCI: Jangan masukkan thinking_config sama sekali di sini.
+                    # Biarkan Gemini berpikir seperlunya agar akurasi tetap tajam!
                 )
             )
             return response.text.strip()
-
+            
         except Exception as e:
             pesan = str(e).lower()
+            # Tangkap error limit kuota (429) atau server sibuk (503)
             if any(k in pesan for k in ["503", "429", "quota", "overloaded", "busy", "rate"]):
                 if percobaan < max_retries - 1:
-                    jeda = (2 ** percobaan) * 2  # 2s, 4s, 8s — lebih sabar
+                    # Jeda waktu diperlama: 2 detik -> 4 detik -> 8 detik
+                    jeda = (2 ** percobaan) * 2  
                     time.sleep(jeda)
                     continue
+            # Jika errornya hal lain, langsung menyerah ke Groq
             break
-
+            
     return None
  
     for percobaan in range(max_retries):
