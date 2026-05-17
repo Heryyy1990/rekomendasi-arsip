@@ -418,11 +418,7 @@ Input: "{teks_user}"
 Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
  
  
-def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
-    """
-    Panggil Gemini dengan kecerdasan penuh (Thinking menyala natural).
-    Menggunakan jeda eksponensial yang lebih sabar untuk mengatasi limit kuota gratis.
-    """
+def _panggil_gemini(prompt: str, max_retries: int = 4) -> str | None:
     if not GEMINI_TERSEDIA:
         return None
 
@@ -435,22 +431,21 @@ def _panggil_gemini(prompt: str, max_retries: int = 3) -> str | None:
                     temperature=0.0,
                     max_output_tokens=1000, 
                     response_mime_type="application/json"
-                    # KUNCI: Jangan masukkan thinking_config sama sekali di sini.
-                    # Biarkan Gemini berpikir seperlunya agar akurasi tetap tajam!
                 )
             )
             return response.text.strip()
             
         except Exception as e:
+            # --- CCTV MERAH RAKSASA ANTI-CSS ---
+            st.markdown(f"<div style='background:red; color:white; padding:20px; font-size:18px; border-radius:10px; margin-bottom:10px; position:relative; z-index:9999;'><b>🚨 ERROR GEMINI ({type(e).__name__}):</b><br>{str(e)}</div>", unsafe_allow_html=True)
+            
             pesan = str(e).lower()
-            # Tangkap error limit kuota (429) atau server sibuk (503)
-            if any(k in pesan for k in ["503", "429", "quota", "overloaded", "busy", "rate"]):
+            if any(k in pesan for k in ["429", "quota", "too many requests"]):
                 if percobaan < max_retries - 1:
-                    # Jeda waktu diperlama: 2 detik -> 4 detik -> 8 detik
-                    jeda = (2 ** percobaan) * 2  
-                    time.sleep(jeda)
+                    waktu_tunggu = (percobaan + 1) * 15
+                    st.sidebar.warning(f"⏳ Kena Limit! Menunggu {waktu_tunggu} detik...")
+                    time.sleep(waktu_tunggu)
                     continue
-            # Jika errornya hal lain, langsung menyerah ke Groq
             break
             
     return None
