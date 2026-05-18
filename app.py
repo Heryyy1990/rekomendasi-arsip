@@ -459,19 +459,17 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
     for percobaan in range(max_retries):
         try:
             chat = client.chat.completions.create(
-                # Kita coba gunakan nama model standar tanpa garis miring
-                model="qwen-2.5-32b", 
+                # Menggunakan ID model resmi yang direkomendasikan Groq
+                model="qwen/qwen3-32b", 
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.6,
                 top_p=0.95,
                 max_completion_tokens=1024,
-                # Kita nonaktifkan dulu baris di bawah ini agar tidak memicu error
-                # extra_body={"reasoning_format": "hidden"}, 
+                # Parameter extra_body sudah dihapus total agar tidak menyebabkan error
             )
             return chat.choices[0].message.content.strip()
 
         except Exception as e:
-            # Kode tambahan ini akan memunculkan error aslinya ke layar aplikasi
             import streamlit as st
             st.error(f"Peringatan Sistem: Gagal memanggil Qwen (Percobaan {percobaan+1}). Detail: {e}")
             
