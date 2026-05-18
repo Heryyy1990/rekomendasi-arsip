@@ -1373,7 +1373,7 @@ def smart_classify(user_input, df, top_n=3):
 
         kode_item       = str(df_subset.iloc[indeks]['kode'])
         jumlah_titik    = kode_item.count('.')
-        bonus_kedalaman = jumlah_titik * 0.20
+        bonus_kedalaman = jumlah_titik * 0.01
 
         skor_gabungan = (nilai_skor * 0.70) + (skor_samar * 0.30) + bonus_kedalaman
 
@@ -1383,7 +1383,7 @@ def smart_classify(user_input, df, top_n=3):
 
     sepuluh_kandidat_teratas = sorted(
         skor_awal, key=lambda x: x['skor'], reverse=True
-    )[:10]
+    )[:20]
 
     # 4. Juri AI — mengacu df asli lewat idx_asli
     daftar_kandidat = ""
