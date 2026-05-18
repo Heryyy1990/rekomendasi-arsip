@@ -471,13 +471,13 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
             chat = client.chat.completions.create(
                 model="qwen/qwen3-32b",
                 messages=[
-                    {"role": "system", "content": "Anda adalah mesin ekstraktor JSON. Anda hanya boleh membalas dengan JSON yang valid, tanpa teks apapun sebelum dan sesudahnya."},
+                    {"role": "system", "content": "Anda adalah asisten arsiparis. Berikan analisis dan keluarkan hasil akhirnya dalam bentuk block markdown JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1,  # <--- DITURUNKAN agar lebih patuh dan logikanya tidak liar
+                temperature=0.6,
                 top_p=0.95,
-                max_completion_tokens=1024,
-                response_format={"type": "json_object"} # <--- JALUR RESMI GROQ UNTUK JSON MURNI
+                max_completion_tokens=2048, # <-- DINAUKKAN AGAR PROSES BERPIKIR TIDAK TERPOTONG
+                # BARIS response_format TELAH DIHAPUS TOTAL
             )
             return chat.choices[0].message.content.strip()
 
