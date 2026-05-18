@@ -301,30 +301,48 @@ KATA_PENGANTAR = {
  
 # Nilai valid atribut jenjang per rumpun — hasil validasi Gemini
 REFERENSI_JENJANG = {
-    "umum": ["kepala daerah", "dprd", "pegawai umum",
-             "nasional", "provinsi", "kabupaten", "kecamatan", "desa"],
-    "pemerintahan": ["gubernur", "bupati", "sekda provinsi", "sekda kabupaten"],
-    "politik": ["dpr pusat", "dprd provinsi", "dprd kabupaten", "dprd kota"],
+    "umum": [
+        "kepala daerah", "dprd", "pegawai umum",
+        "nasional", "provinsi", "kabupaten", "kecamatan", "desa"
+    ],
+    "pemerintahan": [
+        "gubernur", "bupati", "sekda provinsi", "sekda kabupaten"
+    ],
+    "politik": [
+        "dpr pusat", "dprd provinsi", "dprd kabupaten", "dprd kota"
+    ],
     "keamanan": ["harian", "bulanan", "tahunan"],
-    "kesejahteraan": ["paud", "sd", "smp", "sma", "smk", "perguruan tinggi",
-                      "daerah", "nasional", "internasional",
-                      "rumah sakit", "puskesmas"],
-    "perekonomian": ["ikm", "industri kecil menengah", "industri besar",
-                     "dalam negeri", "luar negeri", "ekspor"],
-    "pekerjaan umum": ["nasional", "provinsi", "kabupaten", "kota", "desa"],
-    "pengawasan": ["kementerian", "lembaga pusat", "pemerintah provinsi",
-                   "pemerintah kabupaten", "pemerintah kota", "kelurahan", "desa"],
-    "kepegawaian": ["cpns", "pns", "pppk", "honorer",
-                    "golongan i", "golongan ii", "golongan iii", "golongan iv",
-                    "eselon i", "eselon ii", "eselon iii", "eselon iv",
-                    "jabatan fungsional"],
-    "keuangan": ["apbn", "apbd provinsi", "apbd kabupaten", "apbd kota", "apbdes"],
+    "kesejahteraan": [
+        "paud", "sd", "smp", "sma", "smk", "perguruan tinggi",
+        "daerah", "nasional", "internasional",
+        "rumah sakit", "puskesmas"
+    ],
+    "perekonomian": [
+        "ikm", "industri kecil menengah", "industri besar",
+        "dalam negeri", "luar negeri", "ekspor"
+    ],
+    "pekerjaan umum": [
+        "nasional", "provinsi", "kabupaten", "kota", "desa"
+    ],
+    "pengawasan": [
+        "kementerian", "lembaga pusat", "pemerintah provinsi",
+        "pemerintah kabupaten", "pemerintah kota", "kelurahan", "desa"
+    ],
+    "kepegawaian": [
+        "cpns", "pns", "pppk", "honorer",
+        "golongan i", "golongan ii", "golongan iii", "golongan iv",
+        "eselon i", "eselon ii", "eselon iii", "eselon iv",
+        "jabatan fungsional"
+    ],
+    "keuangan": [
+        "apbn", "apbd provinsi", "apbd kabupaten", "apbd kota", "apbdes"
+    ],
 }
  
  
 def _fallback_ekstraksi_manual(teks):
     """
-    Lapis terakhir: Python murni, tidak bisa gagal.
+    Lapis ke-3: ekstraksi Python murni, tidak pakai LLM, tidak bisa gagal.
     Mengembalikan (inti_string, atribut_dict) dengan nilai default.
     """
     teks_bersih = re.sub(r'[^a-zA-Z0-9\s(),/-]', ' ', teks.lower()).strip()
@@ -332,7 +350,6 @@ def _fallback_ekstraksi_manual(teks):
     while kata and kata[0] in KATA_PENGANTAR:
         kata.pop(0)
     inti = " ".join(kata[:10]) if kata else teks.lower()[:80]
- 
     atribut_default = {
         "konteks": "fasilitatif",
         "domain": "umum",
@@ -341,15 +358,15 @@ def _fallback_ekstraksi_manual(teks):
         "kegiatan": "pelaksanaan",
         "produk": "laporan",
         "inti": inti,
-        "_model": "python",
+        "_model": "python-manual",
     }
     return inti, atribut_default
  
  
 def _validasi_json_atribut(data: dict) -> bool:
     """
-    Cek apakah JSON dari LLM berisi semua kunci yang dibutuhkan
-    dan nilai 'inti' yang bermakna.
+    Validasi output JSON dari LLM.
+    Cek kelengkapan kunci dan nilai 'inti' yang bermakna.
     """
     kunci_wajib = {"konteks", "domain", "objek", "jenjang",
                    "kegiatan", "produk", "inti"}
@@ -359,7 +376,7 @@ def _validasi_json_atribut(data: dict) -> bool:
     if len(inti) < 3 or len(inti) > 200:
         return False
     penanda_gagal = [
-        "maaf", "saya tidak", "i cannot", "i don't",
+        "maaf", "saya tidak", "i cannot", "i don't", "i'm sorry",
         "as an ai", "note:", "catatan:", "semoga membantu",
     ]
     if any(p in inti.lower() for p in penanda_gagal):
@@ -367,157 +384,13 @@ def _validasi_json_atribut(data: dict) -> bool:
     return True
  
  
-def _bangun_prompt_6_atribut(teks_user: str) -> str:
-    """
-    Prompt ekstraktor 6 atribut — dioptimalkan untuk dataset
-    klasifikasi arsip pemerintahan daerah Indonesia.
-    """
-    referensi_jenjang_str = "\n".join(
-        f"  - {rumpun}: {', '.join(nilai)}"
-        for rumpun, nilai in REFERENSI_JENJANG.items()
-    )
- 
-    return f"""Anda adalah Arsiparis Senior ahli kearsipan pemerintahan daerah Indonesia.
-Tugas: Analisis perihal surat berikut dan ekstrak 6 atribut terstruktur.
- 
-ATURAN BERPIKIR (jalankan berurutan):
-1. KONTEKS: Apakah surat ini tentang kerumahtanggaan kantor / administrasi internal (fasilitatif) ATAU tentang pelayanan teknis ke masyarakat / program daerah (substantif)?
-2. DOMAIN: Bidang fungsi pemerintahan utamanya (umum/pemerintahan/kepegawaian/keuangan/kesejahteraan/perekonomian/pekerjaan umum/pengawasan/keamanan/politik)?
-3. OBJEK: Apa yang menjadi target/sasaran utama kegiatan ini? (bukan aktor, bukan lokasi)
-4. JENJANG: Apakah ada dimensi hierarki yang disebutkan atau tersirat? Gunakan referensi ini:
-{referensi_jenjang_str}
-   Jika tidak ada jenjang yang jelas, isi string kosong "".
-5. KEGIATAN: Apa jenis tindakannya? (perencanaan/pelaksanaan/pelaporan/pengawasan/evaluasi/koordinasi/pengadaan/penetapan)
-6. PRODUK: Apa output/tujuan surat ini? (sk/laporan/persetujuan/undangan/instruksi/perjanjian/sppd/rekomendasi)
-7. INTI: Gabungkan objek + jenjang (jika ada) + kegiatan menjadi frasa pencarian singkat (max 15 kata). Ini yang paling penting — harus cukup spesifik untuk membedakan kode arsip yang mirip.
- 
-PRINSIP KRITIS:
-- Jika objek spesifik teridentifikasi → ABAIKAN kode umum meski kata kuncinya cocok (contoh: "perizinan pertanian" bukan perizinan hukum umum).
-- Fasilitatif = urusan internal kantor (SPPD, pengadaan ATK, pemeliharaan kendaraan, rapat internal).
-- Substantif = program/layanan untuk masyarakat atau teknis sektoral.
- 
-CONTOH:
-Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
-Output JSON:
-{{"konteks":"fasilitatif","domain":"umum","objek":"perjalanan dinas","jenjang":"kepala daerah","kegiatan":"pelaksanaan","produk":"sppd","inti":"perjalanan dinas kepala daerah dalam negeri"}}
- 
-Input: "Pemotongan dana BOS SMA dan pelaporan ke Dinas Pendidikan"
-Output JSON:
-{{"konteks":"substantif","domain":"kesejahteraan","objek":"bantuan operasional sekolah","jenjang":"sma","kegiatan":"pelaporan","produk":"laporan","inti":"bantuan operasional sekolah bos sma"}}
- 
-Input: "Kenaikan pangkat PNS golongan III ke golongan IV"
-Output JSON:
-{{"konteks":"fasilitatif","domain":"kepegawaian","objek":"kenaikan pangkat","jenjang":"golongan iv","kegiatan":"penetapan","produk":"sk","inti":"kenaikan pangkat pns golongan iv"}}
- 
-Input: "Rekonsiliasi BMD dan tindak lanjut temuan BPK"
-Output JSON:
-{{"konteks":"fasilitatif","domain":"keuangan","objek":"barang milik daerah","jenjang":"","kegiatan":"pengawasan","produk":"laporan","inti":"rekonsiliasi barang milik daerah tindak lanjut temuan bpk"}}
- 
-SEKARANG KERJAKAN:
-Input: "{teks_user}"
-Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
- 
- 
-def _panggil_gemini(prompt: str, max_retries: int = 4) -> str | None:
-    if not GEMINI_TERSEDIA:
-        return None
-
-    for percobaan in range(max_retries):
-        try:
-            response = client_gemini.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.0,
-                    max_output_tokens=1000, 
-                    response_mime_type="application/json"
-                )
-            )
-            return response.text.strip()
-            
-        except Exception as e:
-            # --- CCTV MERAH RAKSASA ANTI-CSS ---
-            st.markdown(f"<div style='background:red; color:white; padding:20px; font-size:18px; border-radius:10px; margin-bottom:10px; position:relative; z-index:9999;'><b>🚨 ERROR GEMINI ({type(e).__name__}):</b><br>{str(e)}</div>", unsafe_allow_html=True)
-            
-            pesan = str(e).lower()
-            if any(k in pesan for k in ["429", "quota", "too many requests"]):
-                if percobaan < max_retries - 1:
-                    waktu_tunggu = (percobaan + 1) * 15
-                    st.sidebar.warning(f"⏳ Kena Limit! Menunggu {waktu_tunggu} detik...")
-                    time.sleep(waktu_tunggu)
-                    continue
-            break
-            
-    return None
- 
-    for percobaan in range(max_retries):
-        try:
-            response = client_gemini.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.0,
-                    max_output_tokens=200,
-                )
-            )
-            raw = response.text.strip()
-            st.sidebar.code(raw[:200])  # Tampilkan 200 karakter pertama output Gemini
-            return raw
-            
- 
-        except Exception as e:
-            st.sidebar.error(f"🚨 ERROR GEMINI: {e}")
-            pesan = str(e).lower()
-            # --- CCTV 2: TANGKAP PESAN ERROR ASLI DARI GOOGLE ---
-            st.sidebar.error(f"🚨 GOOGLE API ERROR: {e}")
-            # 503 = server sibuk, 429 = rate limit → worth retrying
-            if any(kode in pesan for kode in ["503", "429", "quota", "overloaded", "busy"]):
-                if percobaan < max_retries - 1:
-                    jeda = 2 ** percobaan  # 1s, 2s, 4s
-                    time.sleep(jeda)
-                    continue
-            # Error lain (auth, format, dll) → langsung ke fallback
-            break
- 
-    return None
- 
- 
-def _panggil_groq_ekstraksi(teks_user: str) -> str | None:
-    """
-    Groq fallback — prompt singkat, hanya ekstrak inti surat.
-    Mengembalikan string inti atau None jika gagal.
-    """
-    prompt_groq = f"""Ekstrak inti substansi surat berikut dalam 2-4 kata kunci bahasa Indonesia.
-Buang kata pengantar (penyampaian, permohonan, laporan, dll).
-Jawab HANYA dengan frasa inti, tanpa penjelasan.
- 
-Surat: "{teks_user}"
-Inti:"""
-    try:
-        chat = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt_groq}],
-            model="llama-3.3-70b-versatile",
-            temperature=0.0,
-            max_tokens=60,
-        )
-        hasil = chat.choices[0].message.content.strip().lower()
-        # Bersihkan sisa tag jika ada
-        hasil = re.sub(r'<.*?>', '', hasil).strip()
-        if 3 <= len(hasil) <= 150:
-            return hasil
-    except Exception:
-        pass
-    return None
- 
- 
 def _parse_json_atribut(raw: str) -> dict | None:
     """
-    Parse JSON dari output LLM. Toleran terhadap pembungkus markdown.
+    Parse JSON dari output LLM.
+    Toleran terhadap pembungkus markdown (```json ... ```).
     """
     try:
-        # Bersihkan pembungkus ```json ... ``` jika ada
         bersih = re.sub(r'```(?:json)?', '', raw).strip().rstrip('`').strip()
-        # Ambil substring JSON pertama yang valid
         awal = bersih.find('{')
         akhir = bersih.rfind('}')
         if awal == -1 or akhir == -1:
@@ -527,49 +400,163 @@ def _parse_json_atribut(raw: str) -> dict | None:
         return None
  
  
+def _bangun_prompt_6_atribut(teks_user: str) -> str:
+    """
+    Prompt ekstraktor 6 atribut — dioptimalkan untuk dataset
+    klasifikasi arsip pemerintahan daerah Indonesia.
+    """
+    referensi_str = "\n".join(
+        f"  - {rumpun}: {', '.join(nilai)}"
+        for rumpun, nilai in REFERENSI_JENJANG.items()
+    )
+    return f"""Anda adalah Arsiparis Senior ahli kearsipan pemerintahan daerah Indonesia.
+Tugas: Analisis perihal surat berikut dan ekstrak 6 atribut terstruktur.
+ 
+LANGKAH BERPIKIR (jalankan berurutan, wajib):
+1. KONTEKS: Apakah surat ini tentang kerumahtanggaan/administrasi internal kantor (fasilitatif) ATAU pelayanan teknis ke masyarakat/program daerah (substantif)?
+2. DOMAIN: Bidang fungsi pemerintahan utama (umum/pemerintahan/kepegawaian/keuangan/kesejahteraan/perekonomian/pekerjaan umum/pengawasan/keamanan/politik)?
+3. OBJEK: Apa yang menjadi target/sasaran utama? (bukan aktor, bukan lokasi)
+4. JENJANG: Apakah ada dimensi hierarki yang disebutkan atau tersirat? Gunakan referensi:
+{referensi_str}
+   Jika tidak ada jenjang yang jelas, isi string kosong "".
+5. KEGIATAN: Jenis tindakan (perencanaan/pelaksanaan/pelaporan/pengawasan/evaluasi/koordinasi/pengadaan/penetapan)?
+6. PRODUK: Output/tujuan surat (sk/laporan/persetujuan/undangan/instruksi/perjanjian/sppd/rekomendasi)?
+7. INTI: Gabungkan objek + jenjang (jika ada) + kegiatan menjadi frasa pencarian singkat maksimal 15 kata. Harus cukup spesifik untuk membedakan kode arsip yang mirip.
+ 
+PRINSIP KRITIS:
+- Jika objek spesifik teridentifikasi → ABAIKAN rumpun umum meski kata kuncinya cocok.
+  Contoh: "perizinan pertanian" bukan 100.3.12 (hukum umum), tapi masuk 500.6 (perekonomian pertanian).
+- Fasilitatif = urusan internal kantor: SPPD, ATK, pemeliharaan kendaraan, rapat internal.
+- Substantif = program/layanan masyarakat atau teknis sektoral.
+- Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
+ 
+CONTOH 1:
+Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
+Output: {{"konteks":"fasilitatif","domain":"umum","objek":"perjalanan dinas","jenjang":"kepala daerah","kegiatan":"pelaksanaan","produk":"sppd","inti":"perjalanan dinas kepala daerah dalam negeri"}}
+ 
+CONTOH 2:
+Input: "Laporan pertanggungjawaban penggunaan dana BOS SMPN 1 Tikep"
+Output: {{"konteks":"substantif","domain":"kesejahteraan","objek":"bantuan operasional sekolah","jenjang":"smp","kegiatan":"pelaporan","produk":"laporan","inti":"bantuan operasional sekolah bos smp pelaporan"}}
+ 
+CONTOH 3:
+Input: "Izin penelitian sampel batuan tambang dari Universitas Halu Oleo"
+Output: {{"konteks":"substantif","domain":"perekonomian","objek":"penelitian kegeologian batuan","jenjang":"","kegiatan":"pelaksanaan","produk":"rekomendasi","inti":"izin penelitian batuan tambang kegeologian"}}
+ 
+CONTOH 4:
+Input: "Kenaikan pangkat PNS golongan III ke golongan IV"
+Output: {{"konteks":"fasilitatif","domain":"kepegawaian","objek":"kenaikan pangkat","jenjang":"golongan iv","kegiatan":"penetapan","produk":"sk","inti":"kenaikan pangkat pns golongan iv"}}
+ 
+CONTOH 5:
+Input: "Rekonsiliasi BMD dan tindak lanjut temuan BPK"
+Output: {{"konteks":"fasilitatif","domain":"keuangan","objek":"barang milik daerah","jenjang":"","kegiatan":"pengawasan","produk":"laporan","inti":"rekonsiliasi barang milik daerah tindak lanjut temuan bpk"}}
+ 
+SEKARANG KERJAKAN:
+Input: "{teks_user}"
+Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
+ 
+ 
+def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
+    """
+    Panggil Qwen3 32B dengan reasoning ON (format hidden).
+    reasoning_format="hidden": reasoning tetap jalan penuh di dalam,
+    output yang dikembalikan hanya JSON bersih tanpa teks reasoning.
+    temperature=0.6, top_p=0.95 sesuai rekomendasi resmi Qwen3.
+    """
+    for percobaan in range(max_retries):
+        try:
+            chat = client.chat.completions.create(
+                model="qwen/qwen3-32b",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+                top_p=0.95,
+                max_completion_tokens=1024,
+                extra_body={"reasoning_format": "hidden"},
+            )
+            return chat.choices[0].message.content.strip()
+ 
+        except Exception as e:
+            pesan = str(e).lower()
+            if any(k in pesan for k in ["429", "503", "rate", "quota", "overloaded"]):
+                if percobaan < max_retries - 1:
+                    jeda = (2 ** percobaan) * 2  # 2s, 4s, 8s
+                    time.sleep(jeda)
+                    continue
+            break
+    return None
+ 
+ 
+def _panggil_llama_ekstraksi(teks_user: str) -> str | None:
+    """
+    Fallback ke Llama 3.3 70B — hanya ekstrak inti surat (string pendek).
+    Tidak mencoba ekstrak 6 atribut — tugas lebih sederhana,
+    lebih andal sebagai jaring pengaman.
+    """
+    prompt = f"""Ekstrak inti substansi surat berikut dalam 3-6 kata kunci bahasa Indonesia.
+Buang kata pengantar seperti: penyampaian, permohonan, laporan, undangan, tindak lanjut, hal, perihal.
+Jawab HANYA dengan frasa inti, tanpa penjelasan apapun.
+ 
+Surat: "{teks_user}"
+Inti:"""
+    try:
+        chat = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.0,
+            max_tokens=80,
+        )
+        hasil = chat.choices[0].message.content.strip().lower()
+        hasil = re.sub(r'<.*?>', '', hasil).strip()
+        if 3 <= len(hasil) <= 150:
+            return hasil
+    except Exception:
+        pass
+    return None
+ 
+ 
 @st.cache_data(show_spinner=False, ttl=3600)
 def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
     """
     Mengekstrak 6 atribut terstruktur dari perihal surat.
  
-    Urutan prioritas:
-    1. Gemini 2.5 Flash (3x retry)
-    2. Groq llama-3.3-70b (fallback, inti saja)
-    3. Python manual (tidak bisa gagal)
+    Hierarki fallback:
+      1. Qwen3 32B   → 6 atribut lengkap (reasoning ON, format hidden)
+      2. Llama 70B   → inti saja, atribut dikonstruksi minimal
+      3. Python murni → tidak bisa gagal
  
     Return:
-        (inti_string, atribut_dict)
-        - inti_string : frasa kunci untuk TF-IDF (lebih kaya dari sebelumnya)
-        - atribut_dict: 6 atribut lengkap untuk dipakai di filter rumpun (Perubahan 2)
+      (inti_string, atribut_dict)
+      inti_string  : frasa kunci untuk TF-IDF
+      atribut_dict : 6 atribut + _model (untuk debug)
     """
     prompt = _bangun_prompt_6_atribut(teks_user)
  
-    # === LAPIS 1: Gemini 2.5 Flash ===
-    raw_gemini = _panggil_gemini(prompt)
-    if raw_gemini:
-        data = _parse_json_atribut(raw_gemini)
+    # === LAPIS 1: Qwen3 32B ===
+    raw_qwen = _panggil_qwen3(prompt)
+    if raw_qwen:
+        data = _parse_json_atribut(raw_qwen)
         if data and _validasi_json_atribut(data):
+            data["_model"] = "qwen3-32b"
             inti = str(data["inti"]).strip().lower()
-            data["_model"] = "gemini"
             return inti, data
  
-    # === LAPIS 2: Groq (inti saja, atribut dikonstruksi minimal) ===
-    inti_groq = _panggil_groq_ekstraksi(teks_user)
-    if inti_groq:
-        atribut_groq = {
-            "konteks": "fasilitatif",   # default aman
-            "domain": "umum",           # default aman
-            "objek": inti_groq,
+    # === LAPIS 2: Llama 3.3 70B (inti saja) ===
+    inti_llama = _panggil_llama_ekstraksi(teks_user)
+    if inti_llama:
+        atribut_llama = {
+            "konteks": "fasilitatif",
+            "domain": "umum",
+            "objek": inti_llama,
             "jenjang": "",
             "kegiatan": "pelaksanaan",
             "produk": "laporan",
-            "inti": inti_groq,
-            "_model": "groq",
+            "inti": inti_llama,
+            "_model": "llama-70b-fallback",
         }
-        return inti_groq, atribut_groq
+        return inti_llama, atribut_llama
  
-    # === LAPIS 3: Python manual — tidak bisa gagal ===
+    # === LAPIS 3: Python manual ===
     return _fallback_ekstraksi_manual(teks_user)
+
 
 
         
@@ -1300,14 +1287,11 @@ def get_hierarchy(kode_target, df):
 def smart_classify(user_input, df, top_n=3):
     # 1. Biarkan LLM mengekstrak "inti" dari uraian panjang user
     inti_dari_llm, atribut_6 = ekstrak_inti_surat(user_input)
-    # atribut_6 akan dipakai di Perubahan 2 (filter rumpun)
-    # Untuk sekarang, alur di bawahnya tidak berubah sama sekali
-    st.sidebar.info(f"Model Aktif: {atribut_6.get('_model')}")
-    st.info(f"🧠 Inti: **{inti_dari_llm}**")
-    st.json(atribut_6)
     
-
-    # st.info(f"🧠 SIKAP menangkap inti surat Anda sebagai: **{inti_dari_llm}**")
+    # DEBUG — tampilkan hasil ekstraksi (hapus setelah puas testing)
+    st.caption(f"🧠 Inti: **{inti_dari_llm}** &nbsp;|&nbsp; Model: `{atribut_6.get('_model', '?')}`")
+    with st.expander("🔍 Detail 6 Atribut", expanded=False):
+        st.json({k: v for k, v in atribut_6.items() if not k.startswith('_')})
     
     # 2. Lakukan pembersihan teks (Sastrawi) pada hasil ekstraksi
     clean_input = preprocess_text(inti_dari_llm)
