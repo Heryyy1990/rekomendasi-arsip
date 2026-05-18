@@ -1402,7 +1402,7 @@ Daftar Opsi (baca jalur hierarki dengan teliti):
 {daftar_kandidat}
 
 ATURAN MUTLAK:
-1. Balas HANYA dengan 3 angka urutan (1-10) dipisah koma. Tidak ada teks lain.
+1. Balas HANYA dengan 3 angka urutan (1-20) dipisah koma. Tidak ada teks lain.
 2. WAJIB pilih kode yang paling dalam/spesifik (kuartier). Dilarang memilih kode induk jika ada kode anak yang relevan.
 3. Jika tidak ada kuartier yang relevan, baru boleh pilih tersier.
 Contoh balasan benar: 3, 7, 1
@@ -1420,7 +1420,7 @@ Contoh balasan benar: 3, 7, 1
         angka_pilihan = []
         for angka in angka_mentah:
             angka_bulat = int(angka)
-            if 1 <= angka_bulat <= 10 and angka_bulat not in angka_pilihan:
+            if 1 <= angka_bulat <= 20 and angka_bulat not in angka_pilihan:
                 angka_pilihan.append(angka_bulat)
             if len(angka_pilihan) == 3:
                 break
