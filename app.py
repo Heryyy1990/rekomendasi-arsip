@@ -1332,7 +1332,6 @@ def smart_classify(user_input, df, top_n=3):
         rumpun_target is not None
         and "fallback" not in model_dipakai
         and "python"   not in model_dipakai
-        and domain_terdeteksi != "umum"
     )
 
     if FILTER_AKTIF:
