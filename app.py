@@ -1373,7 +1373,7 @@ def smart_classify(user_input, df, top_n=3):
 
         kode_item       = str(df_subset.iloc[indeks]['kode'])
         jumlah_titik    = kode_item.count('.')
-        bonus_kedalaman = jumlah_titik * 0.05
+        bonus_kedalaman = jumlah_titik * 0.20
 
         skor_gabungan = (nilai_skor * 0.70) + (skor_samar * 0.30) + bonus_kedalaman
 
