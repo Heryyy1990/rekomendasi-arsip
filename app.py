@@ -426,8 +426,9 @@ LANGKAH BERPIKIR (jalankan berurutan, wajib):
 PRINSIP KRITIS:
 - Jika objek spesifik teridentifikasi → ABAIKAN rumpun umum meski kata kuncinya cocok.
   Contoh: "perizinan pertanian" bukan 100.3.12 (hukum umum), tapi masuk 500.6 (perekonomian pertanian).
-- Fasilitatif = urusan internal kantor: SPPD, ATK, pemeliharaan kendaraan, rapat internal.
-- Substantif = program/layanan masyarakat atau teknis sektoral.
+- Fasilitatif = Urusan administrasi, kerumahtanggaan, kepegawaian, dan KEUANGAN (APBD/APBN/Aset) internal pemerintah.
+- Substantif = Urusan teknis, layanan masyarakat, batas wilayah pemerintahan, pembangunan fisik (jalan/bangunan), dan program sektoral dinas.
+- PENTING: Urusan "batas wilayah", "pemekaran", atau "otonomi" selalu berstatus SUBSTANTIF dengan domain PEMERINTAHAN, bukan umum.
 - Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
  
 CONTOH 1:
@@ -449,6 +450,14 @@ Output: {{"konteks":"fasilitatif","domain":"kepegawaian","objek":"kenaikan pangk
 CONTOH 5:
 Input: "Rekonsiliasi BMD dan tindak lanjut temuan BPK"
 Output: {{"konteks":"fasilitatif","domain":"keuangan","objek":"barang milik daerah","jenjang":"","kegiatan":"pengawasan","produk":"laporan","inti":"rekonsiliasi barang milik daerah tindak lanjut temuan bpk"}}
+
+CONTOH 6:
+Input: "Penetapan batas wilayah administrasi antar kecamatan"
+Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"batas wilayah administrasi","jenjang":"kecamatan","kegiatan":"penetapan","produk":"sk","inti":"penetapan batas wilayah administrasi kecamatan"}}
+
+CONTOH 7:
+Input: "Perubahan struktur organisasi dan tata kerja perangkat daerah"
+Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi perangkat daerah","jenjang":"kabupaten","kegiatan":"penetapan","produk":"sk","inti":"struktur organisasi tata kerja perangkat daerah"}}
  
 SEKARANG KERJAKAN:
 Input: "{teks_user}"
