@@ -452,20 +452,23 @@ Output: {{"konteks":"fasilitatif","domain":"keuangan","objek":"barang milik daer
  
 SEKARANG KERJAKAN:
 Input: "{teks_user}"
-Output JSON (hanya JSON, tidak ada teks lain, tidak ada markdown):"""
+Keluarkan hasil murni dalam format JSON. Jangan tulis tag <think>, jangan beri penjelasan, jangan tambahkan markdown ```json. HANYA format JSON valid yang diawali dengan {{ dan diakhiri dengan }}.
+"""
  
  
 def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
     for percobaan in range(max_retries):
         try:
             chat = client.chat.completions.create(
-                # Menggunakan ID model resmi yang direkomendasikan Groq
-                model="qwen/qwen3-32b", 
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.6,
+                model="qwen/qwen3-32b",
+                messages=[
+                    {"role": "system", "content": "Anda adalah mesin ekstraktor JSON. Anda hanya boleh membalas dengan JSON yang valid, tanpa teks apapun sebelum dan sesudahnya."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,  # <--- DITURUNKAN agar lebih patuh dan logikanya tidak liar
                 top_p=0.95,
                 max_completion_tokens=1024,
-                # Parameter extra_body sudah dihapus total agar tidak menyebabkan error
+                response_format={"type": "json_object"} # <--- JALUR RESMI GROQ UNTUK JSON MURNI
             )
             return chat.choices[0].message.content.strip()
 
