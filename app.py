@@ -1397,36 +1397,35 @@ def smart_classify(user_input, df, top_n=3):
         return hasil_fast, inti_dari_llm
  
     # 4. Juri AI — hanya dipanggil jika smart routing tidak aktif
-    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
- 
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20] # KITA KEMBALIKAN KE 20 AGAR DIA BISA MELIHAT DANA BOS
+
     daftar_kandidat = ""
     for urutan, item in enumerate(kandidat_untuk_juri):
         baris_data = df.iloc[item['idx']]
         daftar_kandidat += (
-            f"[{urutan+1}] Kode: {baris_data['kode']} | "
+            f"[OPSI {urutan+1}] Kode: {baris_data['kode']} | "
             f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
         )
- 
-    perintah_juri = f"""Anda adalah Arsiparis Senior pemerintahan daerah Indonesia.
-Tugas: Pilih 3 kode arsip paling tepat untuk urusan berikut.
- 
+
+    perintah_juri = f"""Anda adalah Arsiparis Senior.
+Tugas: Pilih 3 nomor urut OPSI yang paling tepat untuk urusan berikut.
+
 URUSAN SURAT: "{inti_dari_llm}"
- 
-DAFTAR KANDIDAT (baca jalur hierarki dengan teliti):
+
+DAFTAR KANDIDAT:
 {daftar_kandidat}
- 
-LANGKAH BERPIKIR (isi singkat, wajib):
-- Domain urusan surat ini       : [isi]
-- Kode terdalam yang paling relevan: [isi]
-- Ada kode induk vs kode anak?  : [ya/tidak — jika ya, pilih kode anak]
- 
+
+LANGKAH BERPIKIR (Wajib diisi):
+- Domain urusan: [isi]
+- Kode Anak terdalam yang relevan: [isi]
+- Alasan menolak kode induk: [isi]
+
 ATURAN MUTLAK:
-1. WAJIB pilih kode paling dalam/spesifik (kuartier diutamakan atas tersier).
-2. Dilarang memilih kode induk jika ada kode anaknya yang relevan di daftar.
-3. Tulis hasil akhir PERSIS dalam format berikut (hanya 3 angka, tanpa teks lain):
- 
-HASIL AKHIR: [nomor], [nomor], [nomor]"""
- 
+1. DILARANG KERAS memilih kode induk jika ada kode anaknya yang relevan (Kuartier/Tersier diutamakan).
+2. Tuliskan NOMOR URUT OPSINYA saja (1-20), bukan kode klasifikasinya!
+3. Tulis hasil akhir PERSIS seperti format ini:
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
+
     try:
         penyelesaian_obrolan = client.chat.completions.create(
             messages=[{"role": "user", "content": perintah_juri}],
@@ -1434,30 +1433,42 @@ HASIL AKHIR: [nomor], [nomor], [nomor]"""
             temperature=0.0,
         )
         balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
- 
-        # Penangkap angka aman — hanya baca baris HASIL AKHIR:
+
+        # ========================================================
+        # CCTV TERMINAL: Intip jalan pikiran Llama di sini!
+        print("\n=== [DEBUG JURI LLAMA] ===")
+        print(balasan_juri)
+        print("==========================\n")
+        # ========================================================
+
+        # Penangkap Angka Anti-Meleset
         angka_pilihan = []
         for baris in balasan_juri.split('\n'):
             if 'HASIL AKHIR' in baris.upper():
-                angka_mentah = re.findall(r'\d+', baris)
+                # Wajib menangkap angka HANYA setelah kata OPSI
+                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
+                
+                # Jika Llama ngeyel tidak pakai kata OPSI, tangkap angka biasa
+                if not angka_mentah:
+                    angka_mentah = re.findall(r'\d+', baris)
+                    
                 for angka in angka_mentah:
                     angka_bulat = int(angka)
-                    if 1 <= angka_bulat <= 20 and angka_bulat not in angka_pilihan:
+                    if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
                         angka_pilihan.append(angka_bulat)
                     if len(angka_pilihan) == 3:
                         break
-                break  # berhenti setelah baris HASIL AKHIR ditemukan
- 
-        # Fallback penangkap: jika Llama tidak menulis HASIL AKHIR,
-        # ambil 3 angka valid pertama dari seluruh respons
+                break
+
+        # Fallback jika baris HASIL AKHIR gaib
         if not angka_pilihan:
             for angka in re.findall(r'\d+', balasan_juri):
                 angka_bulat = int(angka)
-                if 1 <= angka_bulat <= 20 and angka_bulat not in angka_pilihan:
+                if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
                     angka_pilihan.append(angka_bulat)
                 if len(angka_pilihan) == 3:
                     break
- 
+
         hasil_akhir = []
         for nomor in angka_pilihan:
             indeks_kandidat = nomor - 1
@@ -1466,14 +1477,14 @@ HASIL AKHIR: [nomor], [nomor], [nomor]"""
                 hasil_akhir.append(
                     (kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi)
                 )
- 
+
         if hasil_akhir:
             return hasil_akhir, inti_dari_llm
- 
+
     except Exception as e:
         st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
- 
-    # Fallback jika jury gagal total
+
+    # Fallback murni jika Juri error total
     return [
         (item['idx'], item['skor'])
         for item in kandidat_untuk_juri[:top_n]
