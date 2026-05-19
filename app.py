@@ -495,32 +495,27 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
     return None
  
  
-def _panggil_llama_ekstraksi(teks_user: str) -> str | None:
+def _panggil_llama_ekstraksi(prompt_6_atribut: str) -> str | None:
     """
-    Fallback ke Llama 3.3 70B — hanya ekstrak inti surat (string pendek).
-    Tidak mencoba ekstrak 6 atribut — tugas lebih sederhana,
-    lebih andal sebagai jaring pengaman.
+    Fallback Llama Cadangan PINTAR.
+    Kini menggunakan Llama-8B (sangat ringan & cepat) untuk tugas administratif JSON.
     """
-    prompt = f"""Ekstrak inti substansi surat berikut dalam 3-6 kata kunci bahasa Indonesia.
-Buang kata pengantar seperti: penyampaian, permohonan, laporan, undangan, tindak lanjut, hal, perihal.
-Jawab HANYA dengan frasa inti, tanpa penjelasan apapun.
- 
-Surat: "{teks_user}"
-Inti:"""
     try:
         chat = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
-            temperature=0.0,
-            max_tokens=80,
+            # Kita pakai model 8b yang lebih cepat dan hemat kuota untuk tugas JSON
+            model="llama-3.1-8b-instant", 
+            messages=[
+                {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil murni dalam bentuk JSON."},
+                {"role": "user", "content": prompt_6_atribut}
+            ],
+            temperature=0.1,
+            max_tokens=1024,
         )
-        hasil = chat.choices[0].message.content.strip().lower()
-        hasil = re.sub(r'<.*?>', '', hasil).strip()
-        if 3 <= len(hasil) <= 150:
-            return hasil
-    except Exception:
-        pass
-    return None
+        return chat.choices[0].message.content.strip()
+    except Exception as e:
+        import streamlit as st
+        st.warning(f"Fallback Llama juga gagal: {e}")
+        return None
  
  
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -549,20 +544,14 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
             inti = str(data["inti"]).strip().lower()
             return inti, data
  
-    # === LAPIS 2: Llama 3.3 70B (inti saja) ===
-    inti_llama = _panggil_llama_ekstraksi(teks_user)
-    if inti_llama:
-        atribut_llama = {
-            "konteks": "fasilitatif",
-            "domain": "umum",
-            "objek": inti_llama,
-            "jenjang": "",
-            "kegiatan": "pelaksanaan",
-            "produk": "laporan",
-            "inti": inti_llama,
-            "_model": "llama-70b-fallback",
-        }
-        return inti_llama, atribut_llama
+    # === LAPIS 2: Llama Cadangan Pintar (6 Atribut) ===
+    raw_llama = _panggil_llama_ekstraksi(prompt) # Menggunakan 'prompt' panjang, bukan sekadar 'teks_user'
+    if raw_llama:
+        data_llama = _parse_json_atribut(raw_llama)
+        if data_llama and _validasi_json_atribut(data_llama):
+            data_llama["_model"] = "llama-8b-fallback"
+            inti = str(data_llama["inti"]).strip().lower()
+            return inti, data_llama
  
     # === LAPIS 3: Python manual ===
     return _fallback_ekstraksi_manual(teks_user)
