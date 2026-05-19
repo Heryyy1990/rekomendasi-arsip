@@ -1284,10 +1284,10 @@ def get_hierarchy(kode_target, df):
 # --- 3. LOGIKA AI HYBRID (RERANKING) ---
 @st.cache_data(show_spinner=False, ttl=3600)
 def smart_classify(user_input, df, top_n=3):
-
+ 
     # 1. Ekstraksi 6 atribut
     inti_dari_llm, atribut_6 = ekstrak_inti_surat(user_input)
-
+ 
     # Debug — hapus setelah selesai testing
     st.caption(
         f"🧠 Inti: **{inti_dari_llm}** &nbsp;|&nbsp; "
@@ -1295,10 +1295,10 @@ def smart_classify(user_input, df, top_n=3):
     )
     with st.expander("🔍 Detail 6 Atribut", expanded=False):
         st.json({k: v for k, v in atribut_6.items() if not k.startswith('_')})
-
+ 
     # 2. Preprocessing teks
     input_bersih = preprocess_text(inti_dari_llm)
-
+ 
     # 2b. Filter rumpun berdasarkan domain
     PETA_DOMAIN_RUMPUN = {
         "umum":           "000",
@@ -1312,17 +1312,17 @@ def smart_classify(user_input, df, top_n=3):
         "kepegawaian":    "800",
         "keuangan":       "900",
     }
-
+ 
     domain_terdeteksi = str(atribut_6.get("domain", "")).lower().strip()
     model_dipakai     = str(atribut_6.get("_model", "")).lower()
     rumpun_target     = PETA_DOMAIN_RUMPUN.get(domain_terdeteksi)
-
+ 
     FILTER_AKTIF = (
         rumpun_target is not None
         and "fallback" not in model_dipakai
         and "python"   not in model_dipakai
     )
-
+ 
     if FILTER_AKTIF:
         df_subset = df[df['kode'].str.startswith(rumpun_target)].copy()
         if len(df_subset) < 20:
@@ -1330,73 +1330,92 @@ def smart_classify(user_input, df, top_n=3):
             FILTER_AKTIF = False
     else:
         df_subset = df.copy()
-
-    # Reset index agar indeks subset bisa dipetakan balik ke df asli
+ 
+    # Simpan indeks asli df sebelum reset
     df_subset = df_subset.reset_index(drop=False)
-    # Kolom 'index' sekarang menyimpan indeks baris asli dari df
-
+ 
+    # Debug filter
     if FILTER_AKTIF:
         st.caption(
-            f"🎯 Filter aktif: rumpun **{rumpun_target}** "
+            f"🎯 Filter: rumpun **{rumpun_target}** "
             f"({len(df_subset)} dari {len(df)} baris)"
         )
     else:
-        st.caption(
-            f"🔍 Filter nonaktif — TF-IDF berjalan di semua {len(df)} baris"
-        )
-
-    # 3. TF-IDF & Fuzzy pada df_subset
+        st.caption(f"🔍 Filter nonaktif — {len(df)} baris")
+ 
+    # 3. TF-IDF & Fuzzy + LANGKAH 5: Depth Bonus Kondisional
     vectorizer    = TfidfVectorizer(ngram_range=(1, 3))
     semua_dokumen = df_subset['clean_uraian'].tolist() + [input_bersih]
     matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
-
+ 
     kemiripan_kosinus = cosine_similarity(
         matriks_tfidf[-1], matriks_tfidf[:-1]
     )[0]
-
+ 
     skor_awal = []
     for indeks, nilai_skor in enumerate(kemiripan_kosinus):
         skor_samar = fuzz.token_set_ratio(
             input_bersih, df_subset.iloc[indeks]['clean_uraian']
         ) / 100
-
-        kode_item       = str(df_subset.iloc[indeks]['kode'])
-        jumlah_titik    = kode_item.count('.')
-        bonus_kedalaman = jumlah_titik * 0.01
-
-        skor_gabungan = (nilai_skor * 0.70) + (skor_samar * 0.30) + bonus_kedalaman
-
-        # Simpan indeks ASLI df (bukan indeks subset)
+ 
+        # Hitung skor dasar dulu
+        skor_dasar = (nilai_skor * 0.70) + (skor_samar * 0.30)
+ 
+        # LANGKAH 5: Bonus kedalaman HANYA jika skor dasar sudah relevan
+        kode_item    = str(df_subset.iloc[indeks]['kode'])
+        jumlah_titik = kode_item.count('.')
+        if skor_dasar >= 0.15:
+            bonus_kedalaman = jumlah_titik * 0.01
+        else:
+            bonus_kedalaman = 0
+ 
+        skor_gabungan = skor_dasar + bonus_kedalaman
+ 
         idx_asli = df_subset.iloc[indeks]['index']
         skor_awal.append({'idx': idx_asli, 'skor': skor_gabungan})
-
-    sepuluh_kandidat_teratas = sorted(
+ 
+    dua_puluh_kandidat_teratas = sorted(
         skor_awal, key=lambda x: x['skor'], reverse=True
     )[:20]
-
-    # 4. Juri AI — mengacu df asli lewat idx_asli
+ 
+    # LANGKAH 6: Smart Routing — bypass jury jika kandidat #1 sudah dominan
+    skor_pertama = dua_puluh_kandidat_teratas[0]['skor']
+    skor_kedua   = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
+    selisih_skor = skor_pertama - skor_kedua
+ 
+    if skor_pertama >= 0.80 and selisih_skor >= 0.15:
+        # Fast track: Llama tidak dipanggil, langsung kembalikan top-3
+        print(f"[SIKAP] Smart Routing aktif — skor={skor_pertama:.3f}, selisih={selisih_skor:.3f}")
+        st.caption("⚡ Fast track")
+        hasil_fast = []
+        for item in dua_puluh_kandidat_teratas[:top_n]:
+            skor_sim = 0.99 - (len(hasil_fast) * 0.14)
+            hasil_fast.append((item['idx'], skor_sim))
+        return hasil_fast, inti_dari_llm
+ 
+    # 4. Juri AI — hanya dipanggil jika smart routing tidak aktif
     daftar_kandidat = ""
-    for urutan, item in enumerate(sepuluh_kandidat_teratas):
+    for urutan, item in enumerate(dua_puluh_kandidat_teratas):
         baris_data = df.iloc[item['idx']]
         daftar_kandidat += (
             f"[{urutan+1}] Kode: {baris_data['kode']} | "
             f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
         )
-
+ 
     perintah_juri = f"""
 Anda adalah Arsiparis Senior pemerintahan daerah Indonesia.
 Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
-
+ 
 Daftar Opsi (baca jalur hierarki dengan teliti):
 {daftar_kandidat}
-
+ 
 ATURAN MUTLAK:
 1. Balas HANYA dengan 3 angka urutan (1-20) dipisah koma. Tidak ada teks lain.
 2. WAJIB pilih kode yang paling dalam/spesifik (kuartier). Dilarang memilih kode induk jika ada kode anak yang relevan.
 3. Jika tidak ada kuartier yang relevan, baru boleh pilih tersier.
 Contoh balasan benar: 3, 7, 1
 """
-
+ 
     try:
         penyelesaian_obrolan = client.chat.completions.create(
             messages=[{"role": "user", "content": perintah_juri}],
@@ -1404,7 +1423,7 @@ Contoh balasan benar: 3, 7, 1
             temperature=0.0,
         )
         balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
-
+ 
         angka_mentah  = re.findall(r'\d+', balasan_juri)
         angka_pilihan = []
         for angka in angka_mentah:
@@ -1413,27 +1432,28 @@ Contoh balasan benar: 3, 7, 1
                 angka_pilihan.append(angka_bulat)
             if len(angka_pilihan) == 3:
                 break
-
+ 
         hasil_akhir = []
         for nomor in angka_pilihan:
             indeks_kandidat = nomor - 1
-            if 0 <= indeks_kandidat < len(sepuluh_kandidat_teratas):
+            if 0 <= indeks_kandidat < len(dua_puluh_kandidat_teratas):
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
                 hasil_akhir.append(
-                    (sepuluh_kandidat_teratas[indeks_kandidat]['idx'], skor_simulasi)
+                    (dua_puluh_kandidat_teratas[indeks_kandidat]['idx'], skor_simulasi)
                 )
-
+ 
         if hasil_akhir:
             return hasil_akhir, inti_dari_llm
-
+ 
     except Exception as e:
         st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
-
+ 
     # Fallback
     return [
         (item['idx'], item['skor'])
-        for item in sepuluh_kandidat_teratas[:top_n]
+        for item in dua_puluh_kandidat_teratas[:top_n]
     ], inti_dari_llm
+
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
 def dapatkan_sapaan():
