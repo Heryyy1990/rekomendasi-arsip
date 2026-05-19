@@ -1394,27 +1394,35 @@ def smart_classify(user_input, df, top_n=3):
         return hasil_fast, inti_dari_llm
  
     # 4. Juri AI — hanya dipanggil jika smart routing tidak aktif
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:10]
+ 
     daftar_kandidat = ""
-    for urutan, item in enumerate(dua_puluh_kandidat_teratas):
+    for urutan, item in enumerate(kandidat_untuk_juri):
         baris_data = df.iloc[item['idx']]
         daftar_kandidat += (
             f"[{urutan+1}] Kode: {baris_data['kode']} | "
             f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
         )
  
-    perintah_juri = f"""
-Anda adalah Arsiparis Senior pemerintahan daerah Indonesia.
-Pilih 3 nomor urut opsi yang paling tepat untuk urusan: "{inti_dari_llm}"
+    perintah_juri = f"""Anda adalah Arsiparis Senior pemerintahan daerah Indonesia.
+Tugas: Pilih 3 kode arsip paling tepat untuk urusan berikut.
  
-Daftar Opsi (baca jalur hierarki dengan teliti):
+URUSAN SURAT: "{inti_dari_llm}"
+ 
+DAFTAR KANDIDAT (baca jalur hierarki dengan teliti):
 {daftar_kandidat}
  
+LANGKAH BERPIKIR (isi singkat, wajib):
+- Domain urusan surat ini       : [isi]
+- Kode terdalam yang paling relevan: [isi]
+- Ada kode induk vs kode anak?  : [ya/tidak — jika ya, pilih kode anak]
+ 
 ATURAN MUTLAK:
-1. Balas HANYA dengan 3 angka urutan (1-20) dipisah koma. Tidak ada teks lain.
-2. WAJIB pilih kode yang paling dalam/spesifik (kuartier). Dilarang memilih kode induk jika ada kode anak yang relevan.
-3. Jika tidak ada kuartier yang relevan, baru boleh pilih tersier.
-Contoh balasan benar: 3, 7, 1
-"""
+1. WAJIB pilih kode paling dalam/spesifik (kuartier diutamakan atas tersier).
+2. Dilarang memilih kode induk jika ada kode anaknya yang relevan di daftar.
+3. Tulis hasil akhir PERSIS dalam format berikut (hanya 3 angka, tanpa teks lain):
+ 
+HASIL AKHIR: [nomor], [nomor], [nomor]"""
  
     try:
         penyelesaian_obrolan = client.chat.completions.create(
@@ -1424,22 +1432,36 @@ Contoh balasan benar: 3, 7, 1
         )
         balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
  
-        angka_mentah  = re.findall(r'\d+', balasan_juri)
+        # Penangkap angka aman — hanya baca baris HASIL AKHIR:
         angka_pilihan = []
-        for angka in angka_mentah:
-            angka_bulat = int(angka)
-            if 1 <= angka_bulat <= 20 and angka_bulat not in angka_pilihan:
-                angka_pilihan.append(angka_bulat)
-            if len(angka_pilihan) == 3:
-                break
+        for baris in balasan_juri.split('\n'):
+            if 'HASIL AKHIR' in baris.upper():
+                angka_mentah = re.findall(r'\d+', baris)
+                for angka in angka_mentah:
+                    angka_bulat = int(angka)
+                    if 1 <= angka_bulat <= 10 and angka_bulat not in angka_pilihan:
+                        angka_pilihan.append(angka_bulat)
+                    if len(angka_pilihan) == 3:
+                        break
+                break  # berhenti setelah baris HASIL AKHIR ditemukan
+ 
+        # Fallback penangkap: jika Llama tidak menulis HASIL AKHIR,
+        # ambil 3 angka valid pertama dari seluruh respons
+        if not angka_pilihan:
+            for angka in re.findall(r'\d+', balasan_juri):
+                angka_bulat = int(angka)
+                if 1 <= angka_bulat <= 10 and angka_bulat not in angka_pilihan:
+                    angka_pilihan.append(angka_bulat)
+                if len(angka_pilihan) == 3:
+                    break
  
         hasil_akhir = []
         for nomor in angka_pilihan:
             indeks_kandidat = nomor - 1
-            if 0 <= indeks_kandidat < len(dua_puluh_kandidat_teratas):
+            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
                 hasil_akhir.append(
-                    (dua_puluh_kandidat_teratas[indeks_kandidat]['idx'], skor_simulasi)
+                    (kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi)
                 )
  
         if hasil_akhir:
@@ -1448,11 +1470,12 @@ Contoh balasan benar: 3, 7, 1
     except Exception as e:
         st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
  
-    # Fallback
+    # Fallback jika jury gagal total
     return [
         (item['idx'], item['skor'])
-        for item in dua_puluh_kandidat_teratas[:top_n]
+        for item in kandidat_untuk_juri[:top_n]
     ], inti_dari_llm
+
 
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
