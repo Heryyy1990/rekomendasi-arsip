@@ -1435,10 +1435,10 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
         balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
         # ========================================================
-        # CCTV TERMINAL: Intip jalan pikiran Llama di sini!
-        print("\n=== [DEBUG JURI LLAMA] ===")
-        print(balasan_juri)
-        print("==========================\n")
+        # CCTV UI: Intip jalan pikiran Llama langsung di layar web!
+        with st.expander("🧠 Intip Cara Berpikir Juri AI (Chain-of-Thought)", expanded=False):
+            st.info("Berikut adalah rekaman proses analisis Juri Llama dalam menyeleksi 20 kandidat:")
+            st.text(balasan_juri)
         # ========================================================
 
         # Penangkap Angka Anti-Meleset
