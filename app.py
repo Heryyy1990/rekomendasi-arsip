@@ -1397,7 +1397,7 @@ def smart_classify(user_input, df, top_n=3):
         return hasil_fast, inti_dari_llm
  
     # 4. Juri AI — hanya dipanggil jika smart routing tidak aktif
-    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:10]
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
  
     daftar_kandidat = ""
     for urutan, item in enumerate(kandidat_untuk_juri):
@@ -1442,7 +1442,7 @@ HASIL AKHIR: [nomor], [nomor], [nomor]"""
                 angka_mentah = re.findall(r'\d+', baris)
                 for angka in angka_mentah:
                     angka_bulat = int(angka)
-                    if 1 <= angka_bulat <= 10 and angka_bulat not in angka_pilihan:
+                    if 1 <= angka_bulat <= 20 and angka_bulat not in angka_pilihan:
                         angka_pilihan.append(angka_bulat)
                     if len(angka_pilihan) == 3:
                         break
@@ -1453,7 +1453,7 @@ HASIL AKHIR: [nomor], [nomor], [nomor]"""
         if not angka_pilihan:
             for angka in re.findall(r'\d+', balasan_juri):
                 angka_bulat = int(angka)
-                if 1 <= angka_bulat <= 10 and angka_bulat not in angka_pilihan:
+                if 1 <= angka_bulat <= 20 and angka_bulat not in angka_pilihan:
                     angka_pilihan.append(angka_bulat)
                 if len(angka_pilihan) == 3:
                     break
