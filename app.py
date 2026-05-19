@@ -1319,8 +1319,7 @@ def smart_classify(user_input, df, top_n=3):
  
     FILTER_AKTIF = (
         rumpun_target is not None
-        and "fallback" not in model_dipakai
-        and "python"   not in model_dipakai
+        and "python" not in model_dipakai
     )
  
     if FILTER_AKTIF:
