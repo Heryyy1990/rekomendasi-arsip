@@ -401,67 +401,41 @@ def _parse_json_atribut(raw: str) -> dict | None:
  
  
 def _bangun_prompt_6_atribut(teks_user: str) -> str:
-    """
-    Prompt ekstraktor 6 atribut — dioptimalkan untuk dataset
-    klasifikasi arsip pemerintahan daerah Indonesia.
-    """
+    # Mempertahankan fitur referensi jenjang yang sudah bagus dari kode lama Anda
     referensi_str = "\n".join(
         f"  - {rumpun}: {', '.join(nilai)}"
         for rumpun, nilai in REFERENSI_JENJANG.items()
     )
-    return f"""Anda adalah Arsiparis Senior ahli kearsipan pemerintahan daerah Indonesia.
-Tugas: Analisis perihal surat berikut dan ekstrak 6 atribut terstruktur.
- 
-LANGKAH BERPIKIR (jalankan berurutan, wajib):
-1. KONTEKS: Apakah surat ini tentang kerumahtanggaan/administrasi internal kantor (fasilitatif) ATAU pelayanan teknis ke masyarakat/program daerah (substantif)?
-2. DOMAIN: Bidang fungsi pemerintahan utama (umum/pemerintahan/kepegawaian/keuangan/kesejahteraan/perekonomian/pekerjaan umum/pengawasan/keamanan/politik)?
-3. OBJEK: Apa yang menjadi target/sasaran utama? (bukan aktor, bukan lokasi)
-4. JENJANG: Apakah ada dimensi hierarki yang disebutkan atau tersirat? Gunakan referensi:
+    
+    return f"""Anda adalah Arsiparis Ahli. Tugas Anda mengekstrak atribut surat ke dalam JSON.
+
+HUKUM UNIVERSAL KLASIFIKASI ARSIP (WAJIB DIPATUHI):
+Dalam kearsipan, "Domain" ditentukan oleh OBJEK SUBSTANTIF (Apa yang diurus/benda fisiknya), BUKAN oleh KATA KERJA atau TRANSAKSI (Bagaimana cara mengurusnya).
+- Kata-kata transaksi seperti: biaya, pembayaran, pengadaan, pembelian, pemeliharaan, honor, atau jasa WAJIB DIABAIKAN saat menentukan Domain.
+- Temukan benda fisik atau subjek manusianya terlebih dahulu. Benda/subjek itulah yang menentukan Domain.
+
+URUTAN CARA BERPIKIR (Terapkan urutan ini di dalam JSON):
+1. Cari tahu apa Benda Fisik / Subjek utamanya. Tulis di field "objek".
+2. Setelah menemukan objeknya, barulah tentukan field "domain" berdasarkan objek tersebut.
+
+REFERENSI JENJANG:
 {referensi_str}
-   Jika tidak ada jenjang yang jelas, isi string kosong "".
-5. KEGIATAN: Jenis tindakan (perencanaan/pelaksanaan/pelaporan/pengawasan/evaluasi/koordinasi/pengadaan/penetapan)?
-6. PRODUK: Output/tujuan surat (sk/laporan/persetujuan/undangan/instruksi/perjanjian/sppd/rekomendasi)?
-7. INTI: Gabungkan objek + jenjang (jika ada) + kegiatan menjadi frasa pencarian singkat maksimal 15 kata. Harus cukup spesifik untuk membedakan kode arsip yang mirip.
- 
-PRINSIP KRITIS:
-- Jika objek spesifik teridentifikasi → ABAIKAN rumpun umum meski kata kuncinya cocok.
-  Contoh: "perizinan pertanian" bukan 100.3.12 (hukum umum), tapi masuk 500.6 (perekonomian pertanian).
-- Fasilitatif = Urusan administrasi, kerumahtanggaan, kepegawaian, dan KEUANGAN (APBD/APBN/Aset) internal pemerintah.
-- Substantif = Urusan teknis, layanan masyarakat, batas wilayah pemerintahan, pembangunan fisik (jalan/bangunan), dan program sektoral dinas.
-- PENTING: Urusan "batas wilayah", "pemekaran", atau "otonomi" selalu berstatus SUBSTANTIF dengan domain PEMERINTAHAN, bukan umum.
-- Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
- 
-CONTOH 1:
-Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
-Output: {{"konteks":"fasilitatif","domain":"umum","objek":"perjalanan dinas","jenjang":"kepala daerah","kegiatan":"pelaksanaan","produk":"sppd","inti":"perjalanan dinas kepala daerah dalam negeri"}}
- 
-CONTOH 2:
-Input: "Laporan pertanggungjawaban penggunaan dana BOS SMPN 1 Tikep"
-Output: {{"konteks":"substantif","domain":"kesejahteraan","objek":"bantuan operasional sekolah","jenjang":"smp","kegiatan":"pelaporan","produk":"laporan","inti":"bantuan operasional sekolah bos smp pelaporan"}}
- 
-CONTOH 3:
-Input: "Izin penelitian sampel batuan tambang dari Universitas Halu Oleo"
-Output: {{"konteks":"substantif","domain":"perekonomian","objek":"penelitian kegeologian batuan","jenjang":"","kegiatan":"pelaksanaan","produk":"rekomendasi","inti":"izin penelitian batuan tambang kegeologian"}}
- 
-CONTOH 4:
-Input: "Kenaikan pangkat PNS golongan III ke golongan IV"
-Output: {{"konteks":"fasilitatif","domain":"kepegawaian","objek":"kenaikan pangkat","jenjang":"golongan iv","kegiatan":"penetapan","produk":"sk","inti":"kenaikan pangkat pns golongan iv"}}
- 
-CONTOH 5:
-Input: "Rekonsiliasi BMD dan tindak lanjut temuan BPK"
-Output: {{"konteks":"fasilitatif","domain":"keuangan","objek":"barang milik daerah","jenjang":"","kegiatan":"pengawasan","produk":"laporan","inti":"rekonsiliasi barang milik daerah tindak lanjut temuan bpk"}}
 
-CONTOH 6:
-Input: "Penetapan batas wilayah administrasi antar kecamatan"
-Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"batas wilayah administrasi","jenjang":"kecamatan","kegiatan":"penetapan","produk":"sk","inti":"penetapan batas wilayah administrasi kecamatan"}}
+ATURAN OUTPUT JSON:
+Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, tanpa teks pengantar, markdown, atau penjelasan apa pun:
 
-CONTOH 7:
-Input: "Perubahan struktur organisasi dan tata kerja perangkat daerah"
-Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi perangkat daerah","jenjang":"kabupaten","kegiatan":"penetapan","produk":"sk","inti":"struktur organisasi tata kerja perangkat daerah"}}
- 
-SEKARANG KERJAKAN:
-Input: "{teks_user}"
-Keluarkan hasil murni dalam format JSON. Jangan tulis tag <think>, jangan beri penjelasan, jangan tambahkan markdown ```json. HANYA format JSON valid yang diawali dengan {{ dan diakhiri dengan }}.
+{{
+  "konteks": "<isi dengan fasilitatif atau substantif>",
+  "objek": "<TULIS KATA BENDA FISIK/SUBJEKNYA DI SINI. JANGAN masukkan kata kerja>",
+  "inti": "<esensi dokumen dalam 3-6 kata gabungan objek dan kegiatan>",
+  "domain": "<TENTUKAN DOMAIN BERDASARKAN FIELD 'objek' DI ATAS. Jika objek benda fisik/kendaraan, domainnya PASTI 'umum'. Jika objek dokumen APBD/Pajak, domainnya 'keuangan'>",
+  "kegiatan": "<aksi/proses utama seperti pemeliharaan, pengadaan, pelaporan, penetapan>",
+  "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan jika tidak ada>",
+  "produk": "<jenis dokumen output seperti laporan, surat, kuitansi, sk>"
+}}
+
+Kalimat yang harus diekstrak:
+"{teks_user}"
 """
  
  
@@ -537,7 +511,7 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
  
     # === LAPIS 1: Qwen3 32B ===
     raw_qwen = _panggil_qwen3(prompt)
-    if raw_qwen:
+    if False:
         data = _parse_json_atribut(raw_qwen)
         if data and _validasi_json_atribut(data):
             data["_model"] = "qwen3-32b"
