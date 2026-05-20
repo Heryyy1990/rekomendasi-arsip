@@ -582,7 +582,7 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
  
     # === LAPIS 1: Qwen3 32B ===
     raw_qwen = _panggil_qwen3(prompt_qwen) # Qwen membaca prompt orisinal
-    if raw_qwen:
+    if False:
         data = _parse_json_atribut(raw_qwen)
         if data and _validasi_json_atribut(data):
             data["_model"] = "qwen3-32b"
