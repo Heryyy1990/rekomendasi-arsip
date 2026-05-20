@@ -467,7 +467,7 @@ Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi per
 
 CONTOH 8:
 Input: "Pembayaran tagihan biaya pengadaan komputer dan kursi kantor"
-Output: {"konteks":"fasilitatif","domain":"umum","objek":"komputer dan kursi kantor","jenjang":"","kegiatan":"pengadaan","produk":"surat","inti":"pengadaan komputer kursi kantor"}
+Output: {{"konteks":"fasilitatif","domain":"umum","objek":"komputer dan kursi kantor","jenjang":"","kegiatan":"pengadaan","produk":"surat","inti":"pengadaan komputer kursi kantor"}}
  
 SEKARANG KERJAKAN:
 Input: "{teks_user}"
