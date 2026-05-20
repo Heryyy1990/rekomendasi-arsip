@@ -464,6 +464,10 @@ Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"batas wilayah 
 CONTOH 7:
 Input: "Perubahan struktur organisasi dan tata kerja perangkat daerah"
 Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi perangkat daerah","jenjang":"kabupaten","kegiatan":"penetapan","produk":"sk","inti":"struktur organisasi tata kerja perangkat daerah"}}
+
+CONTOH 8:
+Input: "Pembayaran tagihan biaya pengadaan komputer dan kursi kantor"
+Output: {"konteks":"fasilitatif","domain":"umum","objek":"komputer dan kursi kantor","jenjang":"","kegiatan":"pengadaan","produk":"surat","inti":"pengadaan komputer kursi kantor"}
  
 SEKARANG KERJAKAN:
 Input: "{teks_user}"
