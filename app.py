@@ -504,7 +504,7 @@ Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, t
 {{
   "konteks": "<isi dengan fasilitatif atau substantif>",
   "objek": "<TULIS BENDA FISIK/SUBJEKNYA DI SINI. Jangan masukkan kata kerja/transaksi uang>",
-  "inti": "<esensi dokumen dalam 3-6 kata gabungan objek dan kegiatan>",
+  "inti": "<WAJIB tulis ulang isi dari field 'objek' di sini, lalu tambahkan kata kegiatannya (maksimal 8 kata)>",
   "domain": "<TENTUKAN DOMAIN BERDASARKAN OBJEK DI ATAS. Jika objek berupa benda fisik/kendaraan/ATK wajib isi 'umum'. Jika objek berupa dokumen anggaran/SP2D murni isi 'keuangan'. Jika objek berupa pegawai/diklat isi 'kepegawaian'>",
   "kegiatan": "<aksi/proses utama seperti pemeliharaan, pengadaan, pelaporan, penetapan>",
   "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan jika tidak ada>",
