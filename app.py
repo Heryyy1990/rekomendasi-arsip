@@ -436,6 +436,8 @@ PRINSIP KRITIS:
 - Substantif = Urusan teknis, layanan masyarakat, batas wilayah pemerintahan, pembangunan fisik (jalan/bangunan), dan program sektoral dinas.
 - PENTING: Urusan "batas wilayah", "pemekaran", atau "otonomi" selalu berstatus SUBSTANTIF dengan domain PEMERINTAHAN, bukan umum.
 - Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
+- AWAS JEBAKAN "DALAM RANGKA": Jika ada pola "[Aksi] dalam rangka / untuk / guna [Tujuan]", OBJEK UTAMANYA adalah [Tujuan]. Abaikan aksinya.
+- BUANG KONSIDERAN HUKUM: Hapus mutlak semua frasa dasar hukum seperti "sebagaimana amanat", "Undang-Undang", "Peraturan Menteri", "Nomor...", dan "Tahun...". Fokus HANYA pada substansi kegiatannya (misal: "Survei Kepuasan Masyarakat", "Pelayanan Publik").
  
 CONTOH 1:
 Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
@@ -488,9 +490,11 @@ def _bangun_prompt_llama(teks_user: str) -> str:
 
 ATURAN WAJIB (WAJIB DIPATUHI):
 1. Abaikan kata-kata transaksi berikut (jangan jadikan objek):
-   biaya, pembayaran, pencairan, pengadaan, pembelian, pemeliharaan, honor, dana, anggaran, termin.
+   biaya, pembayaran, pencairan, pengadaan, pembelian, pemeliharaan, honor, dana, anggaran, termin, permintaan data, undangan.
 2. Temukan BENDA FISIK atau SUBJEK UTAMA dari kalimat tersebut.
-3. Untuk field "domain", SELALU isi dengan "tidak_diketahui".
+3. AWAS JEBAKAN "DALAM RANGKA": Jika ada kata "dalam rangka", "untuk", atau "guna", ambil subjek SETELAH kata tersebut, abaikan kata di depannya.
+4. BUANG KONSIDERAN HUKUM: Hapus mutlak semua kata yang merujuk pada aturan hukum (Undang-Undang, Peraturan Menteri, Nomor, Tahun, sebagaimana amanat). Jangan pernah jadikan ini sebagai objek/inti!
+5. Untuk field "domain", SELALU isi dengan "tidak_diketahui".
 
 URUTAN CARA BERPIKIR (Terapkan urutan ini di dalam JSON):
 1. Cari tahu apa Benda Fisik / Subjek utamanya. Tulis di field "objek".
