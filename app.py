@@ -1356,43 +1356,21 @@ def smart_classify(user_input, df, top_n=3):
     # 2. Preprocessing teks
     input_bersih = preprocess_text(inti_dari_llm)
  
-    # 2b. Filter rumpun berdasarkan domain
-    PETA_DOMAIN_RUMPUN = {
-        "umum":           "000",
-        "pemerintahan":   "100",
-        "politik":        "200",
-        "keamanan":       "300",
-        "kesejahteraan":  "400",
-        "perekonomian":   "500",
-        "pekerjaan umum": "600",
-        "pengawasan":     "700",
-        "kepegawaian":    "800",
-        "keuangan":       "900",
-    }
- 
+    # =======================================================
+    # 2b. PENGHANCURAN FILTER (TOTAL BYPASS)
+    # Karena AI buta terhadap isi database klasifikasi,
+    # kita biarkan mesin TF-IDF berburu bebas di 2830 baris!
+    # =======================================================
+    
+    # Tetap ditangkap sekadar untuk dimunculkan di log/tampilan (jika perlu)
     domain_terdeteksi = str(atribut_6.get("domain", "")).lower().strip()
-    model_dipakai     = str(atribut_6.get("_model", "")).lower()
-    rumpun_target     = PETA_DOMAIN_RUMPUN.get(domain_terdeteksi)
- 
-    # =======================================================
-    # PENDEKATAN K.I.S.S (KEEP IT SIMPLE, STUPID)
-    # Hanya percaya filter domain jika modelnya Qwen-32B.
-    # Jika Llama-8B atau Python, filter MATI. Biarkan TF-IDF mencari bebas!
-    # =======================================================
-    FILTER_AKTIF = (
-        rumpun_target is not None
-        and "qwen" in model_dipakai 
-    )
- 
-    if FILTER_AKTIF:
-        df_subset = df[df['kode'].str.startswith(rumpun_target)].copy()
-        # Jika hasil filter terlalu sedikit, batalkan filter (Safety Net)
-        if len(df_subset) < 20:
-            df_subset    = df.copy()
-            FILTER_AKTIF = False
-    else:
-        df_subset = df.copy()
-
+    
+    # Filter DIMATIKAN PERMANEN. Tidak ada lagi surat nyasar!
+    FILTER_AKTIF = False 
+    
+    # Mesin TF-IDF akan membaca seluruh data asli
+    df_subset = df.copy() 
+    
     # Simpan indeks asli df sebelum reset
     df_subset = df_subset.reset_index(drop=False)
  
