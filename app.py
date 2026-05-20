@@ -1418,15 +1418,19 @@ def smart_classify(user_input, df, top_n=3):
         skor_awal, key=lambda x: x['skor'], reverse=True
     )[:20]
  
-    # LANGKAH 6: Smart Routing — bypass jury jika kandidat #1 sudah dominan
-    skor_pertama = dua_puluh_kandidat_teratas[0]['skor']
-    skor_kedua   = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
-    selisih_skor = skor_pertama - skor_kedua
- 
-    if skor_pertama >= 0.80 and selisih_skor >= 0.15:
-        # Fast track: Llama tidak dipanggil, langsung kembalikan top-3
-        print(f"[SIKAP] Smart Routing aktif — skor={skor_pertama:.3f}, selisih={selisih_skor:.3f}")
-        st.caption("⚡ Fast track")
+    # =======================================================
+    # TAHAP 1 (LANGKAH 6): SMART ROUTING / BYPASS HAKIM AGUNG
+    # (Versi Disempurnakan: Tanpa syarat selisih skor!)
+    # =======================================================
+    skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
+    
+    # Batas Bypass kita atur di 0.70 (70%). 
+    # Jika TF-IDF sudah yakin 70%, usir Juri Llama!
+    THRESHOLD_BYPASS = 0.70 
+    
+    if skor_tertinggi >= THRESHOLD_BYPASS:
+        # Fast track: Llama TIDAK dipanggil sama sekali! Respons kilat!
+        st.caption(f"⚡ Bypass Juri Aktif (Skor Mesin Lokal: {skor_tertinggi*100:.1f}%)")
         hasil_fast = []
         for item in dua_puluh_kandidat_teratas[:top_n]:
             skor_sim = 0.99 - (len(hasil_fast) * 0.14)
