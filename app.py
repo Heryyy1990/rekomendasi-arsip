@@ -470,6 +470,10 @@ Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi per
 CONTOH 8:
 Input: "Pembayaran tagihan biaya pengadaan komputer dan kursi kantor"
 Output: {{"konteks":"fasilitatif","domain":"umum","objek":"komputer dan kursi kantor","jenjang":"","kegiatan":"pengadaan","produk":"surat","inti":"pengadaan komputer kursi kantor"}}
+
+CONTOH 9:
+Input: "Permintaan rekap absen kehadiran pegawai dalam rangka penyusunan Survei Kepuasan Masyarakat sebagaimana amanat UU No 25 Tahun 2009 tentang Pelayanan Publik"
+Output: {{"konteks":"fasilitatif","domain":"umum","objek":"survei kepuasan masyarakat pelayanan publik","jenjang":"","kegiatan":"pelaksanaan","produk":"surat","inti":"survei kepuasan masyarakat pelayanan publik"}}
  
 SEKARANG KERJAKAN:
 Input: "{teks_user}"
