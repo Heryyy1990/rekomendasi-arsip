@@ -400,8 +400,74 @@ def _parse_json_atribut(raw: str) -> dict | None:
         return None
  
  
-def _bangun_prompt_6_atribut(teks_user: str) -> str:
-    # Mempertahankan fitur referensi jenjang yang sudah bagus dari kode lama Anda
+# =========================================================
+# OTAK 1: PROMPT UNTUK QWEN-32B (KAPASITAS ANALISIS TINGGI)
+# =========================================================
+def _bangun_prompt_qwen(teks_user: str) -> str:
+    referensi_str = "\n".join(
+        f"  - {rumpun}: {', '.join(nilai)}"
+        for rumpun, nilai in REFERENSI_JENJANG.items()
+    )
+    return f"""Anda adalah Arsiparis Senior ahli kearsipan pemerintahan daerah Indonesia.
+Tugas: Analisis perihal surat berikut dan ekstrak 6 atribut terstruktur.
+ 
+LANGKAH BERPIKIR (jalankan berurutan, wajib):
+1. KONTEKS: Apakah surat ini tentang kerumahtanggaan/administrasi internal kantor (fasilitatif) ATAU pelayanan teknis ke masyarakat/program daerah (substantif)?
+2. DOMAIN: Bidang fungsi pemerintahan utama (umum/pemerintahan/kepegawaian/keuangan/kesejahteraan/perekonomian/pekerjaan umum/pengawasan/keamanan/politik)?
+3. OBJEK: Apa yang menjadi target/sasaran utama? (bukan aktor, bukan lokasi)
+4. JENJANG: Apakah ada dimensi hierarki yang disebutkan atau tersirat? Gunakan referensi:
+{referensi_str}
+   Jika tidak ada jenjang yang jelas, isi string kosong "".
+5. KEGIATAN: Jenis tindakan (perencanaan/pelaksanaan/pelaporan/pengawasan/evaluasi/koordinasi/pengadaan/penetapan)?
+6. PRODUK: Output/tujuan surat (sk/laporan/persetujuan/undangan/instruksi/perjanjian/sppd/rekomendasi)?
+7. INTI: Gabungkan objek + jenjang (jika ada) + kegiatan menjadi frasa pencarian singkat maksimal 15 kata. Harus cukup spesifik untuk membedakan kode arsip yang mirip.
+ 
+PRINSIP KRITIS:
+- Jika objek spesifik teridentifikasi → ABAIKAN rumpun umum meski kata kuncinya cocok.
+  Contoh: "perizinan pertanian" bukan 100.3.12 (hukum umum), tapi masuk 500.6 (perekonomian pertanian).
+- Fasilitatif = Urusan administrasi, kerumahtanggaan, kepegawaian, dan KEUANGAN (APBD/APBN/Aset) internal pemerintah.
+- Substantif = Urusan teknis, layanan masyarakat, batas wilayah pemerintahan, pembangunan fisik (jalan/bangunan), dan program sektoral dinas.
+- PENTING: Urusan "batas wilayah", "pemekaran", atau "otonomi" selalu berstatus SUBSTANTIF dengan domain PEMERINTAHAN, bukan umum.
+- Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
+ 
+CONTOH 1:
+Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
+Output: {{"konteks":"fasilitatif","domain":"umum","objek":"perjalanan dinas","jenjang":"kepala daerah","kegiatan":"pelaksanaan","produk":"sppd","inti":"perjalanan dinas kepala daerah dalam negeri"}}
+ 
+CONTOH 2:
+Input: "Laporan pertanggungjawaban penggunaan dana BOS SMPN 1 Tikep"
+Output: {{"konteks":"substantif","domain":"kesejahteraan","objek":"bantuan operasional sekolah","jenjang":"smp","kegiatan":"pelaporan","produk":"laporan","inti":"bantuan operasional sekolah bos smp pelaporan"}}
+ 
+CONTOH 3:
+Input: "Izin penelitian sampel batuan tambang dari Universitas Halu Oleo"
+Output: {{"konteks":"substantif","domain":"perekonomian","objek":"penelitian kegeologian batuan","jenjang":"","kegiatan":"pelaksanaan","produk":"rekomendasi","inti":"izin penelitian batuan tambang kegeologian"}}
+ 
+CONTOH 4:
+Input: "Kenaikan pangkat PNS golongan III ke golongan IV"
+Output: {{"konteks":"fasilitatif","domain":"kepegawaian","objek":"kenaikan pangkat","jenjang":"golongan iv","kegiatan":"penetapan","produk":"sk","inti":"kenaikan pangkat pns golongan iv"}}
+ 
+CONTOH 5:
+Input: "Rekonsiliasi BMD dan tindak lanjut temuan BPK"
+Output: {{"konteks":"fasilitatif","domain":"keuangan","objek":"barang milik daerah","jenjang":"","kegiatan":"pengawasan","produk":"laporan","inti":"rekonsiliasi barang milik daerah tindak lanjut temuan bpk"}}
+
+CONTOH 6:
+Input: "Penetapan batas wilayah administrasi antar kecamatan"
+Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"batas wilayah administrasi","jenjang":"kecamatan","kegiatan":"penetapan","produk":"sk","inti":"penetapan batas wilayah administrasi kecamatan"}}
+
+CONTOH 7:
+Input: "Perubahan struktur organisasi dan tata kerja perangkat daerah"
+Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi perangkat daerah","jenjang":"kabupaten","kegiatan":"penetapan","produk":"sk","inti":"struktur organisasi tata kerja perangkat daerah"}}
+ 
+SEKARANG KERJAKAN:
+Input: "{teks_user}"
+Keluarkan hasil murni dalam format JSON. Jangan tulis tag <think>, jangan beri penjelasan, jangan tambahkan markdown ```json. HANYA format JSON valid yang diawali dengan {{ dan diakhiri dengan }}.
+"""
+
+
+# =========================================================
+# OTAK 2: PROMPT UNTUK LLAMA-8B (HUKUM UNIVERSAL ANTI-BIAS)
+# =========================================================
+def _bangun_prompt_llama(teks_user: str) -> str:
     referensi_str = "\n".join(
         f"  - {rumpun}: {', '.join(nilai)}"
         for rumpun, nilai in REFERENSI_JENJANG.items()
@@ -426,9 +492,9 @@ Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, t
 
 {{
   "konteks": "<isi dengan fasilitatif atau substantif>",
-  "objek": "<TULIS KATA BENDA FISIK/SUBJEKNYA DI SINI. JANGAN masukkan kata kerja>",
+  "objek": "<TULIS BENDA DI FISIK/SUBJEKNYA JANGAN KATA SINI. kata kerja masukkan>",
   "inti": "<esensi dokumen dalam 3-6 kata gabungan objek dan kegiatan>",
-  "domain": "<TENTUKAN DOMAIN BERDASARKAN FIELD 'objek' DI ATAS. Jika objek benda fisik/kendaraan, domainnya PASTI 'umum'. Jika objek dokumen APBD/Pajak, domainnya 'keuangan'>",
+  "domain": "<TENTUKAN 'keuangan' 'objek' 'umum'. APBD/Pajak, ATAS. BERDASARKAN DI DOMAIN FIELD Jika PASTI benda dokumen domainnya fisik/kendaraan, objek>",
   "kegiatan": "<aksi/proses utama seperti pemeliharaan, pengadaan, pelaporan, penetapan>",
   "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan jika tidak ada>",
   "produk": "<jenis dokumen output seperti laporan, surat, kuitansi, sk>"
@@ -437,8 +503,8 @@ Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, t
 Kalimat yang harus diekstrak:
 "{teks_user}"
 """
- 
- 
+
+
 def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
     for percobaan in range(max_retries):
         try:
@@ -450,8 +516,7 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                 ],
                 temperature=0.6,
                 top_p=0.95,
-                max_completion_tokens=2048, # <-- DINAUKKAN AGAR PROSES BERPIKIR TIDAK TERPOTONG
-                # BARIS response_format TELAH DIHAPUS TOTAL
+                max_completion_tokens=2048,
             )
             return chat.choices[0].message.content.strip()
 
@@ -467,16 +532,14 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                     continue
             break
     return None
- 
- 
+
+
 def _panggil_llama_ekstraksi(prompt_6_atribut: str) -> str | None:
     """
     Fallback Llama Cadangan PINTAR.
-    Kini menggunakan Llama-8B (sangat ringan & cepat) untuk tugas administratif JSON.
     """
     try:
         chat = client.chat.completions.create(
-            # Kita pakai model 8b yang lebih cepat dan hemat kuota untuk tugas JSON
             model="llama-3.1-8b-instant", 
             messages=[
                 {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil murni dalam bentuk JSON."},
@@ -490,27 +553,23 @@ def _panggil_llama_ekstraksi(prompt_6_atribut: str) -> str | None:
         import streamlit as st
         st.warning(f"Fallback Llama juga gagal: {e}")
         return None
- 
- 
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
     """
     Mengekstrak 6 atribut terstruktur dari perihal surat.
- 
     Hierarki fallback:
-      1. Qwen3 32B   → 6 atribut lengkap (reasoning ON, format hidden)
-      2. Llama 70B   → inti saja, atribut dikonstruksi minimal
+      1. Qwen3 32B   → Prompt orisinal (reasoning tinggi, analisa substantif)
+      2. Llama 8B    → Prompt hukum universal (mencegah bias semantik)
       3. Python murni → tidak bisa gagal
- 
-    Return:
-      (inti_string, atribut_dict)
-      inti_string  : frasa kunci untuk TF-IDF
-      atribut_dict : 6 atribut + _model (untuk debug)
     """
-    prompt = _bangun_prompt_6_atribut(teks_user)
+    # SIAPKAN DUA OTAK BERBEDA
+    prompt_qwen = _bangun_prompt_qwen(teks_user)
+    prompt_llama = _bangun_prompt_llama(teks_user)
  
     # === LAPIS 1: Qwen3 32B ===
-    raw_qwen = _panggil_qwen3(prompt)
+    raw_qwen = _panggil_qwen3(prompt_qwen) # Qwen membaca prompt orisinal
     if raw_qwen:
         data = _parse_json_atribut(raw_qwen)
         if data and _validasi_json_atribut(data):
@@ -518,8 +577,8 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
             inti = str(data["inti"]).strip().lower()
             return inti, data
  
-    # === LAPIS 2: Llama Cadangan Pintar (6 Atribut) ===
-    raw_llama = _panggil_llama_ekstraksi(prompt) # Menggunakan 'prompt' panjang, bukan sekadar 'teks_user'
+    # === LAPIS 2: Llama Cadangan Pintar ===
+    raw_llama = _panggil_llama_ekstraksi(prompt_llama) # Llama membaca hukum universal
     if raw_llama:
         data_llama = _parse_json_atribut(raw_llama)
         if data_llama and _validasi_json_atribut(data_llama):
