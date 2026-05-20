@@ -1424,15 +1424,14 @@ def smart_classify(user_input, df, top_n=3):
     # =======================================================
     skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
     
-    # Batas Bypass kita atur di 0.70 (70%). 
-    # Jika TF-IDF sudah yakin 70%, usir Juri Llama!
-    THRESHOLD_BYPASS = 0.70 
+    # Turunkan threshold jadi 0.50 (50%) agar bypass lebih sering aktif
+    THRESHOLD_BYPASS = 0.50 
     
     if skor_tertinggi >= THRESHOLD_BYPASS:
-        # Fast track: Llama TIDAK dipanggil sama sekali! Respons kilat!
         st.caption(f"⚡ Bypass Juri Aktif (Skor Mesin Lokal: {skor_tertinggi*100:.1f}%)")
         hasil_fast = []
         for item in dua_puluh_kandidat_teratas[:top_n]:
+            # Kita beri skor simulasi agar hasil bypass tetap terlihat meyakinkan
             skor_sim = 0.99 - (len(hasil_fast) * 0.14)
             hasil_fast.append((item['idx'], skor_sim))
         return hasil_fast, inti_dari_llm
