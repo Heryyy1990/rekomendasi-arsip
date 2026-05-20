@@ -381,6 +381,13 @@ def _validasi_json_atribut(data: dict) -> bool:
     ]
     if any(p in inti.lower() for p in penanda_gagal):
         return False
+        
+    # PERBAIKAN CLAUDE: Validasi Konsistensi
+    konteks = str(data.get("konteks", "")).lower().strip()
+    domain = str(data.get("domain", "")).lower().strip()
+    if konteks == "substantif" and domain == "umum":
+        return False # Tolak dan paksa turun ke fallback
+        
     return True
  
  
@@ -477,7 +484,7 @@ def _bangun_prompt_llama(teks_user: str) -> str:
 
 HUKUM UNIVERSAL KLASIFIKASI ARSIP (WAJIB DIPATUHI):
 Dalam kearsipan, "Domain" ditentukan oleh OBJEK SUBSTANTIF (Apa yang diurus/benda fisiknya), BUKAN oleh KATA KERJA atau TRANSAKSI (Bagaimana cara mengurusnya).
-- Kata-kata transaksi seperti: biaya, pembayaran, pengadaan, pembelian, pemeliharaan, honor, atau jasa WAJIB DIABAIKAN saat menentukan Domain.
+- Kata-kata transaksi seperti: biaya, pembayaran, pengadaan, pembelian, pemeliharaan, honor, pencairan, atau dana WAJIB DIABAIKAN saat menentukan Domain.
 - Temukan benda fisik atau subjek manusianya terlebih dahulu. Benda/subjek itulah yang menentukan Domain.
 
 URUTAN CARA BERPIKIR (Terapkan urutan ini di dalam JSON):
@@ -492,9 +499,9 @@ Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, t
 
 {{
   "konteks": "<isi dengan fasilitatif atau substantif>",
-  "objek": "<TULIS BENDA DI FISIK/SUBJEKNYA JANGAN KATA SINI. kata kerja masukkan>",
+  "objek": "<TULIS BENDA FISIK/SUBJEKNYA DI SINI. Jangan masukkan kata kerja/transaksi uang>",
   "inti": "<esensi dokumen dalam 3-6 kata gabungan objek dan kegiatan>",
-  "domain": "<TENTUKAN 'keuangan' 'objek' 'umum'. APBD/Pajak, ATAS. BERDASARKAN DI DOMAIN FIELD Jika PASTI benda dokumen domainnya fisik/kendaraan, objek>",
+  "domain": "<TENTUKAN DOMAIN BERDASARKAN OBJEK DI ATAS. Jika objek berupa benda fisik/kendaraan/ATK wajib isi 'umum'. Jika objek berupa dokumen anggaran/SP2D murni isi 'keuangan'. Jika objek berupa pegawai/diklat isi 'kepegawaian'>",
   "kegiatan": "<aksi/proses utama seperti pemeliharaan, pengadaan, pelaporan, penetapan>",
   "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan jika tidak ada>",
   "produk": "<jenis dokumen output seperti laporan, surat, kuitansi, sk>"
@@ -1354,9 +1361,10 @@ def smart_classify(user_input, df, top_n=3):
     model_dipakai     = str(atribut_6.get("_model", "")).lower()
     rumpun_target     = PETA_DOMAIN_RUMPUN.get(domain_terdeteksi)
  
+    # PERBAIKAN REKOMENDASI CLAUDE: Filter hanya mati jika modelnya python-manual
     FILTER_AKTIF = (
         rumpun_target is not None
-        and "python" not in model_dipakai
+        and "python" not in model_dipakai 
     )
  
     if FILTER_AKTIF:
