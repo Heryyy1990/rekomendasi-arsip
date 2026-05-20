@@ -476,7 +476,7 @@ Keluarkan hasil murni dalam format JSON. Jangan tulis tag <think>, jangan beri p
 
 
 # =========================================================
-# OTAK 2: PROMPT UNTUK LLAMA-8B (HUKUM UNIVERSAL ANTI-BIAS)
+# OTAK 2: PROMPT UNTUK LLAMA-8B (MODE EKSTRAKTOR MURNI)
 # =========================================================
 def _bangun_prompt_llama(teks_user: str) -> str:
     referensi_str = "\n".join(
@@ -484,16 +484,17 @@ def _bangun_prompt_llama(teks_user: str) -> str:
         for rumpun, nilai in REFERENSI_JENJANG.items()
     )
     
-    return f"""Anda adalah Arsiparis Ahli. Tugas Anda mengekstrak atribut surat ke dalam JSON.
+    return f"""Anda adalah asisten ekstraksi teks. Tugas Anda HANYA membersihkan teks dan menemukan subjek utamanya.
 
-HUKUM UNIVERSAL KLASIFIKASI ARSIP (WAJIB DIPATUHI):
-Dalam kearsipan, "Domain" ditentukan oleh OBJEK SUBSTANTIF (Apa yang diurus/benda fisiknya), BUKAN oleh KATA KERJA atau TRANSAKSI (Bagaimana cara mengurusnya).
-- Kata-kata transaksi seperti: biaya, pembayaran, pengadaan, pembelian, pemeliharaan, honor, pencairan, atau dana WAJIB DIABAIKAN saat menentukan Domain.
-- Temukan benda fisik atau subjek manusianya terlebih dahulu. Benda/subjek itulah yang menentukan Domain.
+ATURAN WAJIB (WAJIB DIPATUHI):
+1. Abaikan kata-kata transaksi berikut (jangan jadikan objek):
+   biaya, pembayaran, pencairan, pengadaan, pembelian, pemeliharaan, honor, dana, anggaran, termin.
+2. Temukan BENDA FISIK atau SUBJEK UTAMA dari kalimat tersebut.
+3. Untuk field "domain", SELALU isi dengan "tidak_diketahui".
 
 URUTAN CARA BERPIKIR (Terapkan urutan ini di dalam JSON):
 1. Cari tahu apa Benda Fisik / Subjek utamanya. Tulis di field "objek".
-2. Setelah menemukan objeknya, barulah tentukan field "domain" berdasarkan objek tersebut.
+2. Masukkan isi field objek tersebut ke dalam field "inti".
 
 REFERENSI JENJANG:
 {referensi_str}
@@ -503,10 +504,10 @@ Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, t
 
 {{
   "konteks": "<isi dengan fasilitatif atau substantif>",
-  "objek": "<TULIS BENDA FISIK/SUBJEKNYA DI SINI. Jangan masukkan kata kerja/transaksi uang>",
+  "objek": "<TULIS BENDA FISIK/SUBJEKNYA DI SINI. Jangan masukkan kata transaksi uang/biaya>",
   "inti": "<WAJIB tulis ulang isi dari field 'objek' di sini, lalu tambahkan kata kegiatannya (maksimal 8 kata)>",
-  "domain": "<TENTUKAN DOMAIN BERDASARKAN OBJEK DI ATAS. Jika objek berupa benda fisik/kendaraan/ATK wajib isi 'umum'. Jika objek berupa dokumen anggaran/SP2D murni isi 'keuangan'. Jika objek berupa pegawai/diklat isi 'kepegawaian'>",
-  "kegiatan": "<aksi/proses utama seperti pemeliharaan, pengadaan, pelaporan, penetapan>",
+  "domain": "tidak_diketahui",
+  "kegiatan": "<aksi/proses utama seperti pengadaan, pelaporan, penetapan>",
   "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan jika tidak ada>",
   "produk": "<jenis dokumen output seperti laporan, surat, kuitansi, sk>"
 }}
@@ -1365,20 +1366,25 @@ def smart_classify(user_input, df, top_n=3):
     model_dipakai     = str(atribut_6.get("_model", "")).lower()
     rumpun_target     = PETA_DOMAIN_RUMPUN.get(domain_terdeteksi)
  
-    # PERBAIKAN REKOMENDASI CLAUDE: Filter hanya mati jika modelnya python-manual
+    # =======================================================
+    # PENDEKATAN K.I.S.S (KEEP IT SIMPLE, STUPID)
+    # Hanya percaya filter domain jika modelnya Qwen-32B.
+    # Jika Llama-8B atau Python, filter MATI. Biarkan TF-IDF mencari bebas!
+    # =======================================================
     FILTER_AKTIF = (
         rumpun_target is not None
-        and "python" not in model_dipakai 
+        and "qwen" in model_dipakai 
     )
  
     if FILTER_AKTIF:
         df_subset = df[df['kode'].str.startswith(rumpun_target)].copy()
+        # Jika hasil filter terlalu sedikit, batalkan filter (Safety Net)
         if len(df_subset) < 20:
             df_subset    = df.copy()
             FILTER_AKTIF = False
     else:
         df_subset = df.copy()
- 
+
     # Simpan indeks asli df sebelum reset
     df_subset = df_subset.reset_index(drop=False)
  
