@@ -1370,8 +1370,21 @@ def smart_classify(user_input, df, top_n=3):
     with st.expander("🔍 Detail 6 Atribut", expanded=False):
         st.json({k: v for k, v in atribut_6.items() if not k.startswith('_')})
  
-    # 2. Preprocessing teks
-    input_bersih = preprocess_text(inti_dari_llm)
+    # =======================================================
+    # 2. QUERY EXPANSION (Ekspansi Kueri Multi-Atribut)
+    # Menggabungkan seluruh atribut hasil bedah Qwen agar TF-IDF 
+    # memiliki jaring penangkap kata yang lebih kaya dan berbobot.
+    # =======================================================
+    query_gabungan = " ".join(filter(None, [
+        str(atribut_6.get("inti", "")),
+        str(atribut_6.get("objek", "")),
+        str(atribut_6.get("jenjang", "")),
+        str(atribut_6.get("kegiatan", "")),
+        str(atribut_6.get("produk", "")),
+    ]))
+    
+    # Preprocessing query gabungan (bukan cuma inti_dari_llm)
+    input_bersih = preprocess_text(query_gabungan)
 
     # -------------------------------------------------------
     # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
