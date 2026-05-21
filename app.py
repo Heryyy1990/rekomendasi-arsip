@@ -2348,36 +2348,14 @@ def halaman_utama():
                     
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
+            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">smart_toy</span> Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
+            st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
             # =======================================================================
-            # 1. INISIALISASI MEMORI SIKAP (ANTI-AMNESIA)
-            # =======================================================================
-            if 'ai_search_results' not in st.session_state:
-                st.session_state['ai_search_results'] = None
-            if 'last_query' not in st.session_state:
-                st.session_state['last_query'] = ""
-
-            # Cek apakah ada lemparan pencarian dari halaman Beranda
-            default_val = st.session_state.pop('temp_search', '')
-            auto_run = False
-            if default_val:
-                st.session_state['last_query'] = "" # Reset agar dipaksa jalan
-                auto_run = True
-
-            # =======================================================================
-            # 2. UI PENCARIAN (SAMA PERSIS DENGAN BERANDA)
+            # 1. CSS EXPANDER (BIAR CANTIK & RAPI)
             # =======================================================================
             st.markdown("""
             <style>
-            /* Menghilangkan border kotak form bawaan Streamlit agar menyatu elegan dengan Banner */
-            div[data-testid="stForm"] {
-                border: none !important;
-                background: transparent !important;
-                padding: 0 !important;
-                box-shadow: none !important;
-            }
-            
-            /* Memastikan styling hasil pencarian (Expander) tetap cantik dan rapi */
             div[data-testid="stExpander"] {
                 border: 2px solid rgba(0, 157, 255, 0.5) !important;
                 border-radius: 16px !important;
@@ -2412,9 +2390,8 @@ def halaman_utama():
                 flex-direction: column;
                 gap: 10px;
             }
-            
-            /* Desain Tombol Pilih & Koreksi agar Modern */
-            .feedback-btn-container button, div[data-testid="stForm"] ~ div button {
+            /* Tombol Pilih & Koreksi */
+            .feedback-btn-container button, div[data-testid="stHorizontalBlock"] button {
                 border-radius: 16px !important;
                 font-weight: 700 !important;
                 border: 2px solid rgba(0, 157, 255, 0.6) !important;
@@ -2424,7 +2401,7 @@ def halaman_utama():
                 box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important;
                 transition: all 0.3s ease !important;
             }
-            .feedback-btn-container button:hover, div[data-testid="stForm"] ~ div button:hover {
+            .feedback-btn-container button:hover, div[data-testid="stHorizontalBlock"] button:hover {
                 border-color: #009DFF !important;
                 transform: translateY(-3px);
                 box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important;
@@ -2432,48 +2409,37 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            # BANNER AI (Identik dengan Beranda)
-            st.markdown(f"""
-            <div class="hero-banner" style="margin-bottom: 0px; padding: 40px 20px;">
-                <div class="hero-content">
-                    <div class="hero-welcome-text" style="font-size: 1.8rem; letter-spacing: 1px;">
-                        <span class="material-symbols-rounded" style="font-size:2.2rem; vertical-align:middle; margin-right:5px; margin-top:-5px;">smart_toy</span>
-                        Pencarian AI
-                    </div>
-                    <div class="hero-subtitle">Ceritakan perihal surat Anda, biarkan sistem cerdas kami menemukan kodenya.</div>
-                    <div class="search-card-bg">
-                        <div class="search-title">Ketik perihal surat di sini</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # =======================================================================
+            # 2. INISIALISASI MEMORI SIKAP (ANTI-AMNESIA)
+            # =======================================================================
+            if 'ai_search_results' not in st.session_state:
+                st.session_state['ai_search_results'] = None
+            if 'last_query' not in st.session_state:
+                st.session_state['last_query'] = ""
 
-            # FORM PENCARIAN
-            # Kita bungkus dengan st.form agar AI tidak merespons tiap kali huruf diketik
+            # Lemparan dari beranda
+            default_val = st.session_state.pop('temp_search', '')
+            auto_run = False
+            if default_val:
+                st.session_state['last_query'] = "" # Paksa jalan
+                auto_run = True
+
+            # =======================================================================
+            # 3. FORM PENCARIAN (ANTI AUTO-KETIK)
+            # =======================================================================
             with st.form("form_pencarian_ai"):
-                col_in, col_btn = st.columns([5, 1])
-                with col_in:
-                    user_input = st.text_input(
-                        "Ketik perihal surat:", 
-                        value=default_val if default_val else st.session_state['last_query'], 
-                        placeholder="Contoh: penyusunan rencana kerja anggaran...",
-                        label_visibility="collapsed",
-                        key="input_halaman_ai_utama"
-                    )
-                with col_btn:
-                    # Icon kaca pembesar agar seragam dengan beranda
-                    btn_cari = st.form_submit_button("🔍")
+                user_input = st.text_input(
+                    "Ketik perihal surat:", 
+                    value=default_val if default_val else st.session_state['last_query'], 
+                    placeholder="Contoh: penyusunan rencana kerja anggaran..."
+                )
+                btn_cari = st.form_submit_button("🚀 Cari Klasifikasi")
 
-            # =======================================================================
-            # 3. LOGIKA EKSEKUSI PENCARIAN
-            # =======================================================================
             if btn_cari or auto_run:
                 if not user_input.strip():
-                    # Bersihkan jika form dikosongkan lalu ditekan enter
                     st.session_state['ai_search_results'] = None
                     st.session_state['last_query'] = ""
                 elif user_input != st.session_state['last_query']:
-                    # Simpan ke riwayat
                     if user_input not in st.session_state.search_history:
                         st.session_state.search_history.append(user_input)
                         simpan_riwayat_csv(st.session_state['nama'], user_input)
@@ -2482,14 +2448,13 @@ def halaman_utama():
                         st.session_state['last_query'] = user_input
                         results, inti_dari_llm = smart_classify(user_input, df) 
                         
-                        # Simpan ke memori abadi
                         st.session_state['ai_search_results'] = {
                             "inti": inti_dari_llm,
                             "rekomendasi": results
                         }
 
             # =======================================================================
-            # 4. PROSES RENDERING/TAMPILAN HASIL (DARI MEMORI)
+            # 4. TAMPILAN HASIL PENCARIAN
             # =======================================================================
             if st.session_state['ai_search_results'] is not None:
                 data_aktif = st.session_state['ai_search_results']
@@ -2497,9 +2462,6 @@ def halaman_utama():
                 results = data_aktif["rekomendasi"]
                 
                 if results:
-                    # Spasi ekstra agar kotak hasil tidak tertimpa tombol cari yang melayang
-                    st.write("<br><br>", unsafe_allow_html=True) 
-                    
                     st.markdown(f"""
                     <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
                         <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
@@ -2520,6 +2482,7 @@ def halaman_utama():
                         kode = res['kode']
                         uraian_asli = res['uraian'].title()
                         
+                        # Tampilan Judul Bersih Tanpa Persentase
                         st.markdown(f"""
                             <div style="margin-top: 15px; margin-bottom: 5px;">
                                 <h3 style="color: var(--text-title); font-weight: 700; margin-bottom: 0px; font-size: 1.15rem;">
@@ -2539,6 +2502,9 @@ def halaman_utama():
                             st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
                     
+                    # =======================================================================
+                    # 5. KOLOM FEEDBACK MANUAL (JURUS DEWA)
+                    # =======================================================================
                     st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
                     
                     with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
