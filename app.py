@@ -1351,14 +1351,6 @@ def smart_classify(user_input, df, top_n=3):
     # 1. Ekstraksi 6 atribut
     inti_dari_llm, atribut_6 = ekstrak_inti_surat(user_input)
  
-    # Debug — hapus setelah selesai testing
-    st.caption(
-        f"🧠 Inti: **{inti_dari_llm}** &nbsp;|&nbsp; "
-        f"Model: `{atribut_6.get('_model', '?')}`"
-    )
-    with st.expander("🔍 Detail 6 Atribut", expanded=False):
-        st.json({k: v for k, v in atribut_6.items() if not k.startswith('_')})
- 
     # =======================================================
     # 2. QUERY EXPANSION (Ekspansi Kueri Multi-Atribut)
     # Menggabungkan seluruh atribut hasil bedah Qwen agar TF-IDF 
@@ -1459,15 +1451,6 @@ def smart_classify(user_input, df, top_n=3):
     # Simpan indeks asli df sebelum reset
     df_subset = df_subset.reset_index(drop=False)
  
-    # Debug filter
-    if FILTER_AKTIF:
-        st.caption(
-            f"🎯 Filter: rumpun **{rumpun_target}** "
-            f"({len(df_subset)} dari {len(df)} baris)"
-        )
-    else:
-        st.caption(f"🔍 Filter nonaktif — {len(df)} baris")
- 
     # 3. TF-IDF & Fuzzy + LANGKAH 5: Depth Bonus Kondisional
     vectorizer    = TfidfVectorizer(ngram_range=(1, 3))
     semua_dokumen = df_subset['clean_uraian'].tolist() + [input_bersih]
@@ -1513,7 +1496,6 @@ def smart_classify(user_input, df, top_n=3):
     THRESHOLD_BYPASS = 0.50 
     
     if skor_tertinggi >= THRESHOLD_BYPASS:
-        st.caption(f"⚡ Bypass Juri Aktif (Skor Mesin Lokal: {skor_tertinggi*100:.1f}%)")
         hasil_fast = []
         for item in dua_puluh_kandidat_teratas[:top_n]:
             # Kita beri skor simulasi agar hasil bypass tetap terlihat meyakinkan
@@ -2348,103 +2330,54 @@ def halaman_utama():
                     
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
-            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">smart_toy</span> Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
-            st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
+            # Judul rata tengah
+            st.markdown('<div class="section-title" style="display:flex; justify-content:center; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">smart_toy</span> Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
+            # Teks "Sistem cerdas..." sudah DIHAPUS
             
             # =======================================================================
             # 1. CSS EXPANDER & PENGHAPUS BORDER FORM
             # =======================================================================
             st.markdown("""
             <style>
-            /* JURUS PENGHILANG KOTAK FORM: Agar tampilan persis seperti asli */
-            div[data-testid="stForm"] {
-                border: none !important;
-                padding: 0 !important;
-                background: transparent !important;
-                box-shadow: none !important;
-            }
-            
-            /* CSS Expander (Hasil Pencarian) */
-            div[data-testid="stExpander"] {
-                border: 2px solid rgba(0, 157, 255, 0.5) !important;
-                border-radius: 16px !important;
-                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important;
-                background: var(--card-bg) !important;
-                margin-bottom: 15px !important;
-                overflow: hidden !important;
-            }
-            div[data-testid="stExpander"] > details > summary {
-                padding: 15px 20px !important;
-                background: var(--expander-bg) !important;
-                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important;
-                border-radius: 16px 16px 0 0 !important;
-                font-size: 0px !important; 
-                color: transparent !important;
-            }
-            div[data-testid="stExpander"] summary p {
-                font-weight: 700 !important;
-                color: var(--text-title) !important;
-                font-size: 1.05rem !important;
-                font-family: 'Poppins', sans-serif !important;
-                margin: 0 !important;
-            }
-            div[data-testid="stExpander"] summary svg {
-                color: var(--text-muted) !important;
-                width: 24px !important;
-                height: 24px !important;
-            }
-            div[data-testid="stExpanderDetails"] {
-                padding: 25px 20px !important;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            /* Tombol Pilih & Koreksi */
-            .feedback-btn-container button, div[data-testid="stForm"] button {
-                border-radius: 12px !important;
-                font-weight: 700 !important;
-                height: 50px !important;
-                transition: all 0.3s ease !important;
-            }
-            .feedback-btn-container button {
-                border: 2px solid rgba(0, 157, 255, 0.6) !important;
-                background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%) !important;
-                color: #009DFF !important;
-                height: 55px !important;
-            }
-            .feedback-btn-container button:hover {
-                border-color: #009DFF !important;
-                transform: translateY(-3px);
-                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important;
-            }
+            div[data-testid="stForm"] { border: none !important; padding: 0 !important; background: transparent !important; box-shadow: none !important; }
+            div[data-testid="stExpander"] { border: 2px solid rgba(0, 157, 255, 0.5) !important; border-radius: 16px !important; box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; background: var(--card-bg) !important; margin-bottom: 15px !important; overflow: hidden !important; }
+            div[data-testid="stExpander"] > details > summary { padding: 15px 20px !important; background: var(--expander-bg) !important; border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important; border-radius: 16px 16px 0 0 !important; font-size: 0px !important; color: transparent !important; }
+            div[data-testid="stExpander"] summary p { font-weight: 700 !important; color: var(--text-title) !important; font-size: 1.05rem !important; font-family: 'Poppins', sans-serif !important; margin: 0 !important; }
+            div[data-testid="stExpander"] summary svg { color: var(--text-muted) !important; width: 24px !important; height: 24px !important; }
+            div[data-testid="stExpanderDetails"] { padding: 25px 20px !important; display: flex; flex-direction: column; gap: 10px; }
+            .feedback-btn-container button, div[data-testid="stForm"] button { border-radius: 12px !important; font-weight: 700 !important; height: 50px !important; transition: all 0.3s ease !important; }
+            .feedback-btn-container button { border: 2px solid rgba(0, 157, 255, 0.6) !important; background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%) !important; color: #009DFF !important; height: 55px !important; }
+            .feedback-btn-container button:hover { border-color: #009DFF !important; transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important; }
             </style>
             """, unsafe_allow_html=True)
 
             # =======================================================================
-            # 2. INISIALISASI MEMORI SIKAP (ANTI-AMNESIA)
+            # 2. INISIALISASI MEMORI SIKAP
             # =======================================================================
-            if 'ai_search_results' not in st.session_state:
-                st.session_state['ai_search_results'] = None
-            if 'last_query' not in st.session_state:
-                st.session_state['last_query'] = ""
+            if 'ai_search_results' not in st.session_state: st.session_state['ai_search_results'] = None
+            if 'last_query' not in st.session_state: st.session_state['last_query'] = ""
 
-            # Lemparan dari beranda
             default_val = st.session_state.pop('temp_search', '')
             auto_run = False
             if default_val:
-                st.session_state['last_query'] = "" # Paksa jalan
+                st.session_state['last_query'] = ""
                 auto_run = True
 
             # =======================================================================
-            # 3. FORM PENCARIAN (BENTUK ORIGINAL, ANTI AUTO-KETIK)
+            # 3. FORM PENCARIAN (CENTERED)
             # =======================================================================
             with st.form("form_pencarian_ai"):
+                # Label Input yang di-Center
+                st.markdown("<div style='text-align: center; font-weight: 600; font-size: 1rem; color: var(--text-title); margin-bottom: 8px; margin-top: 20px;'>Ketik perihal surat:</div>", unsafe_allow_html=True)
+                
                 user_input = st.text_input(
                     "Ketik perihal surat:", 
                     value=default_val if default_val else st.session_state['last_query'], 
-                    placeholder="Contoh: penyusunan rencana kerja anggaran..."
+                    placeholder="Contoh: penyusunan rencana kerja anggaran...",
+                    label_visibility="collapsed" # Menyembunyikan label asli bawaan Streamlit
                 )
+                
+                st.write("") # Spasi tipis sebelum tombol
                 btn_cari = st.form_submit_button("🚀 Cari Klasifikasi", use_container_width=True)
 
             if btn_cari or auto_run:
@@ -2458,11 +2391,13 @@ def halaman_utama():
 
                     with st.spinner('🧠 SIKAP sedang membedah dokumen dan menganalisis kode...'):
                         st.session_state['last_query'] = user_input
-                        results, inti_dari_llm = smart_classify(user_input, df) 
+                        # Menangkap atribut_6 dari fungsi untuk mendapatkan nama model
+                        results, inti_dari_llm, atribut_6 = smart_classify(user_input, df) 
                         
                         st.session_state['ai_search_results'] = {
                             "inti": inti_dari_llm,
-                            "rekomendasi": results
+                            "rekomendasi": results,
+                            "model_aktif": atribut_6.get('_model', 'qwen3-32b')
                         }
 
             # =======================================================================
@@ -2472,14 +2407,17 @@ def halaman_utama():
                 data_aktif = st.session_state['ai_search_results']
                 inti_llm = data_aktif["inti"]
                 results = data_aktif["rekomendasi"]
+                model_aktif = data_aktif.get("model_aktif", "qwen3-32b")
                 
                 if results:
+                    # Kartu Psychology dengan Nama Model di Ujung
                     st.markdown(f"""
                     <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
                         <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
-                        <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5;">
+                        <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5; width: 100%;">
                             <strong>Inti Substansi (Hasil Bedah AI):</strong> <br>
                             <span style="color: var(--text-subtitle); font-style: italic;">"{inti_llm.title()}"</span>
+                            <span style="float: right; font-size: 0.75rem; color: #009DFF; font-weight: 600; background: rgba(0,157,255,0.1); padding: 2px 8px; border-radius: 12px; margin-top: 2px;">🤖 {model_aktif.upper()}</span>
                         </div>
                     </div>
 
@@ -2494,7 +2432,6 @@ def halaman_utama():
                         kode = res['kode']
                         uraian_asli = res['uraian'].title()
                         
-                        # Tampilan Judul Bersih
                         st.markdown(f"""
                             <div style="margin-top: 15px; margin-bottom: 5px;">
                                 <h3 style="color: var(--text-title); font-weight: 700; margin-bottom: 0px; font-size: 1.15rem;">
@@ -2514,36 +2451,23 @@ def halaman_utama():
                             st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
                     
-                    # =======================================================================
-                    # 5. KOLOM FEEDBACK MANUAL (JURUS DEWA)
-                    # =======================================================================
+                    # Kolom Manual Feedback
                     st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
-                    
                     with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
-                        st.caption(
-                            "Jika kode yang benar tidak ada di atas, silakan cari di tab **Jelajah Kode Manual**, "
-                            "lalu masukkan kodenya di bawah ini. SIKAP akan menghafalnya untuk ke depan."
-                        )
-                        
+                        st.caption("Jika kode yang benar tidak ada di atas, cari di tab **Jelajah Kode Manual**, lalu masukkan kodenya di bawah ini.")
                         col_input, col_submit = st.columns([3, 1])
                         with col_input:
-                            kode_koreksi = st.text_input(
-                                "Ketik Kode yang Tepat:", 
-                                key=f"input_koreksi_{st.session_state['last_query']}", 
-                                label_visibility="collapsed", 
-                                placeholder="Contoh: 000.7.2.2"
-                            )
+                            kode_koreksi = st.text_input("Ketik Kode yang Tepat:", key=f"input_koreksi_{st.session_state['last_query']}", label_visibility="collapsed", placeholder="Contoh: 000.7.2.2")
                         with col_submit:
-                            # Tambahan parameter jenis "primary" agar tombol simpan berwarna biru solid
                             if st.button("Simpan Koreksi", key=f"btn_koreksi_{st.session_state['last_query']}", type="primary", use_container_width=True):
                                 if kode_koreksi:
                                     if kode_koreksi in df['kode'].values:
                                         simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode_koreksi)
-                                        st.success(f"✅ Mantap! SIKAP mencatat bahwa surat ini seharusnya diarahkan ke Kode **{kode_koreksi}**.")
+                                        st.success(f"✅ Mantap! Surat ini diarahkan ke Kode **{kode_koreksi}**.")
                                     else:
-                                        st.error("⚠️ Kode tidak ditemukan di database. Pastikan pengetikannya benar (contoh: 000.1).")
+                                        st.error("⚠️ Kode tidak ditemukan di database. Pastikan format benar.")
                                 else:
-                                    st.warning("⚠️ Masukkan kode klasifikasi terlebih dahulu.")
+                                    st.warning("⚠️ Masukkan kode terlebih dahulu.")
                 else:
                     st.warning("Maaf, tidak ditemukan klasifikasi yang cocok dengan kata kunci tersebut.")
                     
