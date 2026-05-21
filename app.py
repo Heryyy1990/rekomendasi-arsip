@@ -286,17 +286,6 @@ except:
  
 client = Groq(api_key=api_key)
  
-# Gemini (primer)
-try:
-    gemini_api_key = st.secrets["GEMINI_API_KEY"]
-    client_gemini = genai.Client(api_key=gemini_api_key)
-    GEMINI_TERSEDIA = True
-except Exception:
-    GEMINI_TERSEDIA = False
-
-st.sidebar.caption(f"Gemini: {'✅' if GEMINI_TERSEDIA else '❌'}")
-
-
 KATA_PENGANTAR = {
     "penyampaian", "permohonan", "undangan", "laporan", "tindak",
     "lanjut", "usulan", "hal", "mengenai", "draf", "rancangan",
@@ -1570,13 +1559,6 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
         )
         balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
-        # ========================================================
-        # CCTV UI: Intip jalan pikiran Llama langsung di layar web!
-        with st.expander("🧠 Intip Cara Berpikir Juri AI (Chain-of-Thought)", expanded=False):
-            st.info("Berikut adalah rekaman proses analisis Juri Llama dalam menyeleksi 20 kandidat:")
-            st.text(balasan_juri)
-        # ========================================================
-
         # Penangkap Angka Anti-Meleset
         angka_pilihan = []
         for baris in balasan_juri.split('\n'):
@@ -2448,64 +2430,137 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            default_val = st.session_state.pop('temp_search', '') 
-            user_input = st.text_input("Ketik perihal surat:", value=default_val, placeholder="Contoh: penyusunan rencana kerja anggaran...", key="input_halaman_ai")
+            # =======================================================================
+            # 1. INISIALISASI MEMORI SIKAP (ANTI-AMNESIA)
+            # =======================================================================
+            if 'ai_search_results' not in st.session_state:
+                st.session_state['ai_search_results'] = None
+            if 'last_query' not in st.session_state:
+                st.session_state['last_query'] = ""
 
-            if user_input:
-                if user_input not in st.session_state.search_history:
-                    st.session_state.search_history.append(user_input)
-                    simpan_riwayat_csv(st.session_state['nama'], user_input)
+            # Cek apakah ada lemparan pencarian dari halaman Beranda
+            default_val = st.session_state.pop('temp_search', '')
+            auto_run = False
+            if default_val:
+                st.session_state['last_query'] = "" # Reset agar dipaksa jalan
+                auto_run = True
 
-                with st.spinner('AI sedang membedah dokumen Anda...'):
-                    # TANGKAP HASIL INTI SURAT DARI FUNGSI
-                    results, inti_dari_llm = smart_classify(user_input, df) 
+            # =======================================================================
+            # 2. KOMPONEN PENCARIAN DENGAN FORM (ANTI KETIK-OTOMATIS)
+            # =======================================================================
+            # st.form memastikan AI HANYA bekerja jika tombol Enter / Cari ditekan
+            with st.form("form_pencarian_ai"):
+                user_input = st.text_input(
+                    "Ketik perihal surat:", 
+                    value=default_val if default_val else st.session_state['last_query'], 
+                    placeholder="Contoh: penyusunan rencana kerja anggaran...",
+                )
+                btn_cari = st.form_submit_button("🚀 Cari Klasifikasi")
+
+            # Eksekusi jika tombol ditekan ATAU dilempar dari beranda
+            if btn_cari or auto_run:
+                if not user_input.strip():
+                    # Jika dikosongkan dan di-enter, bersihkan layar
+                    st.session_state['ai_search_results'] = None
+                    st.session_state['last_query'] = ""
+                elif user_input != st.session_state['last_query']:
+                    # Simpan riwayat
+                    if user_input not in st.session_state.search_history:
+                        st.session_state.search_history.append(user_input)
+                        simpan_riwayat_csv(st.session_state['nama'], user_input)
+
+                    # Jalankan AI
+                    with st.spinner('🧠 SIKAP sedang membedah dokumen dan menganalisis kode...'):
+                        st.session_state['last_query'] = user_input
+                        results, inti_dari_llm = smart_classify(user_input, df) 
+                        
+                        # SIMPAN HASIL KE MEMORI PERMANEN
+                        st.session_state['ai_search_results'] = {
+                            "inti": inti_dari_llm,
+                            "rekomendasi": results
+                        }
+
+            # =======================================================================
+            # 3. PROSES RENDERING/TAMPILAN DARI MEMORI
+            # =======================================================================
+            if st.session_state['ai_search_results'] is not None:
+                data_aktif = st.session_state['ai_search_results']
+                inti_llm = data_aktif["inti"]
+                results = data_aktif["rekomendasi"]
+                
+                if results:
+                    st.markdown(f"""
+                    <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
+                        <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
+                        <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5;">
+                            <strong>Inti Substansi (Hasil Bedah AI):</strong> <br>
+                            <span style="color: var(--text-subtitle); font-style: italic;">"{inti_llm.title()}"</span>
+                        </div>
+                    </div>
+
+                    <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:center; gap:10px;">
+                        <span class="material-symbols-rounded" style="color:#009DFF;">check_circle</span>
+                        <div><span style="font-weight: 700; color: #0369A1;">Analisis Selesai!</span> <span style="color:#0F172A; font-size:0.95rem;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</span></div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    if results:
-                        # KOTAK HASIL EKSTRAKSI DULU, BARU BANNER SUKSES (ADAPTIF LIGHT/DARK MODE)
+                    # Looping untuk menampilkan rekomendasi kode
+                    for i, (idx, score) in enumerate(results):
+                        res = df.iloc[idx]
+                        kode = res['kode']
+                        uraian_asli = res['uraian'].title()
+                        
+                        # Tampilan Judul Kode (Adaptif Theme Light/Dark, Tanpa Persentase)
                         st.markdown(f"""
-                        <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
-                            <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
-                            <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5;">
-                                <strong>Inti Substansi (Hasil Bedah AI):</strong> <br>
-                                <span style="color: var(--text-subtitle); font-style: italic;">"{inti_dari_llm.title()}"</span>
+                            <div style="margin-top: 15px; margin-bottom: 5px;">
+                                <h3 style="color: var(--text-title); font-weight: 700; margin-bottom: 0px; font-size: 1.15rem;">
+                                    <span style="color: #009DFF;">❯ KODE {kode}</span> {uraian_asli}
+                                </h3>
                             </div>
-                        </div>
-
-                        <div style="background: #E0F2FE; border-left: 4px solid #009DFF; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px; display:flex; align-items:center; gap:10px;">
-                            <span class="material-symbols-rounded" style="color:#009DFF;">check_circle</span>
-                            <div><span style="font-weight: 700; color: #0369A1;">Analisis Selesai!</span> <span style="color:#0F172A; font-size:0.95rem;">Berikut rekomendasi klasifikasi terbaik untuk dokumen Anda:</span></div>
-                        </div>
                         """, unsafe_allow_html=True)
                         
-                        rekomendasi_kode = [] # List untuk menyimpan kode yang dihasilkan AI
+                        # Tampilan Jalur Hierarki Langsung di Bawahnya
+                        with st.expander("LIHAT JALUR HIERARKI KODE", expanded=(i==0)):
+                            hierarki = get_hierarchy(kode, df)
+                            for h in hierarki: 
+                                st.markdown(h, unsafe_allow_html=True)
                         
-                        # LOOPING HASIL PENCARIAN
-                        for i, (idx, score) in enumerate(results):
-                            res = df.iloc[idx]
-                            rekomendasi_kode.append(res['kode']) # Tangkap kodenya
-                            
-                            with st.expander(f"❯ KODE {res['kode']} (Keyakinan: {score:.1%})", expanded=(i==0)):
-                                st.markdown(f"<div style='font-size:1.15rem; font-weight:700; color:#009DFF; margin-bottom:15px; line-height:1.4; word-wrap: break-word; overflow-wrap: break-word;'>{res['uraian'].title()}</div>", unsafe_allow_html=True)
-                                st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#64748B; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;'>JALUR HIERARKI KODE:</div>", unsafe_allow_html=True)
-                                hierarki = get_hierarchy(res['kode'], df)
-                                for h in hierarki: 
-                                    st.markdown(h, unsafe_allow_html=True)
-                                    
-                        # --- FITUR FEEDBACK (PILIH KODE TERBAIK) ---
-                        st.markdown('<div class="feedback-title" style="display:flex; justify-content:center; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.5rem;">fact_check</span> Bantu SIKAP Belajar! Mana kode yang paling tepat menurut Anda?</div>', unsafe_allow_html=True)
+                        # Tombol Pilih (Feedback Opsional AI)
+                        if st.button(f"✓ Pilih Kode {kode}", key=f"pilih_{kode}_{st.session_state['last_query']}", use_container_width=True):
+                            simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode)
+                            st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
+                    
+                    # ===================================================================
+                    # 4. KOLOM FEEDBACK MANUAL OVERRIDE (JURUS DEWA)
+                    # ===================================================================
+                    st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
+                    
+                    with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
+                        st.caption(
+                            "Jika kode yang benar tidak ada di atas, silakan cari di tab **Jelajah Kode Manual**, "
+                            "lalu masukkan kodenya di bawah ini. SIKAP akan menghafalnya untuk ke depan."
+                        )
                         
-                        # Buat kolom tombol secara dinamis sesuai jumlah rekomendasi AI
-                        cols = st.columns(len(rekomendasi_kode))
-                        for i, col in enumerate(cols):
-                            with col:
-                                if st.button(f"Pilih Kode {rekomendasi_kode[i]}", key=f"fb_pilih_{rekomendasi_kode[i]}_{user_input}", use_container_width=True):
-                                    # Tambahkan argumen ketiga: inti_dari_llm
-                                    simpan_feedback_csv(st.session_state['nama'], user_input, inti_dari_llm, rekomendasi_kode[i])
-                                    st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {rekomendasi_kode[i]}** sebagai jawaban yang paling tepat. Pilihan ini akan terekam di sistem kami.")
-                        st.markdown('</div>', unsafe_allow_html=True)
-
-                    else:
-                        st.warning("Maaf, tidak ditemukan klasifikasi yang cocok dengan kata kunci tersebut.")
+                        col_input, col_submit = st.columns([3, 1])
+                        with col_input:
+                            kode_koreksi = st.text_input(
+                                "Ketik Kode yang Tepat:", 
+                                key=f"input_koreksi_{st.session_state['last_query']}", 
+                                label_visibility="collapsed", 
+                                placeholder="Contoh: 000.7.2.2"
+                            )
+                        with col_submit:
+                            if st.button("Simpan Koreksi", key=f"btn_koreksi_{st.session_state['last_query']}", type="primary", use_container_width=True):
+                                if kode_koreksi:
+                                    if kode_koreksi in df['kode'].values:
+                                        simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode_koreksi)
+                                        st.success(f"✅ Mantap! SIKAP mencatat bahwa surat ini seharusnya diarahkan ke Kode **{kode_koreksi}**.")
+                                    else:
+                                        st.error("⚠️ Kode tidak ditemukan di database. Pastikan pengetikannya benar (contoh: 000.1).")
+                                else:
+                                    st.warning("⚠️ Masukkan kode klasifikasi terlebih dahulu.")
+                else:
+                    st.warning("Maaf, tidak ditemukan klasifikasi yang cocok dengan kata kunci tersebut.")
 
         # --- HALAMAN 3: JELAJAH KODE ---
         elif st.session_state.page == 'Jelajah Kode':
