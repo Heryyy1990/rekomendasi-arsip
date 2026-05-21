@@ -183,24 +183,32 @@ def baca_riwayat_csv(nama_user):
 
 
 # --- FUNGSI FEEDBACK PEMBELAJARAN AI (CSV) ---
-def simpan_feedback_csv(nama_user, input_user, kode_terpilih):
+def simpan_feedback_csv(nama_user, input_user, inti_surat, kode_terpilih):
     file_feedback = 'feedback_ai.csv'
     waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'perihal': [input_user], 'kode_terpilih': [kode_terpilih]})
-    
-    # PERBAIKAN: Baca, Gabungkan, lalu Simpan (Anti Hilang Header)
+
+    df_baru = pd.DataFrame({
+        'waktu':          [waktu],
+        'nama':           [nama_user],
+        'perihal':        [input_user],       # Teks mentah user
+        'inti_ekstraksi': [inti_surat],       # Teks bersih Qwen
+        'kode_terpilih':  [kode_terpilih]
+    })
+
     if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
         try:
-            df_lama = pd.read_csv(file_feedback)
+            df_lama = pd.read_csv(file_feedback, dtype=str)
+            # Migrasi otomatis jika CSV lama belum punya kolom inti_ekstraksi
+            if 'inti_ekstraksi' not in df_lama.columns:
+                df_lama['inti_ekstraksi'] = df_lama.get('perihal', '')
             df_final = pd.concat([df_lama, df_baru], ignore_index=True)
-        except:
+        except Exception:
             df_final = df_baru
     else:
         df_final = df_baru
-        
+
     df_final.to_csv(file_feedback, index=False)
     sync_to_drive(file_feedback)
-
 # --- HALAMAN LOGIN ---
 def halaman_login():
     # JURUS MEMBELAH LAYAR JADI 2 KOLOM
@@ -381,6 +389,13 @@ def _validasi_json_atribut(data: dict) -> bool:
     ]
     if any(p in inti.lower() for p in penanda_gagal):
         return False
+        
+    # PERBAIKAN CLAUDE: Validasi Konsistensi
+    konteks = str(data.get("konteks", "")).lower().strip()
+    domain = str(data.get("domain", "")).lower().strip()
+    if konteks == "substantif" and domain == "umum":
+        return False # Tolak dan paksa turun ke fallback
+        
     return True
  
  
@@ -400,11 +415,10 @@ def _parse_json_atribut(raw: str) -> dict | None:
         return None
  
  
-def _bangun_prompt_6_atribut(teks_user: str) -> str:
-    """
-    Prompt ekstraktor 6 atribut — dioptimalkan untuk dataset
-    klasifikasi arsip pemerintahan daerah Indonesia.
-    """
+# =========================================================
+# OTAK 1: PROMPT UNTUK QWEN-32B (KAPASITAS ANALISIS TINGGI)
+# =========================================================
+def _bangun_prompt_qwen(teks_user: str) -> str:
     referensi_str = "\n".join(
         f"  - {rumpun}: {', '.join(nilai)}"
         for rumpun, nilai in REFERENSI_JENJANG.items()
@@ -430,6 +444,9 @@ PRINSIP KRITIS:
 - Substantif = Urusan teknis, layanan masyarakat, batas wilayah pemerintahan, pembangunan fisik (jalan/bangunan), dan program sektoral dinas.
 - PENTING: Urusan "batas wilayah", "pemekaran", atau "otonomi" selalu berstatus SUBSTANTIF dengan domain PEMERINTAHAN, bukan umum.
 - Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
+- AWAS JEBAKAN "DALAM RANGKA": Jika ada pola "[Aksi] dalam rangka / untuk / guna [Tujuan]", OBJEK UTAMANYA adalah [Tujuan]. Abaikan aksinya.
+- BUANG KONSIDERAN HUKUM: Hapus mutlak semua frasa dasar hukum seperti "sebagaimana amanat", "Undang-Undang", "Peraturan Menteri", "Nomor...", dan "Tahun...". Fokus HANYA pada substansi kegiatannya (misal: "Survei Kepuasan Masyarakat", "Pelayanan Publik").
+- EKSPANSI ISTILAH LOKAL/SINGKATAN: Terjemahkan singkatan, istilah lokal, atau eufemisme ke dalam padanan bahasa birokrasi pemerintahan standar SEBELUM menyusun field "inti". (Misal: "Pilkades" JADIKAN "pemilihan kepala desa"; "KPLB" JADIKAN "kenaikan pangkat luar biasa golongan jabatan").
  
 CONTOH 1:
 Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
@@ -458,13 +475,65 @@ Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"batas wilayah 
 CONTOH 7:
 Input: "Perubahan struktur organisasi dan tata kerja perangkat daerah"
 Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi perangkat daerah","jenjang":"kabupaten","kegiatan":"penetapan","produk":"sk","inti":"struktur organisasi tata kerja perangkat daerah"}}
+
+CONTOH 8:
+Input: "Pembayaran tagihan biaya pengadaan komputer dan kursi kantor"
+Output: {{"konteks":"fasilitatif","domain":"umum","objek":"komputer dan kursi kantor","jenjang":"","kegiatan":"pengadaan","produk":"surat","inti":"pengadaan komputer kursi kantor"}}
+
+CONTOH 9:
+Input: "Permintaan rekap absen kehadiran pegawai dalam rangka penyusunan Survei Kepuasan Masyarakat sebagaimana amanat UU No 25 Tahun 2009 tentang Pelayanan Publik"
+Output: {{"konteks":"fasilitatif","domain":"umum","objek":"survei kepuasan masyarakat pelayanan publik","jenjang":"","kegiatan":"pelaksanaan","produk":"surat","inti":"survei kepuasan masyarakat pelayanan publik"}}
  
 SEKARANG KERJAKAN:
 Input: "{teks_user}"
 Keluarkan hasil murni dalam format JSON. Jangan tulis tag <think>, jangan beri penjelasan, jangan tambahkan markdown ```json. HANYA format JSON valid yang diawali dengan {{ dan diakhiri dengan }}.
 """
- 
- 
+
+
+# =========================================================
+# OTAK 2: PROMPT UNTUK LLAMA-8B (MODE EKSTRAKTOR MURNI)
+# =========================================================
+def _bangun_prompt_llama(teks_user: str) -> str:
+    referensi_str = "\n".join(
+        f"  - {rumpun}: {', '.join(nilai)}"
+        for rumpun, nilai in REFERENSI_JENJANG.items()
+    )
+    
+    return f"""Anda adalah asisten ekstraksi teks. Tugas Anda HANYA membersihkan teks dan menemukan subjek utamanya.
+
+ATURAN WAJIB (WAJIB DIPATUHI):
+1. Abaikan kata-kata transaksi berikut (jangan jadikan objek):
+   biaya, pembayaran, pencairan, pengadaan, pembelian, pemeliharaan, honor, dana, anggaran, termin, permintaan data, undangan.
+2. Temukan BENDA FISIK atau SUBJEK UTAMA dari kalimat tersebut.
+3. AWAS JEBAKAN "DALAM RANGKA": Jika ada kata "dalam rangka", "untuk", atau "guna", ambil subjek SETELAH kata tersebut, abaikan kata di depannya.
+4. BUANG KONSIDERAN HUKUM: Hapus mutlak semua kata yang merujuk pada aturan hukum (Undang-Undang, Peraturan Menteri, Nomor, Tahun, sebagaimana amanat). Jangan pernah jadikan ini sebagai objek/inti!
+5. Untuk field "domain", SELALU isi dengan "tidak_diketahui".
+
+URUTAN CARA BERPIKIR (Terapkan urutan ini di dalam JSON):
+1. Cari tahu apa Benda Fisik / Subjek utamanya. Tulis di field "objek".
+2. Masukkan isi field objek tersebut ke dalam field "inti".
+
+REFERENSI JENJANG:
+{referensi_str}
+
+ATURAN OUTPUT JSON:
+Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, tanpa teks pengantar, markdown, atau penjelasan apa pun:
+
+{{
+  "konteks": "<isi dengan fasilitatif atau substantif>",
+  "objek": "<TULIS BENDA FISIK/SUBJEKNYA DI SINI. Jangan masukkan kata transaksi uang/biaya>",
+  "inti": "<WAJIB tulis ulang isi dari field 'objek' di sini, lalu tambahkan kata kegiatannya (maksimal 8 kata)>",
+  "domain": "tidak_diketahui",
+  "kegiatan": "<aksi/proses utama seperti pengadaan, pelaporan, penetapan>",
+  "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan jika tidak ada>",
+  "produk": "<jenis dokumen output seperti laporan, surat, kuitansi, sk>"
+}}
+
+Kalimat yang harus diekstrak:
+"{teks_user}"
+"""
+
+
 def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
     for percobaan in range(max_retries):
         try:
@@ -476,8 +545,7 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                 ],
                 temperature=0.6,
                 top_p=0.95,
-                max_completion_tokens=2048, # <-- DINAUKKAN AGAR PROSES BERPIKIR TIDAK TERPOTONG
-                # BARIS response_format TELAH DIHAPUS TOTAL
+                max_completion_tokens=2048,
             )
             return chat.choices[0].message.content.strip()
 
@@ -493,16 +561,14 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                     continue
             break
     return None
- 
- 
+
+
 def _panggil_llama_ekstraksi(prompt_6_atribut: str) -> str | None:
     """
     Fallback Llama Cadangan PINTAR.
-    Kini menggunakan Llama-8B (sangat ringan & cepat) untuk tugas administratif JSON.
     """
     try:
         chat = client.chat.completions.create(
-            # Kita pakai model 8b yang lebih cepat dan hemat kuota untuk tugas JSON
             model="llama-3.1-8b-instant", 
             messages=[
                 {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil murni dalam bentuk JSON."},
@@ -516,27 +582,25 @@ def _panggil_llama_ekstraksi(prompt_6_atribut: str) -> str | None:
         import streamlit as st
         st.warning(f"Fallback Llama juga gagal: {e}")
         return None
- 
- 
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
     """
     Mengekstrak 6 atribut terstruktur dari perihal surat.
- 
-    Hierarki fallback:
-      1. Qwen3 32B   → 6 atribut lengkap (reasoning ON, format hidden)
-      2. Llama 70B   → inti saja, atribut dikonstruksi minimal
-      3. Python murni → tidak bisa gagal
- 
-    Return:
-      (inti_string, atribut_dict)
-      inti_string  : frasa kunci untuk TF-IDF
-      atribut_dict : 6 atribut + _model (untuk debug)
+    Hierarki fallback: Qwen3 -> Llama -> Python
     """
-    prompt = _bangun_prompt_6_atribut(teks_user)
+    # ========================================================
+    # TANDEM EXTRACTOR: Python membersihkan singkatan DULU sebelum dikirim ke AI
+    # ========================================================
+    teks_user_terjemahan = terjemahkan_singkatan(teks_user) 
+    
+    # SIAPKAN DUA OTAK BERBEDA (Gunakan teks yang SUDAH DITERJEMAHKAN)
+    prompt_qwen = _bangun_prompt_qwen(teks_user_terjemahan)
+    prompt_llama = _bangun_prompt_llama(teks_user_terjemahan)
  
     # === LAPIS 1: Qwen3 32B ===
-    raw_qwen = _panggil_qwen3(prompt)
+    raw_qwen = _panggil_qwen3(prompt_qwen) # Qwen membaca prompt orisinal
     if raw_qwen:
         data = _parse_json_atribut(raw_qwen)
         if data and _validasi_json_atribut(data):
@@ -544,8 +608,8 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
             inti = str(data["inti"]).strip().lower()
             return inti, data
  
-    # === LAPIS 2: Llama Cadangan Pintar (6 Atribut) ===
-    raw_llama = _panggil_llama_ekstraksi(prompt) # Menggunakan 'prompt' panjang, bukan sekadar 'teks_user'
+    # === LAPIS 2: Llama Cadangan Pintar ===
+    raw_llama = _panggil_llama_ekstraksi(prompt_llama) # Llama membaca hukum universal
     if raw_llama:
         data_llama = _parse_json_atribut(raw_llama)
         if data_llama and _validasi_json_atribut(data_llama):
@@ -1023,6 +1087,12 @@ kamus_birokrasi = {
     "dprd": "dewan perwakilan rakyat daerah",
     "dpr": "dewan perwakilan rakyat",
     "musrenbang": "musyawarah perencanaan pembangunan",
+    "renstra": "rencana strategis",
+    "opd": "organisasi perangkat daerah",
+    "rpjmd": "rencana pembangunan jangka menengah daerah",
+    "rpjpd": "rencana pembangunan jangka panjang daerah",
+    "rkpd": "rencana kerja pemerintah daerah",
+    "kplb": "kenaikan pangkat luar biasa",
     "lkpj": "laporan keterangan pertanggungjawaban",
     "lppd": "laporan penyelenggaraan pemerintahan daerah",
     "amj": "akhir masa jabatan",
@@ -1302,38 +1372,88 @@ def smart_classify(user_input, df, top_n=3):
  
     # 2. Preprocessing teks
     input_bersih = preprocess_text(inti_dari_llm)
+
+    # -------------------------------------------------------
+    # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
+    # Dijalankan SEBELUM TF-IDF. Jika ada kecocokan di riwayat koreksi,
+    # langsung kembalikan hasil instan tanpa memanggil TF-IDF utama.
+    # -------------------------------------------------------
+    THRESHOLD_FEEDBACK = 90  # Nilai kecocokan fuzzy minimal (90%)
+
+    file_feedback = 'feedback_ai.csv'
+    if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
+        try:
+            df_feedback = pd.read_csv(file_feedback, dtype=str)
+
+            kolom_ok = (
+                'inti_ekstraksi' in df_feedback.columns
+                and 'kode_terpilih' in df_feedback.columns
+                and not df_feedback['inti_ekstraksi'].dropna().empty
+            )
+
+            if kolom_ok:
+                daftar_inti = df_feedback['inti_ekstraksi'].dropna().tolist()
+                best_match  = process.extractOne(
+                    inti_dari_llm,
+                    daftar_inti,
+                    scorer=fuzz.token_sort_ratio
+                )
+
+                if best_match and best_match[1] >= THRESHOLD_FEEDBACK:
+                    teks_cocok         = best_match[0]
+                    kode_hasil_belajar = (
+                        df_feedback[df_feedback['inti_ekstraksi'] == teks_cocok]
+                        .iloc[-1]['kode_terpilih']
+                    )
+                    idx_belajar = df[df['kode'] == kode_hasil_belajar].index
+
+                    if not idx_belajar.empty:
+                        st.caption(f"🧠 SIKAP Mengingat! ({best_match[1]}% cocok dengan riwayat koreksi)")
+                        print(f"[SIKAP] Feedback Loop aktif: '{inti_dari_llm}' ≈ '{teks_cocok}' ({best_match[1]}%) → {kode_hasil_belajar}")
+
+                        # Susun 3 hasil: feedback di #1, TF-IDF mini untuk mengisi #2 dan #3
+                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 3))
+                        semua_dok_fb     = df['clean_uraian'].tolist() + [input_bersih]
+                        matriks_fb       = vectorizer_fb.fit_transform(semua_dok_fb)
+                        skor_fb          = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
+
+                        kandidat_fb = sorted(
+                            [
+                                {'idx': i, 'skor': s}
+                                for i, s in enumerate(skor_fb)
+                                if i != idx_belajar[0]  # hindari duplikat
+                            ],
+                            key=lambda x: x['skor'],
+                            reverse=True
+                        )
+
+                        hasil_gabungan = [(idx_belajar[0], 0.999)]
+                        for item in kandidat_fb:
+                            skor_sim = 0.85 - (len(hasil_gabungan) * 0.14)
+                            hasil_gabungan.append((item['idx'], skor_sim))
+                            if len(hasil_gabungan) == 3:
+                                break
+
+                        return hasil_gabungan, inti_dari_llm
+
+        except Exception as e:
+            print(f"[SIKAP] Feedback Loop error (diabaikan): {e}")
  
-    # 2b. Filter rumpun berdasarkan domain
-    PETA_DOMAIN_RUMPUN = {
-        "umum":           "000",
-        "pemerintahan":   "100",
-        "politik":        "200",
-        "keamanan":       "300",
-        "kesejahteraan":  "400",
-        "perekonomian":   "500",
-        "pekerjaan umum": "600",
-        "pengawasan":     "700",
-        "kepegawaian":    "800",
-        "keuangan":       "900",
-    }
- 
+    # =======================================================
+    # 2b. PENGHANCURAN FILTER (TOTAL BYPASS)
+    # Karena AI buta terhadap isi database klasifikasi,
+    # kita biarkan mesin TF-IDF berburu bebas di 2830 baris!
+    # =======================================================
+    
+    # Tetap ditangkap sekadar untuk dimunculkan di log/tampilan (jika perlu)
     domain_terdeteksi = str(atribut_6.get("domain", "")).lower().strip()
-    model_dipakai     = str(atribut_6.get("_model", "")).lower()
-    rumpun_target     = PETA_DOMAIN_RUMPUN.get(domain_terdeteksi)
- 
-    FILTER_AKTIF = (
-        rumpun_target is not None
-        and "python" not in model_dipakai
-    )
- 
-    if FILTER_AKTIF:
-        df_subset = df[df['kode'].str.startswith(rumpun_target)].copy()
-        if len(df_subset) < 20:
-            df_subset    = df.copy()
-            FILTER_AKTIF = False
-    else:
-        df_subset = df.copy()
- 
+    
+    # Filter DIMATIKAN PERMANEN. Tidak ada lagi surat nyasar!
+    FILTER_AKTIF = False 
+    
+    # Mesin TF-IDF akan membaca seluruh data asli
+    df_subset = df.copy() 
+    
     # Simpan indeks asli df sebelum reset
     df_subset = df_subset.reset_index(drop=False)
  
@@ -1381,17 +1501,20 @@ def smart_classify(user_input, df, top_n=3):
         skor_awal, key=lambda x: x['skor'], reverse=True
     )[:20]
  
-    # LANGKAH 6: Smart Routing — bypass jury jika kandidat #1 sudah dominan
-    skor_pertama = dua_puluh_kandidat_teratas[0]['skor']
-    skor_kedua   = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
-    selisih_skor = skor_pertama - skor_kedua
- 
-    if skor_pertama >= 0.80 and selisih_skor >= 0.15:
-        # Fast track: Llama tidak dipanggil, langsung kembalikan top-3
-        print(f"[SIKAP] Smart Routing aktif — skor={skor_pertama:.3f}, selisih={selisih_skor:.3f}")
-        st.caption("⚡ Fast track")
+    # =======================================================
+    # TAHAP 1 (LANGKAH 6): SMART ROUTING / BYPASS HAKIM AGUNG
+    # (Versi Disempurnakan: Tanpa syarat selisih skor!)
+    # =======================================================
+    skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
+    
+    # Turunkan threshold jadi 0.50 (50%) agar bypass lebih sering aktif
+    THRESHOLD_BYPASS = 0.50 
+    
+    if skor_tertinggi >= THRESHOLD_BYPASS:
+        st.caption(f"⚡ Bypass Juri Aktif (Skor Mesin Lokal: {skor_tertinggi*100:.1f}%)")
         hasil_fast = []
         for item in dua_puluh_kandidat_teratas[:top_n]:
+            # Kita beri skor simulasi agar hasil bypass tetap terlihat meyakinkan
             skor_sim = 0.99 - (len(hasil_fast) * 0.14)
             hasil_fast.append((item['idx'], skor_sim))
         return hasil_fast, inti_dari_llm
@@ -2363,7 +2486,8 @@ def halaman_utama():
                         for i, col in enumerate(cols):
                             with col:
                                 if st.button(f"Pilih Kode {rekomendasi_kode[i]}", key=f"fb_pilih_{rekomendasi_kode[i]}_{user_input}", use_container_width=True):
-                                    simpan_feedback_csv(st.session_state['nama'], user_input, rekomendasi_kode[i])
+                                    # Tambahkan argumen ketiga: inti_dari_llm
+                                    simpan_feedback_csv(st.session_state['nama'], user_input, inti_dari_llm, rekomendasi_kode[i])
                                     st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {rekomendasi_kode[i]}** sebagai jawaban yang paling tepat. Pilihan ini akan terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
 
