@@ -1353,19 +1353,25 @@ def smart_classify(user_input, df, top_n=3):
     st.session_state['model_aktif'] = atribut_6.get('_model', 'qwen3-32b')
  
     # =======================================================
-    # 2. QUERY EXPANSION (Ekspansi Kueri Multi-Atribut)
-    # Menggabungkan seluruh atribut hasil bedah Qwen agar TF-IDF 
-    # memiliki jaring penangkap kata yang lebih kaya dan berbobot.
+    # 2. QUERY EXPANSION (KONDISIONAL BERDASARKAN MODEL AI)
     # =======================================================
-    query_gabungan = " ".join(filter(None, [
-        str(atribut_6.get("inti", "")),
-        str(atribut_6.get("objek", "")),
-        str(atribut_6.get("jenjang", "")),
-        str(atribut_6.get("kegiatan", "")),
-        str(atribut_6.get("produk", "")),
-    ]))
+    model_ai_aktif = atribut_6.get('_model', 'qwen3-32b')
     
-    # Preprocessing query gabungan (bukan cuma inti_dari_llm)
+    if "qwen" in model_ai_aktif:
+        # Jika Qwen (Pintar) -> Pakai Jaring Ekstraksi Penuh (Gabung 5 atribut)
+        query_gabungan = " ".join(filter(None, [
+            str(atribut_6.get("inti", "")),
+            str(atribut_6.get("objek", "")),
+            str(atribut_6.get("jenjang", "")),
+            str(atribut_6.get("kegiatan", "")),
+            str(atribut_6.get("produk", "")),
+        ]))
+    else:
+        # Jika Llama / Python (Bodoh) -> JANGAN DIGABUNG! Nanti TF-IDF tertipu noise.
+        # Cukup pakai hasil 'inti' mentahnya saja.
+        query_gabungan = str(atribut_6.get("inti", user_input))
+    
+    # Preprocessing
     input_bersih = preprocess_text(query_gabungan)
 
     # -------------------------------------------------------
