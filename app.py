@@ -2352,10 +2352,19 @@ def halaman_utama():
             st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
             # =======================================================================
-            # 1. CSS EXPANDER (BIAR CANTIK & RAPI)
+            # 1. CSS EXPANDER & PENGHAPUS BORDER FORM
             # =======================================================================
             st.markdown("""
             <style>
+            /* JURUS PENGHILANG KOTAK FORM: Agar tampilan persis seperti asli */
+            div[data-testid="stForm"] {
+                border: none !important;
+                padding: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+            
+            /* CSS Expander (Hasil Pencarian) */
             div[data-testid="stExpander"] {
                 border: 2px solid rgba(0, 157, 255, 0.5) !important;
                 border-radius: 16px !important;
@@ -2390,18 +2399,21 @@ def halaman_utama():
                 flex-direction: column;
                 gap: 10px;
             }
+            
             /* Tombol Pilih & Koreksi */
-            .feedback-btn-container button, div[data-testid="stHorizontalBlock"] button {
-                border-radius: 16px !important;
+            .feedback-btn-container button, div[data-testid="stForm"] button {
+                border-radius: 12px !important;
                 font-weight: 700 !important;
+                height: 50px !important;
+                transition: all 0.3s ease !important;
+            }
+            .feedback-btn-container button {
                 border: 2px solid rgba(0, 157, 255, 0.6) !important;
                 background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%) !important;
                 color: #009DFF !important;
                 height: 55px !important;
-                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important;
-                transition: all 0.3s ease !important;
             }
-            .feedback-btn-container button:hover, div[data-testid="stHorizontalBlock"] button:hover {
+            .feedback-btn-container button:hover {
                 border-color: #009DFF !important;
                 transform: translateY(-3px);
                 box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important;
@@ -2425,7 +2437,7 @@ def halaman_utama():
                 auto_run = True
 
             # =======================================================================
-            # 3. FORM PENCARIAN (ANTI AUTO-KETIK)
+            # 3. FORM PENCARIAN (BENTUK ORIGINAL, ANTI AUTO-KETIK)
             # =======================================================================
             with st.form("form_pencarian_ai"):
                 user_input = st.text_input(
@@ -2433,7 +2445,7 @@ def halaman_utama():
                     value=default_val if default_val else st.session_state['last_query'], 
                     placeholder="Contoh: penyusunan rencana kerja anggaran..."
                 )
-                btn_cari = st.form_submit_button("🚀 Cari Klasifikasi")
+                btn_cari = st.form_submit_button("🚀 Cari Klasifikasi", use_container_width=True)
 
             if btn_cari or auto_run:
                 if not user_input.strip():
@@ -2482,7 +2494,7 @@ def halaman_utama():
                         kode = res['kode']
                         uraian_asli = res['uraian'].title()
                         
-                        # Tampilan Judul Bersih Tanpa Persentase
+                        # Tampilan Judul Bersih
                         st.markdown(f"""
                             <div style="margin-top: 15px; margin-bottom: 5px;">
                                 <h3 style="color: var(--text-title); font-weight: 700; margin-bottom: 0px; font-size: 1.15rem;">
@@ -2522,6 +2534,7 @@ def halaman_utama():
                                 placeholder="Contoh: 000.7.2.2"
                             )
                         with col_submit:
+                            # Tambahan parameter jenis "primary" agar tombol simpan berwarna biru solid
                             if st.button("Simpan Koreksi", key=f"btn_koreksi_{st.session_state['last_query']}", type="primary", use_container_width=True):
                                 if kode_koreksi:
                                     if kode_koreksi in df['kode'].values:
@@ -2533,7 +2546,7 @@ def halaman_utama():
                                     st.warning("⚠️ Masukkan kode klasifikasi terlebih dahulu.")
                 else:
                     st.warning("Maaf, tidak ditemukan klasifikasi yang cocok dengan kata kunci tersebut.")
-
+                    
         # --- HALAMAN 3: JELAJAH KODE ---
         elif st.session_state.page == 'Jelajah Kode':
             # Judul dengan icon modern menyesuaikan sidebar
