@@ -1350,6 +1350,7 @@ def smart_classify(user_input, df, top_n=3):
  
     # 1. Ekstraksi 6 atribut
     inti_dari_llm, atribut_6 = ekstrak_inti_surat(user_input)
+    st.session_state['model_aktif'] = atribut_6.get('_model', 'qwen3-32b')
  
     # =======================================================
     # 2. QUERY EXPANSION (Ekspansi Kueri Multi-Atribut)
@@ -2330,9 +2331,7 @@ def halaman_utama():
                     
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
-            # Judul rata tengah
             st.markdown('<div class="section-title" style="display:flex; justify-content:center; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">smart_toy</span> Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
-            # Teks "Sistem cerdas..." sudah DIHAPUS
             
             # =======================================================================
             # 1. CSS EXPANDER & PENGHAPUS BORDER FORM
@@ -2351,11 +2350,10 @@ def halaman_utama():
             </style>
             """, unsafe_allow_html=True)
 
-            # =======================================================================
-            # 2. INISIALISASI MEMORI SIKAP
-            # =======================================================================
-            if 'ai_search_results' not in st.session_state: st.session_state['ai_search_results'] = None
-            if 'last_query' not in st.session_state: st.session_state['last_query'] = ""
+            if 'ai_search_results' not in st.session_state:
+                st.session_state['ai_search_results'] = None
+            if 'last_query' not in st.session_state:
+                st.session_state['last_query'] = ""
 
             default_val = st.session_state.pop('temp_search', '')
             auto_run = False
@@ -2364,20 +2362,17 @@ def halaman_utama():
                 auto_run = True
 
             # =======================================================================
-            # 3. FORM PENCARIAN (CENTERED)
+            # 2. FORM PENCARIAN (CENTERED)
             # =======================================================================
             with st.form("form_pencarian_ai"):
-                # Label Input yang di-Center
-                st.markdown("<div style='text-align: center; font-weight: 600; font-size: 1rem; color: var(--text-title); margin-bottom: 8px; margin-top: 20px;'>Ketik perihal surat:</div>", unsafe_allow_html=True)
+                st.markdown("<div style='text-align: center; font-weight: 600; font-size: 1rem; color: var(--text-title); margin-bottom: 8px; margin-top: 10px;'>Ketik perihal surat:</div>", unsafe_allow_html=True)
                 
                 user_input = st.text_input(
                     "Ketik perihal surat:", 
                     value=default_val if default_val else st.session_state['last_query'], 
                     placeholder="Contoh: penyusunan rencana kerja anggaran...",
-                    label_visibility="collapsed" # Menyembunyikan label asli bawaan Streamlit
+                    label_visibility="collapsed"
                 )
-                
-                st.write("") # Spasi tipis sebelum tombol
                 btn_cari = st.form_submit_button("🚀 Cari Klasifikasi", use_container_width=True)
 
             if btn_cari or auto_run:
@@ -2391,33 +2386,30 @@ def halaman_utama():
 
                     with st.spinner('🧠 SIKAP sedang membedah dokumen dan menganalisis kode...'):
                         st.session_state['last_query'] = user_input
-                        # Menangkap atribut_6 dari fungsi untuk mendapatkan nama model
-                        results, inti_dari_llm, atribut_6 = smart_classify(user_input, df) 
+                        results, inti_dari_llm = smart_classify(user_input, df) 
                         
                         st.session_state['ai_search_results'] = {
                             "inti": inti_dari_llm,
-                            "rekomendasi": results,
-                            "model_aktif": atribut_6.get('_model', 'qwen3-32b')
+                            "rekomendasi": results
                         }
 
             # =======================================================================
-            # 4. TAMPILAN HASIL PENCARIAN
+            # 3. TAMPILAN HASIL PENCARIAN
             # =======================================================================
             if st.session_state['ai_search_results'] is not None:
                 data_aktif = st.session_state['ai_search_results']
                 inti_llm = data_aktif["inti"]
                 results = data_aktif["rekomendasi"]
-                model_aktif = data_aktif.get("model_aktif", "qwen3-32b")
+                model_ai = st.session_state.get('model_aktif', 'qwen3-32b').upper()
                 
                 if results:
-                    # Kartu Psychology dengan Nama Model di Ujung
                     st.markdown(f"""
                     <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
                         <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
-                        <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5; width: 100%;">
+                        <div style="font-size: 0.9rem; color: var(--text-title); line-height: 1.5;">
                             <strong>Inti Substansi (Hasil Bedah AI):</strong> <br>
                             <span style="color: var(--text-subtitle); font-style: italic;">"{inti_llm.title()}"</span>
-                            <span style="float: right; font-size: 0.75rem; color: #009DFF; font-weight: 600; background: rgba(0,157,255,0.1); padding: 2px 8px; border-radius: 12px; margin-top: 2px;">🤖 {model_aktif.upper()}</span>
+                            <span style="color: #009DFF; font-weight: 700; font-size: 0.8rem;"> &nbsp;|&nbsp; Model: {model_ai}</span>
                         </div>
                     </div>
 
@@ -2451,10 +2443,9 @@ def halaman_utama():
                             st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
                     
-                    # Kolom Manual Feedback
                     st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
                     with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
-                        st.caption("Jika kode yang benar tidak ada di atas, cari di tab **Jelajah Kode Manual**, lalu masukkan kodenya di bawah ini.")
+                        st.caption("Jika kode yang benar tidak ada di atas, silakan cari di tab **Jelajah Kode Manual**, lalu masukkan kodenya di bawah ini.")
                         col_input, col_submit = st.columns([3, 1])
                         with col_input:
                             kode_koreksi = st.text_input("Ketik Kode yang Tepat:", key=f"input_koreksi_{st.session_state['last_query']}", label_visibility="collapsed", placeholder="Contoh: 000.7.2.2")
@@ -2465,7 +2456,7 @@ def halaman_utama():
                                         simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode_koreksi)
                                         st.success(f"✅ Mantap! Surat ini diarahkan ke Kode **{kode_koreksi}**.")
                                     else:
-                                        st.error("⚠️ Kode tidak ditemukan di database. Pastikan format benar.")
+                                        st.error("⚠️ Kode tidak ditemukan di database. Pastikan pengetikannya benar.")
                                 else:
                                     st.warning("⚠️ Masukkan kode terlebih dahulu.")
                 else:
