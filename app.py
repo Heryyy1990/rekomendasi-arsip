@@ -1499,13 +1499,19 @@ def smart_classify(user_input, df, top_n=3):
     # =======================================================
     skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
     
-    # Turunkan threshold jadi 0.50 (50%) agar bypass lebih sering aktif
-    THRESHOLD_BYPASS = 0.50 
+    # =======================================================
+    # TAHAP 1: SMART ROUTING / BYPASS HAKIM AGUNG
+    # (Hanya bypass jika mesin LOKAL YAKIN 80% dan JELAS BEDANYA)
+    # =======================================================
+    skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
+    skor_kedua = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
     
-    if skor_tertinggi >= THRESHOLD_BYPASS:
+    THRESHOLD_BYPASS = 0.80 
+    SELISIH_AMAN = 0.15
+    
+    if skor_tertinggi >= THRESHOLD_BYPASS and (skor_tertinggi - skor_kedua) >= SELISIH_AMAN:
         hasil_fast = []
         for item in dua_puluh_kandidat_teratas[:top_n]:
-            # Kita beri skor simulasi agar hasil bypass tetap terlihat meyakinkan
             skor_sim = 0.99 - (len(hasil_fast) * 0.14)
             hasil_fast.append((item['idx'], skor_sim))
         return hasil_fast, inti_dari_llm
