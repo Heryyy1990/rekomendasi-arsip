@@ -183,24 +183,32 @@ def baca_riwayat_csv(nama_user):
 
 
 # --- FUNGSI FEEDBACK PEMBELAJARAN AI (CSV) ---
-def simpan_feedback_csv(nama_user, input_user, kode_terpilih):
+def simpan_feedback_csv(nama_user, input_user, inti_surat, kode_terpilih):
     file_feedback = 'feedback_ai.csv'
     waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    df_baru = pd.DataFrame({'waktu': [waktu], 'nama': [nama_user], 'perihal': [input_user], 'kode_terpilih': [kode_terpilih]})
-    
-    # PERBAIKAN: Baca, Gabungkan, lalu Simpan (Anti Hilang Header)
+
+    df_baru = pd.DataFrame({
+        'waktu':          [waktu],
+        'nama':           [nama_user],
+        'perihal':        [input_user],       # Teks mentah user
+        'inti_ekstraksi': [inti_surat],       # Teks bersih Qwen
+        'kode_terpilih':  [kode_terpilih]
+    })
+
     if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
         try:
-            df_lama = pd.read_csv(file_feedback)
+            df_lama = pd.read_csv(file_feedback, dtype=str)
+            # Migrasi otomatis jika CSV lama belum punya kolom inti_ekstraksi
+            if 'inti_ekstraksi' not in df_lama.columns:
+                df_lama['inti_ekstraksi'] = df_lama.get('perihal', '')
             df_final = pd.concat([df_lama, df_baru], ignore_index=True)
-        except:
+        except Exception:
             df_final = df_baru
     else:
         df_final = df_baru
-        
+
     df_final.to_csv(file_feedback, index=False)
     sync_to_drive(file_feedback)
-
 # --- HALAMAN LOGIN ---
 def halaman_login():
     # JURUS MEMBELAH LAYAR JADI 2 KOLOM
@@ -438,6 +446,7 @@ PRINSIP KRITIS:
 - Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
 - AWAS JEBAKAN "DALAM RANGKA": Jika ada pola "[Aksi] dalam rangka / untuk / guna [Tujuan]", OBJEK UTAMANYA adalah [Tujuan]. Abaikan aksinya.
 - BUANG KONSIDERAN HUKUM: Hapus mutlak semua frasa dasar hukum seperti "sebagaimana amanat", "Undang-Undang", "Peraturan Menteri", "Nomor...", dan "Tahun...". Fokus HANYA pada substansi kegiatannya (misal: "Survei Kepuasan Masyarakat", "Pelayanan Publik").
+- EKSPANSI ISTILAH LOKAL/SINGKATAN: Terjemahkan singkatan, istilah lokal, atau eufemisme ke dalam padanan bahasa birokrasi pemerintahan standar SEBELUM menyusun field "inti". (Misal: "Pilkades" JADIKAN "pemilihan kepala desa"; "KPLB" JADIKAN "kenaikan pangkat luar biasa golongan jabatan").
  
 CONTOH 1:
 Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
@@ -1355,6 +1364,72 @@ def smart_classify(user_input, df, top_n=3):
  
     # 2. Preprocessing teks
     input_bersih = preprocess_text(inti_dari_llm)
+
+    # -------------------------------------------------------
+    # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
+    # Dijalankan SEBELUM TF-IDF. Jika ada kecocokan di riwayat koreksi,
+    # langsung kembalikan hasil instan tanpa memanggil TF-IDF utama.
+    # -------------------------------------------------------
+    THRESHOLD_FEEDBACK = 90  # Nilai kecocokan fuzzy minimal (90%)
+
+    file_feedback = 'feedback_ai.csv'
+    if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
+        try:
+            df_feedback = pd.read_csv(file_feedback, dtype=str)
+
+            kolom_ok = (
+                'inti_ekstraksi' in df_feedback.columns
+                and 'kode_terpilih' in df_feedback.columns
+                and not df_feedback['inti_ekstraksi'].dropna().empty
+            )
+
+            if kolom_ok:
+                daftar_inti = df_feedback['inti_ekstraksi'].dropna().tolist()
+                best_match  = process.extractOne(
+                    inti_dari_llm,
+                    daftar_inti,
+                    scorer=fuzz.token_sort_ratio
+                )
+
+                if best_match and best_match[1] >= THRESHOLD_FEEDBACK:
+                    teks_cocok         = best_match[0]
+                    kode_hasil_belajar = (
+                        df_feedback[df_feedback['inti_ekstraksi'] == teks_cocok]
+                        .iloc[-1]['kode_terpilih']
+                    )
+                    idx_belajar = df[df['kode'] == kode_hasil_belajar].index
+
+                    if not idx_belajar.empty:
+                        st.caption(f"🧠 SIKAP Mengingat! ({best_match[1]}% cocok dengan riwayat koreksi)")
+                        print(f"[SIKAP] Feedback Loop aktif: '{inti_dari_llm}' ≈ '{teks_cocok}' ({best_match[1]}%) → {kode_hasil_belajar}")
+
+                        # Susun 3 hasil: feedback di #1, TF-IDF mini untuk mengisi #2 dan #3
+                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 3))
+                        semua_dok_fb     = df['clean_uraian'].tolist() + [input_bersih]
+                        matriks_fb       = vectorizer_fb.fit_transform(semua_dok_fb)
+                        skor_fb          = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
+
+                        kandidat_fb = sorted(
+                            [
+                                {'idx': i, 'skor': s}
+                                for i, s in enumerate(skor_fb)
+                                if i != idx_belajar[0]  # hindari duplikat
+                            ],
+                            key=lambda x: x['skor'],
+                            reverse=True
+                        )
+
+                        hasil_gabungan = [(idx_belajar[0], 0.999)]
+                        for item in kandidat_fb:
+                            skor_sim = 0.85 - (len(hasil_gabungan) * 0.14)
+                            hasil_gabungan.append((item['idx'], skor_sim))
+                            if len(hasil_gabungan) == 3:
+                                break
+
+                        return hasil_gabungan, inti_dari_llm
+
+        except Exception as e:
+            print(f"[SIKAP] Feedback Loop error (diabaikan): {e}")
  
     # =======================================================
     # 2b. PENGHANCURAN FILTER (TOTAL BYPASS)
@@ -2403,7 +2478,8 @@ def halaman_utama():
                         for i, col in enumerate(cols):
                             with col:
                                 if st.button(f"Pilih Kode {rekomendasi_kode[i]}", key=f"fb_pilih_{rekomendasi_kode[i]}_{user_input}", use_container_width=True):
-                                    simpan_feedback_csv(st.session_state['nama'], user_input, rekomendasi_kode[i])
+                                    # Tambahkan argumen ketiga: inti_dari_llm
+                                    simpan_feedback_csv(st.session_state['nama'], user_input, inti_dari_llm, rekomendasi_kode[i])
                                     st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {rekomendasi_kode[i]}** sebagai jawaban yang paling tepat. Pilihan ini akan terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
 
