@@ -2348,88 +2348,7 @@ def halaman_utama():
                     
         # --- HALAMAN 2: PENCARIAN AI ---
         elif st.session_state.page == 'Pencarian AI':
-            st.markdown('<div class="section-title" style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-rounded" style="color:#009DFF; font-size:1.8rem;">smart_toy</span> Pencarian AI (Cerdas)</div>', unsafe_allow_html=True)
-            st.write("Sistem cerdas akan menganalisis bahasa natural Anda untuk menemukan kode klasifikasi.")
             
-            # =========================================================
-            # CSS KHUSUS UNTUK MEMPERCANTIK HASIL PENCARIAN & FEEDBACK
-            # =========================================================
-            st.markdown("""
-            <style>
-            /* 1. Kotak Expander Hasil Pencarian (DENGAN OUTLINE BIRU) */
-            div[data-testid="stExpander"] {
-                border: 2px solid rgba(0, 157, 255, 0.5) !important; /* <--- OUTLINE BIRU DIKEMBALIKAN */
-                border-radius: 16px !important;
-                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; /* <--- GLOW BIRU HALUS */
-                background: #FFFFFF !important;
-                margin-bottom: 15px !important;
-                overflow: hidden !important;
-            }
-            
-            /* 2. PERBAIKAN TOTAL: BUNUH TEKS HANTU "arrow" ("arr") + Garis Bawah Biru */
-            div[data-testid="stExpander"] > details > summary {
-                padding: 15px 20px !important;
-                background: #F8FAFC !important;
-                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important; /* <--- GARIS BAWAH BIRU SENADA */
-                border-radius: 16px 16px 0 0 !important;
-                font-size: 0px !important; /* JURUS ANTI HANTU */
-                color: transparent !important;
-            }
-            
-            /* Bangkitkan HANYA teks judul (p) kita agar tampil sempurna */
-            div[data-testid="stExpander"] summary p {
-                font-weight: 700 !important;
-                color: #0F172A !important;
-                font-size: 1.05rem !important;
-                font-family: 'Poppins', sans-serif !important;
-                margin: 0 !important;
-            }
-
-            /* Pastikan icon panah asli Streamlit tetap ada dan warnanya pas */
-            div[data-testid="stExpander"] summary svg {
-                color: var(--text-muted) !important; /* <--- UBAH DI SINI */
-                width: 24px !important;
-                height: 24px !important;
-            }
-            
-            /* 3. Beri Ruang Lega di Dalam Expander Agar Tidak Tumpang Tindih */
-            div[data-testid="stExpanderDetails"] {
-                padding: 25px 20px !important;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            /* 4. Desain Area Feedback (Tanpa Wrapper HTML agar tidak bentrok) */
-            .feedback-title {
-                font-size: 1rem;
-                font-weight: 700;
-                color: var(--text-title); /* <--- UBAH DI SINI */
-                margin-top: 40px;
-                margin-bottom: 20px;
-                text-align: center;
-                font-family: 'Poppins', sans-serif !important;
-            }
-            
-            /* JURUS JITU: Target langsung tombol Streamlit yang ada di dalam kolom */
-            div[data-testid="stHorizontalBlock"] button {
-                border-radius: 16px !important; /* <--- SUDUT MEMBULAT 16px */
-                font-weight: 700 !important;
-                border: 2px solid rgba(0, 157, 255, 0.6) !important; /* <--- OUTLINE BIRU */
-                background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%) !important;
-                color: #009DFF !important;
-                height: 55px !important;
-                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important; /* Glow tipis */
-                transition: all 0.3s ease !important;
-            }
-            div[data-testid="stHorizontalBlock"] button:hover {
-                border-color: #009DFF !important;
-                transform: translateY(-3px);
-                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important; /* Glow menguat saat kursor mendekat */
-            }
-            </style>
-            """, unsafe_allow_html=True)
-
             # =======================================================================
             # 1. INISIALISASI MEMORI SIKAP (ANTI-AMNESIA)
             # =======================================================================
@@ -2446,42 +2365,131 @@ def halaman_utama():
                 auto_run = True
 
             # =======================================================================
-            # 2. KOMPONEN PENCARIAN DENGAN FORM (ANTI KETIK-OTOMATIS)
+            # 2. UI PENCARIAN (SAMA PERSIS DENGAN BERANDA)
             # =======================================================================
-            # st.form memastikan AI HANYA bekerja jika tombol Enter / Cari ditekan
-            with st.form("form_pencarian_ai"):
-                user_input = st.text_input(
-                    "Ketik perihal surat:", 
-                    value=default_val if default_val else st.session_state['last_query'], 
-                    placeholder="Contoh: penyusunan rencana kerja anggaran...",
-                )
-                btn_cari = st.form_submit_button("🚀 Cari Klasifikasi")
+            st.markdown("""
+            <style>
+            /* Menghilangkan border kotak form bawaan Streamlit agar menyatu elegan dengan Banner */
+            div[data-testid="stForm"] {
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+            
+            /* Memastikan styling hasil pencarian (Expander) tetap cantik dan rapi */
+            div[data-testid="stExpander"] {
+                border: 2px solid rgba(0, 157, 255, 0.5) !important;
+                border-radius: 16px !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important;
+                background: var(--card-bg) !important;
+                margin-bottom: 15px !important;
+                overflow: hidden !important;
+            }
+            div[data-testid="stExpander"] > details > summary {
+                padding: 15px 20px !important;
+                background: var(--expander-bg) !important;
+                border-bottom: 1px solid rgba(0, 157, 255, 0.2) !important;
+                border-radius: 16px 16px 0 0 !important;
+                font-size: 0px !important; 
+                color: transparent !important;
+            }
+            div[data-testid="stExpander"] summary p {
+                font-weight: 700 !important;
+                color: var(--text-title) !important;
+                font-size: 1.05rem !important;
+                font-family: 'Poppins', sans-serif !important;
+                margin: 0 !important;
+            }
+            div[data-testid="stExpander"] summary svg {
+                color: var(--text-muted) !important;
+                width: 24px !important;
+                height: 24px !important;
+            }
+            div[data-testid="stExpanderDetails"] {
+                padding: 25px 20px !important;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            /* Desain Tombol Pilih & Koreksi agar Modern */
+            .feedback-btn-container button, div[data-testid="stForm"] ~ div button {
+                border-radius: 16px !important;
+                font-weight: 700 !important;
+                border: 2px solid rgba(0, 157, 255, 0.6) !important;
+                background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%) !important;
+                color: #009DFF !important;
+                height: 55px !important;
+                box-shadow: 0 4px 15px rgba(0, 157, 255, 0.1) !important;
+                transition: all 0.3s ease !important;
+            }
+            .feedback-btn-container button:hover, div[data-testid="stForm"] ~ div button:hover {
+                border-color: #009DFF !important;
+                transform: translateY(-3px);
+                box-shadow: 0 6px 18px rgba(0, 157, 255, 0.3) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
 
-            # Eksekusi jika tombol ditekan ATAU dilempar dari beranda
+            # BANNER AI (Identik dengan Beranda)
+            st.markdown(f"""
+            <div class="hero-banner" style="margin-bottom: 0px; padding: 40px 20px;">
+                <div class="hero-content">
+                    <div class="hero-welcome-text" style="font-size: 1.8rem; letter-spacing: 1px;">
+                        <span class="material-symbols-rounded" style="font-size:2.2rem; vertical-align:middle; margin-right:5px; margin-top:-5px;">smart_toy</span>
+                        Pencarian AI
+                    </div>
+                    <div class="hero-subtitle">Ceritakan perihal surat Anda, biarkan sistem cerdas kami menemukan kodenya.</div>
+                    <div class="search-card-bg">
+                        <div class="search-title">Ketik perihal surat di sini</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # FORM PENCARIAN
+            # Kita bungkus dengan st.form agar AI tidak merespons tiap kali huruf diketik
+            with st.form("form_pencarian_ai"):
+                col_in, col_btn = st.columns([5, 1])
+                with col_in:
+                    user_input = st.text_input(
+                        "Ketik perihal surat:", 
+                        value=default_val if default_val else st.session_state['last_query'], 
+                        placeholder="Contoh: penyusunan rencana kerja anggaran...",
+                        label_visibility="collapsed",
+                        key="input_halaman_ai_utama"
+                    )
+                with col_btn:
+                    # Icon kaca pembesar agar seragam dengan beranda
+                    btn_cari = st.form_submit_button("🔍")
+
+            # =======================================================================
+            # 3. LOGIKA EKSEKUSI PENCARIAN
+            # =======================================================================
             if btn_cari or auto_run:
                 if not user_input.strip():
-                    # Jika dikosongkan dan di-enter, bersihkan layar
+                    # Bersihkan jika form dikosongkan lalu ditekan enter
                     st.session_state['ai_search_results'] = None
                     st.session_state['last_query'] = ""
                 elif user_input != st.session_state['last_query']:
-                    # Simpan riwayat
+                    # Simpan ke riwayat
                     if user_input not in st.session_state.search_history:
                         st.session_state.search_history.append(user_input)
                         simpan_riwayat_csv(st.session_state['nama'], user_input)
 
-                    # Jalankan AI
                     with st.spinner('🧠 SIKAP sedang membedah dokumen dan menganalisis kode...'):
                         st.session_state['last_query'] = user_input
                         results, inti_dari_llm = smart_classify(user_input, df) 
                         
-                        # SIMPAN HASIL KE MEMORI PERMANEN
+                        # Simpan ke memori abadi
                         st.session_state['ai_search_results'] = {
                             "inti": inti_dari_llm,
                             "rekomendasi": results
                         }
 
             # =======================================================================
-            # 3. PROSES RENDERING/TAMPILAN DARI MEMORI
+            # 4. PROSES RENDERING/TAMPILAN HASIL (DARI MEMORI)
             # =======================================================================
             if st.session_state['ai_search_results'] is not None:
                 data_aktif = st.session_state['ai_search_results']
@@ -2489,6 +2497,9 @@ def halaman_utama():
                 results = data_aktif["rekomendasi"]
                 
                 if results:
+                    # Spasi ekstra agar kotak hasil tidak tertimpa tombol cari yang melayang
+                    st.write("<br><br>", unsafe_allow_html=True) 
+                    
                     st.markdown(f"""
                     <div style="background: var(--card-bg); border: 1px dashed var(--input-border); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display:flex; align-items:flex-start; gap:10px; box-shadow: var(--card-shadow);">
                         <span class="material-symbols-rounded" style="color:#009DFF; font-size: 1.4rem; margin-top: 2px;">psychology</span>
@@ -2504,13 +2515,11 @@ def halaman_utama():
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Looping untuk menampilkan rekomendasi kode
                     for i, (idx, score) in enumerate(results):
                         res = df.iloc[idx]
                         kode = res['kode']
                         uraian_asli = res['uraian'].title()
                         
-                        # Tampilan Judul Kode (Adaptif Theme Light/Dark, Tanpa Persentase)
                         st.markdown(f"""
                             <div style="margin-top: 15px; margin-bottom: 5px;">
                                 <h3 style="color: var(--text-title); font-weight: 700; margin-bottom: 0px; font-size: 1.15rem;">
@@ -2519,20 +2528,17 @@ def halaman_utama():
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # Tampilan Jalur Hierarki Langsung di Bawahnya
                         with st.expander("LIHAT JALUR HIERARKI KODE", expanded=(i==0)):
                             hierarki = get_hierarchy(kode, df)
                             for h in hierarki: 
                                 st.markdown(h, unsafe_allow_html=True)
                         
-                        # Tombol Pilih (Feedback Opsional AI)
+                        st.markdown('<div class="feedback-btn-container">', unsafe_allow_html=True)
                         if st.button(f"✓ Pilih Kode {kode}", key=f"pilih_{kode}_{st.session_state['last_query']}", use_container_width=True):
                             simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode)
                             st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
+                        st.markdown('</div>', unsafe_allow_html=True)
                     
-                    # ===================================================================
-                    # 4. KOLOM FEEDBACK MANUAL OVERRIDE (JURUS DEWA)
-                    # ===================================================================
                     st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
                     
                     with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
