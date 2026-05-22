@@ -414,7 +414,7 @@ def _bangun_prompt_qwen(teks_user: str) -> str:
     )
     return f"""Anda adalah Arsiparis Senior ahli kearsipan pemerintahan daerah Indonesia.
 Tugas: Analisis perihal surat berikut dan ekstrak 6 atribut terstruktur.
- 
+
 LANGKAH BERPIKIR (jalankan berurutan, wajib):
 1. KONTEKS: Apakah surat ini tentang kerumahtanggaan/administrasi internal kantor (fasilitatif) ATAU pelayanan teknis ke masyarakat/program daerah (substantif)?
 2. DOMAIN: Bidang fungsi pemerintahan utama (umum/pemerintahan/kepegawaian/keuangan/kesejahteraan/perekonomian/pekerjaan umum/pengawasan/keamanan/politik)?
@@ -425,60 +425,36 @@ LANGKAH BERPIKIR (jalankan berurutan, wajib):
 5. KEGIATAN: Jenis tindakan (perencanaan/pelaksanaan/pelaporan/pengawasan/evaluasi/koordinasi/pengadaan/penetapan)?
 6. PRODUK: Output/tujuan surat (sk/laporan/persetujuan/undangan/instruksi/perjanjian/sppd/rekomendasi)?
 7. INTI: Gabungkan objek + jenjang (jika ada) + kegiatan menjadi frasa pencarian singkat maksimal 15 kata. Harus cukup spesifik untuk membedakan kode arsip yang mirip.
- 
+
 PRINSIP KRITIS:
 - Jika objek spesifik teridentifikasi → ABAIKAN rumpun umum meski kata kuncinya cocok.
-  Contoh: "perizinan pertanian" bukan 100.3.12 (hukum umum), tapi masuk 500.6 (perekonomian pertanian).
 - Fasilitatif = Urusan administrasi, kerumahtanggaan, kepegawaian, dan KEUANGAN (APBD/APBN/Aset) internal pemerintah.
 - Substantif = Urusan teknis, layanan masyarakat, batas wilayah pemerintahan, pembangunan fisik (jalan/bangunan), dan program sektoral dinas.
-- PENTING: Urusan "batas wilayah", "pemekaran", atau "otonomi" selalu berstatus SUBSTANTIF dengan domain PEMERINTAHAN, bukan umum.
+- PENTING: Urusan "batas wilayah", "pemekaran", atau "otonomi" selalu berstatus SUBSTANTIF dengan domain PEMERINTAHAN.
 - Kata "penelitian" yang disertai objek spesifik (batuan, kelautan, dll) = substantif, bukan umum.
 - AWAS JEBAKAN "DALAM RANGKA": Jika ada pola "[Aksi] dalam rangka / untuk / guna [Tujuan]", OBJEK UTAMANYA adalah [Tujuan]. Abaikan aksinya.
-- BUANG KONSIDERAN HUKUM: Hapus mutlak semua frasa dasar hukum seperti "sebagaimana amanat", "Undang-Undang", "Peraturan Menteri", "Nomor...", dan "Tahun...". Fokus HANYA pada substansi kegiatannya (misal: "Survei Kepuasan Masyarakat", "Pelayanan Publik").
-- EKSPANSI ISTILAH LOKAL/SINGKATAN: Terjemahkan singkatan, istilah lokal, atau eufemisme ke dalam padanan bahasa birokrasi pemerintahan standar SEBELUM menyusun field "inti". (Misal: "Pilkades" JADIKAN "pemilihan kepala desa"; "KPLB" JADIKAN "kenaikan pangkat luar biasa golongan jabatan").
- 
-CONTOH 1:
-Input: "Perjalanan dinas Bupati ke Jakarta konsultasi APBD"
-Output: {{"konteks":"fasilitatif","domain":"umum","objek":"perjalanan dinas","jenjang":"kepala daerah","kegiatan":"pelaksanaan","produk":"sppd","inti":"perjalanan dinas kepala daerah dalam negeri"}}
- 
-CONTOH 2:
-Input: "Laporan pertanggungjawaban penggunaan dana BOS SMPN 1 Tikep"
-Output: {{"konteks":"substantif","domain":"kesejahteraan","objek":"bantuan operasional sekolah","jenjang":"smp","kegiatan":"pelaporan","produk":"laporan","inti":"bantuan operasional sekolah bos smp pelaporan"}}
- 
-CONTOH 3:
-Input: "Izin penelitian sampel batuan tambang dari Universitas Halu Oleo"
-Output: {{"konteks":"substantif","domain":"perekonomian","objek":"penelitian kegeologian batuan","jenjang":"","kegiatan":"pelaksanaan","produk":"rekomendasi","inti":"izin penelitian batuan tambang kegeologian"}}
- 
-CONTOH 4:
-Input: "Kenaikan pangkat PNS golongan III ke golongan IV"
-Output: {{"konteks":"fasilitatif","domain":"kepegawaian","objek":"kenaikan pangkat","jenjang":"golongan iv","kegiatan":"penetapan","produk":"sk","inti":"kenaikan pangkat pns golongan iv"}}
- 
-CONTOH 5:
-Input: "Rekonsiliasi BMD dan tindak lanjut temuan BPK"
-Output: {{"konteks":"fasilitatif","domain":"keuangan","objek":"barang milik daerah","jenjang":"","kegiatan":"pengawasan","produk":"laporan","inti":"rekonsiliasi barang milik daerah tindak lanjut temuan bpk"}}
+- BUANG KONSIDERAN HUKUM: Hapus mutlak semua frasa dasar hukum seperti "sebagaimana amanat", "Undang-Undang", "Peraturan Menteri", "Nomor...", dan "Tahun...". Fokus HANYA pada substansi kegiatannya.
+- EKSPANSI ISTILAH LOKAL/SINGKATAN: Terjemahkan singkatan, istilah lokal, atau eufemisme ke dalam padanan bahasa birokrasi pemerintahan standar SEBELUM menyusun field "inti".
 
-CONTOH 6:
-Input: "Penetapan batas wilayah administrasi antar kecamatan"
-Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"batas wilayah administrasi","jenjang":"kecamatan","kegiatan":"penetapan","produk":"sk","inti":"penetapan batas wilayah administrasi kecamatan"}}
+- HUKUM SEBAB-AKIBAT TRANSAKSI KEUANGAN (MUTLAK):
+  Setiap TRANSAKSI KEUANGAN adalah AKIBAT yang selalu punya SEBAB berupa kegiatan/program. SIKAP HANYA mengarsipkan SEBAB-nya.
+  Kata-kata berikut adalah penanda AKIBAT (JANGAN JADIKAN OBJEK): pencairan, pembayaran, honor, biaya, anggaran, dana, termin, kuitansi, realisasi, tagihan.
+  Contoh: "Pencairan dana transport peserta Diklatpim IV" → MENGAPA ada pencairan? Karena ada Diklatpim IV. → Inti: "diklat kepemimpinan tingkat iv" (Domain: Kepegawaian) ✓.
 
-CONTOH 7:
-Input: "Perubahan struktur organisasi dan tata kerja perangkat daerah"
-Output: {{"konteks":"substantif","domain":"pemerintahan","objek":"organisasi perangkat daerah","jenjang":"kabupaten","kegiatan":"penetapan","produk":"sk","inti":"struktur organisasi tata kerja perangkat daerah"}}
+- ATURAN KHUSUS PENGADAAN BARANG/JASA (PENGECUALIAN):
+  BERBEDA dengan transaksi keuangan, proses PENGADAAN BARANG FISIK (seperti laptop, mebeleur, mobil, ATK) ADALAH kegiatan fasilitatif utama (Urusan Perlengkapan).
+  Jika dokumen berupa kontrak, tender, atau BAST barang fisik, maka OBJEKNYA ADALAH PENGADAAN BARANG TERSEBUT, abaikan event yang menungganginya.
+  Contoh: "Pengadaan laptop untuk pelaksanaan Pilkada" → Inti: "pengadaan laptop" (Domain: Umum / Fasilitatif) ✓ BUKAN "pelaksanaan pilkada" ✗.
 
-CONTOH 8:
-Input: "Pembayaran tagihan biaya pengadaan komputer dan kursi kantor"
-Output: {{"konteks":"fasilitatif","domain":"umum","objek":"komputer dan kursi kantor","jenjang":"","kegiatan":"pengadaan","produk":"surat","inti":"pengadaan komputer kursi kantor"}}
+- PENGECUALIAN DOKUMEN KEUANGAN MURNI & DOKUMEN LEGAL:
+  Jika surat memang tentang instrumen/dokumen keuangan itu sendiri (bukan kegiatan yang dibiayai) ATAU dokumen legalitas murni (Sertifikat/Izin), maka itu adalah objeknya.
+  Contoh 1: "Penyusunan RKA-DPA APBD Kabupaten" → Inti: "penyusunan rka dpa apbd" (Domain: Keuangan) ✓.
+  Contoh 2: "Permohonan penerbitan sertifikat tanah untuk pembangunan gedung" → Inti: "penerbitan sertifikat tanah" (Domain: Umum/Pemerintahan) ✓ BUKAN "pembangunan gedung" ✗.
 
-CONTOH 9:
-Input: "Permintaan rekap absen kehadiran pegawai dalam rangka penyusunan Survei Kepuasan Masyarakat sebagaimana amanat UU No 25 Tahun 2009 tentang Pelayanan Publik"
-Output: {{"konteks":"fasilitatif","domain":"umum","objek":"survei kepuasan masyarakat pelayanan publik","jenjang":"","kegiatan":"pelaksanaan","produk":"surat","inti":"survei kepuasan masyarakat pelayanan publik"}}
- 
 SEKARANG KERJAKAN:
 Input: "{teks_user}"
 Keluarkan hasil murni dalam format JSON. Jangan tulis tag <think>, jangan beri penjelasan, jangan tambahkan markdown ```json. HANYA format JSON valid yang diawali dengan {{ dan diakhiri dengan }}.
 """
-
-
 # =========================================================
 # OTAK 2: PROMPT UNTUK LLAMA-8B (MODE EKSTRAKTOR MURNI)
 # =========================================================
@@ -488,19 +464,18 @@ def _bangun_prompt_llama(teks_user: str) -> str:
         for rumpun, nilai in REFERENSI_JENJANG.items()
     )
     
-    return f"""Anda adalah asisten ekstraksi teks. Tugas Anda HANYA membersihkan teks dan menemukan subjek utamanya.
+    return f"""Anda adalah asisten ekstraksi teks. Tugas Anda HANYA membersihkan teks dan menemukan subjek utamanya dalam bentuk JSON.
 
-ATURAN WAJIB (WAJIB DIPATUHI):
-1. Abaikan kata-kata transaksi berikut (jangan jadikan objek):
-   biaya, pembayaran, pencairan, pengadaan, pembelian, pemeliharaan, honor, dana, anggaran, termin, permintaan data, undangan.
-2. Temukan BENDA FISIK atau SUBJEK UTAMA dari kalimat tersebut.
-3. AWAS JEBAKAN "DALAM RANGKA": Jika ada kata "dalam rangka", "untuk", atau "guna", ambil subjek SETELAH kata tersebut, abaikan kata di depannya.
-4. BUANG KONSIDERAN HUKUM: Hapus mutlak semua kata yang merujuk pada aturan hukum (Undang-Undang, Peraturan Menteri, Nomor, Tahun, sebagaimana amanat). Jangan pernah jadikan ini sebagai objek/inti!
+ATURAN WAJIB (DILARANG MELANGGAR):
+1. HUKUM TRANSAKSI KEUANGAN: Abaikan kata transaksi uang (biaya, pembayaran, pencairan, honor, dana, anggaran, termin). Jangan jadikan ini objek. Cari tahu KEGIATAN apa yang dibiayai, dan jadikan kegiatan itu sebagai objek utama!
+2. ATURAN KHUSUS PENGADAAN BARANG: Jika teks berisi "pengadaan", "pembelian", atau "BAST" barang fisik (laptop, mobil, mebeleur), JADIKAN PENGADAAN BARANG ITU SEBAGAI OBJEK! Abaikan event yang menungganginya (misal: "untuk Pilkada" -> buang Pilkadanya).
+3. HUKUM DOKUMEN LEGAL: Jika teks tentang "penerbitan sertifikat", "surat izin", atau dokumen legalitas, jadikan dokumen legal itu sebagai objek utama. Abaikan tujuan fisiknya (misal: "untuk pembangunan gedung" -> buang bangunan gedungnya).
+4. BUANG KONSIDERAN HUKUM: Hapus mutlak semua kata aturan hukum (Undang-Undang, Peraturan, Nomor, Tahun, dsb).
 5. Untuk field "domain", SELALU isi dengan "tidak_diketahui".
 
 URUTAN CARA BERPIKIR (Terapkan urutan ini di dalam JSON):
-1. Cari tahu apa Benda Fisik / Subjek utamanya. Tulis di field "objek".
-2. Masukkan isi field objek tersebut ke dalam field "inti".
+1. Cari tahu apa Objek / Subjek utamanya berdasarkan 4 Aturan di atas. Tulis di field "objek".
+2. Masukkan isi field objek tersebut ke dalam field "inti", lalu tambahkan kata kegiatannya (maksimal 10 kata).
 
 REFERENSI JENJANG:
 {referensi_str}
@@ -510,12 +485,12 @@ Keluarkan HANYA JSON yang valid dengan urutan key PERSIS seperti di bawah ini, t
 
 {{
   "konteks": "<isi dengan fasilitatif atau substantif>",
-  "objek": "<TULIS BENDA FISIK/SUBJEKNYA DI SINI. Jangan masukkan kata transaksi uang/biaya>",
-  "inti": "<WAJIB tulis ulang isi dari field 'objek' di sini, lalu tambahkan kata kegiatannya (maksimal 8 kata)>",
+  "objek": "<TULIS BENDA/SUBJEKNYA DI SINI SESUAI ATURAN>",
+  "inti": "<WAJIB tulis ulang isi dari field 'objek' di sini, lalu tambahkan kata kegiatannya>",
   "domain": "tidak_diketahui",
   "kegiatan": "<aksi/proses utama seperti pengadaan, pelaporan, penetapan>",
-  "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan jika tidak ada>",
-  "produk": "<jenis dokumen output seperti laporan, surat, kuitansi, sk>"
+  "jenjang": "<cocokkan dengan Referensi Jenjang di atas, atau kosongkan>",
+  "produk": "<jenis dokumen output seperti laporan, surat, kuitansi, sk, sertifikat>"
 }}
 
 Kalimat yang harus diekstrak:
