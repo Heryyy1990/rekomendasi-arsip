@@ -416,7 +416,8 @@ def _bangun_prompt_qwen(teks_user: str) -> str:
 Tugas: Analisis perihal surat berikut dan ekstrak 6 atribut terstruktur.
 
 LANGKAH BERPIKIR (Wajib sesuai urutan ini agar tidak salah konteks):
-1. OBJEK: Benda fisik atau substansi yang diurus (Contoh: laptop, apbd, informasi publik). BUKAN tindakannya.
+1. OBJEK: Benda fisik atau substansi yang diurus. BUKAN tindakannya. 
+   [FILTER WAJIB]: Jika ada kata transaksi (pencairan/pembayaran/honor/dana/biaya/termin), tanya dulu "UNTUK kegiatan apa uang ini?" — jawaban itulah OBJEK-nya. (Contoh: "Pencairan dana Diklatpim IV" → OBJEK: "pendidikan pelatihan kepemimpinan tingkat iv").
 2. KEGIATAN: Tindakan terhadap objek (Contoh: pengadaan, evaluasi, permohonan).
 3. PRODUK: Wujud fisik dokumen (sk, laporan, sppd, undangan). AWAS: Jangan biarkan produk menutupi substansi utama!
 4. DOMAIN: Berdasarkan Objek, tentukan Bidang utama (umum/pemerintahan/kepegawaian/keuangan/kesejahteraan/perekonomian/pekerjaan umum/pengawasan/keamanan/politik).
