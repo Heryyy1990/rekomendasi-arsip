@@ -1669,8 +1669,8 @@ daftar_kandidat_json = json.dumps(
     indent=2
 )
 
-    # PERHATIKAN: Kita memasukkan user_input (Perihal Asli) DAN inti_dari_llm (Fokus AI)
-    perintah_juri = f"""
+# PERHATIKAN: Kita memasukkan user_input (Perihal Asli) DAN inti_dari_llm (Fokus AI)
+perintah_juri = f"""
 Anda adalah Arsiparis Utama Pemerintah Indonesia.
 
 Tugas Anda:
