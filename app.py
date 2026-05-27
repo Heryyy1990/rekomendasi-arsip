@@ -1661,26 +1661,26 @@ def smart_classify(user_input, df, top_n=3):
 
     # PERHATIKAN: Kita memasukkan user_input (Perihal Asli) DAN inti_dari_llm (Fokus AI)
     perintah_juri = f"""Anda adalah Hakim Agung Kearsipan (Arsiparis Utama).
-Tugas Anda adalah memilih 3 OPSI klasifikasi yang paling presisi untuk dokumen berikut.
+Tugas Anda adalah menyeleksi 3 OPSI klasifikasi yang paling presisi dan spesifik untuk dokumen berikut.
 
 PERIHAL SURAT ASLI: "{user_input}"
-FOKUS SUBSTANSI (Hasil Ekstraksi): "{inti_dari_llm}"
+FOKUS SUBSTANSI AI: "{inti_dari_llm}"
 
 DAFTAR KANDIDAT:
 {daftar_kandidat}
 
-INSTRUKSI RANTAI PEMIKIRAN (CHAIN-OF-THOUGHT):
-Sebelum memilih, Anda WAJIB melakukan analisis berikut:
-1. Analisis Substansi vs Media: Apakah perihal surat memuat kata "Rapat", "Sosialisasi", atau "Undangan"? Jika YA, abaikan kata tersebut. Cari tahu APA yang disosialisasikan/dirapatkan. Itu adalah substansi aslinya.
-2. Deteksi Jebakan Leksikal: Jangan pernah memilih kode yang uraiannya "Rapat/Sosialisasi" (seperti 000.1.5 atau yang mengandung kata Notulen Sosialisasi) JIKA substansi aslinya merujuk pada program teknis (seperti APBD, Kepegawaian, Diklat, Pembangunan). Tarik klasifikasinya ke program teknis tersebut!
-3. Hierarki Terdalam: Selalu prioritaskan kode yang paling panjang/spesifik (Tersier/Kuartier), tolak kode yang terlalu umum (Primer/Sekunder).
+INSTRUKSI RANTAI PEMIKIRAN (WAJIB DIIKUTI):
+Anda tidak boleh langsung memilih. Anda harus berpikir dengan langkah berikut:
+1. IDENTIFIKASI SUBSTANSI: Apa urusan inti dari surat asli? Abaikan kata pembungkus seperti "Undangan", "Sosialisasi", atau "Rapat". Jika surat membahas "Latsar CPNS", maka substansinya adalah "Penyelenggaraan Diklat/Pendidikan".
+2. ELIMINASI JEBAKAN: Buang semua OPSI yang hanya berupa "Sosialisasi" atau "Notulen" jika substansi aslinya adalah program teknis.
+3. HUKUM HIERARKI TERDALAM (SANGAT PENTING): Jika ada OPSI berupa Induk/Bapak (seperti 800.2) dan ada OPSI Anak/Rincian (seperti 800.2.4 atau 800.2.4.2) yang relevan, Anda DILARANG KERAS memilih Induknya. WAJIB pilih Anak yang paling detail!
 
-TULISKAN ANALISIS ANDA SEBELUM MEMBERIKAN HASIL:
-- Substansi Asli Surat: [Bongkar apa urusan murninya]
-- Eliminasi Jebakan: [Sebutkan OPSI mana yang berupa jebakan media/sosialisasi dan alasan menolaknya]
-- Pemilihan: [Sebutkan OPSI yang paling tepat secara hierarki teknis]
+FORMAT JAWABAN WAJIB (Jangan ubah format ini):
+ANALISIS:
+- Substansi Asli: [tulis urusan intinya]
+- Eliminasi Induk & Jebakan: [Sebutkan opsi yang dibuang karena terlalu umum/hanya bapak/jebakan kata]
+- Alasan Pemilihan: [Sebutkan opsi yang dipilih karena merupakan rincian terdalam]
 
-HASIL AKHIR WAJIB DITULIS DI BARIS PALING BAWAH DENGAN FORMAT:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
 
     try:
