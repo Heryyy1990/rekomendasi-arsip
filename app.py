@@ -1747,11 +1747,11 @@ Keluarkan HANYA JSON.
 Tanpa markdown.
 Tanpa penjelasan tambahan.
 """
-    try:
-        penyelesaian_obrolan = client.chat.completions.create(
-            messages=[{"role": "user", "content": perintah_juri}],
-            model="llama-3.3-70b-versatile",
-            temperature=0.0,
+try:
+    penyelesaian_obrolan = client.chat.completions.create(
+        messages=[{"role": "user", "content": perintah_juri}],
+        model="llama-3.3-70b-versatile",
+        temperature=0.0,
         )
         balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
