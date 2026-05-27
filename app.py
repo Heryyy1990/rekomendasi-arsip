@@ -1649,13 +1649,14 @@ def smart_classify(user_input, df, top_n=3):
         return hasil_fast, inti_dari_llm
 
 
+    # =========================================================
         # =========================================================
     # 4. JURI AI
     # =========================================================
 
     daftar_kandidat = ""
 
-    for urutan, item in enumerate(kandidat_untuk_juri):
+    for urutan, item in enumerate(dua_puluh_kandidat_teratas):
 
         baris_data = df.iloc[item['idx']]
 
@@ -1747,7 +1748,7 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 
             nomor = int(angka)
 
-            if 1 <= nomor <= len(kandidat_untuk_juri):
+            if 1 <= nomor <= len(dua_puluh_kandidat_teratas):
 
                 if nomor not in angka_pilihan:
                     angka_pilihan.append(nomor)
@@ -1758,13 +1759,13 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 
             indeks_kandidat = nomor - 1
 
-            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
+            if 0 <= indeks_kandidat < len(dua_puluh_kandidat_teratas):
 
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
 
                 hasil_akhir.append(
                     (
-                        kandidat_untuk_juri[indeks_kandidat]['idx'],
+                        dua_puluh_kandidat_teratas[indeks_kandidat]['idx'],
                         skor_simulasi
                     )
                 )
