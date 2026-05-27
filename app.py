@@ -1648,34 +1648,39 @@ def smart_classify(user_input, df, top_n=3):
             hasil_fast.append((item['idx'], skor_sim))
         return hasil_fast, inti_dari_llm
  
-    # 4. Juri AI — hanya dipanggil jika smart routing tidak aktif
-    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20] # KITA KEMBALIKAN KE 20 AGAR DIA BISA MELIHAT DANA BOS
+    # 4. Juri AI — Super-Prompt Hakim Agung (Optimized by Lyra)
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
 
     daftar_kandidat = ""
     for urutan, item in enumerate(kandidat_untuk_juri):
         baris_data = df.iloc[item['idx']]
         daftar_kandidat += (
             f"[OPSI {urutan+1}] Kode: {baris_data['kode']} | "
-            f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
+            f"Hierarki: {baris_data['uraian_lengkap'].title()}\n"
         )
 
-    perintah_juri = f"""Anda adalah Arsiparis Senior.
-Tugas: Pilih 3 nomor urut OPSI yang paling tepat untuk urusan berikut.
+    # PERHATIKAN: Kita memasukkan user_input (Perihal Asli) DAN inti_dari_llm (Fokus AI)
+    perintah_juri = f"""Anda adalah Hakim Agung Kearsipan (Arsiparis Utama).
+Tugas Anda adalah memilih 3 OPSI klasifikasi yang paling presisi untuk dokumen berikut.
 
-URUSAN SURAT: "{inti_dari_llm}"
+PERIHAL SURAT ASLI: "{user_input}"
+FOKUS SUBSTANSI (Hasil Ekstraksi): "{inti_dari_llm}"
 
 DAFTAR KANDIDAT:
 {daftar_kandidat}
 
-LANGKAH BERPIKIR (Wajib diisi):
-- Domain urusan: [isi]
-- Kode Anak terdalam yang relevan: [isi]
-- Alasan menolak kode induk: [isi]
+INSTRUKSI RANTAI PEMIKIRAN (CHAIN-OF-THOUGHT):
+Sebelum memilih, Anda WAJIB melakukan analisis berikut:
+1. Analisis Substansi vs Media: Apakah perihal surat memuat kata "Rapat", "Sosialisasi", atau "Undangan"? Jika YA, abaikan kata tersebut. Cari tahu APA yang disosialisasikan/dirapatkan. Itu adalah substansi aslinya.
+2. Deteksi Jebakan Leksikal: Jangan pernah memilih kode yang uraiannya "Rapat/Sosialisasi" (seperti 000.1.5 atau yang mengandung kata Notulen Sosialisasi) JIKA substansi aslinya merujuk pada program teknis (seperti APBD, Kepegawaian, Diklat, Pembangunan). Tarik klasifikasinya ke program teknis tersebut!
+3. Hierarki Terdalam: Selalu prioritaskan kode yang paling panjang/spesifik (Tersier/Kuartier), tolak kode yang terlalu umum (Primer/Sekunder).
 
-ATURAN MUTLAK:
-1. DILARANG KERAS memilih kode induk jika ada kode anaknya yang relevan (Kuartier/Tersier diutamakan).
-2. Tuliskan NOMOR URUT OPSINYA saja (1-20), bukan kode klasifikasinya!
-3. Tulis hasil akhir PERSIS seperti format ini:
+TULISKAN ANALISIS ANDA SEBELUM MEMBERIKAN HASIL:
+- Substansi Asli Surat: [Bongkar apa urusan murninya]
+- Eliminasi Jebakan: [Sebutkan OPSI mana yang berupa jebakan media/sosialisasi dan alasan menolaknya]
+- Pemilihan: [Sebutkan OPSI yang paling tepat secara hierarki teknis]
+
+HASIL AKHIR WAJIB DITULIS DI BARIS PALING BAWAH DENGAN FORMAT:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
 
     try:
