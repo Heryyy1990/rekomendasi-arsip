@@ -1651,38 +1651,102 @@ def smart_classify(user_input, df, top_n=3):
     # 4. Juri AI — Super-Prompt Hakim Agung (Optimized by Lyra)
     kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
 
-    daftar_kandidat = ""
-    for urutan, item in enumerate(kandidat_untuk_juri):
-        baris_data = df.iloc[item['idx']]
-        daftar_kandidat += (
-            f"[OPSI {urutan+1}] Kode: {baris_data['kode']} | "
-            f"Hierarki: {baris_data['uraian_lengkap'].title()}\n"
-        )
+    daftar_kandidat = []
+
+for urutan, item in enumerate(kandidat_untuk_juri):
+    baris_data = df.iloc[item['idx']]
+
+    daftar_kandidat.append({
+        "opsi": urutan + 1,
+        "kode": baris_data['kode'],
+        "hierarki": baris_data['uraian_lengkap'].title(),
+        "skor_tfidf": round(item['skor'], 4)
+    })
+
+daftar_kandidat_json = json.dumps(
+    daftar_kandidat,
+    ensure_ascii=False,
+    indent=2
+)
 
     # PERHATIKAN: Kita memasukkan user_input (Perihal Asli) DAN inti_dari_llm (Fokus AI)
-    perintah_juri = f"""Anda adalah Hakim Agung Kearsipan (Arsiparis Utama).
-Tugas Anda adalah menyeleksi 3 OPSI klasifikasi yang paling presisi dan spesifik untuk dokumen berikut.
+    perintah_juri = f"""
+Anda adalah Arsiparis Utama Pemerintah Indonesia.
 
-PERIHAL SURAT ASLI: "{user_input}"
-FOKUS SUBSTANSI AI: "{inti_dari_llm}"
+Tugas Anda:
+menilai kandidat klasifikasi arsip berdasarkan MAKNA SUBSTANTIF surat,
+bukan sekadar kemiripan kata.
 
-DAFTAR KANDIDAT:
-{daftar_kandidat}
+==================================================
+PERIHAL ASLI
+==================================================
 
-INSTRUKSI RANTAI PEMIKIRAN (WAJIB DIIKUTI):
-Anda tidak boleh langsung memilih. Anda harus berpikir dengan langkah berikut:
-1. IDENTIFIKASI SUBSTANSI: Apa urusan inti dari surat asli? Abaikan kata pembungkus seperti "Undangan", "Sosialisasi", atau "Rapat". Jika surat membahas "Latsar CPNS", maka substansinya adalah "Penyelenggaraan Diklat/Pendidikan".
-2. ELIMINASI JEBAKAN: Buang semua OPSI yang hanya berupa "Sosialisasi" atau "Notulen" jika substansi aslinya adalah program teknis.
-3. HUKUM HIERARKI TERDALAM (SANGAT PENTING): Jika ada OPSI berupa Induk/Bapak (seperti 800.2) dan ada OPSI Anak/Rincian (seperti 800.2.4 atau 800.2.4.2) yang relevan, Anda DILARANG KERAS memilih Induknya. WAJIB pilih Anak yang paling detail!
+{user_input}
 
-FORMAT JAWABAN WAJIB (Jangan ubah format ini):
-ANALISIS:
-- Substansi Asli: [tulis urusan intinya]
-- Eliminasi Induk & Jebakan: [Sebutkan opsi yang dibuang karena terlalu umum/hanya bapak/jebakan kata]
-- Alasan Pemilihan: [Sebutkan opsi yang dipilih karena merupakan rincian terdalam]
+==================================================
+HASIL ANALISIS SEMANTIK
+==================================================
 
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
+Fokus substansi:
+{inti_dari_llm}
 
+==================================================
+ATURAN PENTING
+==================================================
+
+1. Fokus pada SUBSTANSI utama surat.
+2. Abaikan kata pembungkus seperti:
+   undangan, rapat, sosialisasi, permohonan.
+3. Prioritaskan kandidat paling spesifik.
+4. Jika ada kode induk dan kode rincian,
+   WAJIB pilih rincian terdalam.
+5. Jangan memilih hanya karena kata mirip.
+6. Utamakan kesamaan MAKNA arsip.
+
+==================================================
+KANDIDAT
+==================================================
+
+{daftar_kandidat_json}
+
+==================================================
+TUGAS
+==================================================
+
+Untuk setiap kandidat:
+- beri skor relevansi 0 sampai 100
+- beri alasan singkat maksimal 1 kalimat
+
+Kemudian pilih 3 kandidat terbaik.
+
+==================================================
+FORMAT OUTPUT WAJIB JSON
+==================================================
+
+{{
+  "top_3": [
+    {{
+      "opsi": 1,
+      "skor": 95,
+      "alasan": "..."
+    }},
+    {{
+      "opsi": 2,
+      "skor": 90,
+      "alasan": "..."
+    }},
+    {{
+      "opsi": 3,
+      "skor": 85,
+      "alasan": "..."
+    }}
+  ]
+}}
+
+Keluarkan HANYA JSON.
+Tanpa markdown.
+Tanpa penjelasan tambahan.
+"""
     try:
         penyelesaian_obrolan = client.chat.completions.create(
             messages=[{"role": "user", "content": perintah_juri}],
@@ -1693,31 +1757,20 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
 
         # Penangkap Angka Anti-Meleset
         angka_pilihan = []
-        for baris in balasan_juri.split('\n'):
-            if 'HASIL AKHIR' in baris.upper():
-                # Wajib menangkap angka HANYA setelah kata OPSI
-                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
-                
-                # Jika Llama ngeyel tidak pakai kata OPSI, tangkap angka biasa
-                if not angka_mentah:
-                    angka_mentah = re.findall(r'\d+', baris)
-                    
-                for angka in angka_mentah:
-                    angka_bulat = int(angka)
-                    if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
-                        angka_pilihan.append(angka_bulat)
-                    if len(angka_pilihan) == 3:
-                        break
-                break
 
-        # Fallback jika baris HASIL AKHIR gaib
-        if not angka_pilihan:
-            for angka in re.findall(r'\d+', balasan_juri):
-                angka_bulat = int(angka)
-                if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
-                    angka_pilihan.append(angka_bulat)
-                if len(angka_pilihan) == 3:
-                    break
+try:
+    hasil_json = json.loads(balasan_juri)
+
+    for item in hasil_json.get("top_3", []):
+        opsi = item.get("opsi")
+
+        if isinstance(opsi, int):
+            if 1 <= opsi <= len(kandidat_untuk_juri):
+                if opsi not in angka_pilihan:
+                    angka_pilihan.append(opsi)
+
+except Exception as e:
+    st.warning(f"Gagal parsing JSON jury: {e}")
 
         hasil_akhir = []
         for nomor in angka_pilihan:
