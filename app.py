@@ -1609,6 +1609,11 @@ def smart_classify(user_input, df, top_n=3):
     dua_puluh_kandidat_teratas = sorted(
         skor_awal, key=lambda x: x['skor'], reverse=True
     )[:20]
+
+    # --- [TAMBAHAN DEBUG] Simpan 20 Kandidat ke Session State ---
+    import streamlit as st
+    st.session_state['debug_top20'] = dua_puluh_kandidat_teratas
+    # ------------------------------------------------------------
  
     # =======================================================
     # TAHAP 1 (LANGKAH 6): SMART ROUTING / BYPASS HAKIM AGUNG
@@ -2571,6 +2576,22 @@ def halaman_utama():
                             simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode)
                             st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
+
+                    # --- [TAMBAHAN DEBUG] Tampilkan 20 Kandidat TF-IDF ---
+                    if st.session_state.get('debug_top20'):
+                        with st.expander("🐛 DEBUG ADMIN: Lihat 20 Top Kandidat TF-IDF (Sebelum Juri LLM)"):
+                            st.caption("Tabel di bawah adalah 20 kandidat dengan skor kemiripan TF-IDF + Fuzzy tertinggi yang dikirimkan ke Juri Llama sebagai konteks.")
+                            data_debug = []
+                            for rank, item in enumerate(st.session_state['debug_top20']):
+                                baris = df.iloc[item['idx']]
+                                data_debug.append({
+                                    "Rank": rank + 1,
+                                    "Skor": f"{item['skor']:.4f}",
+                                    "Kode": baris['kode'],
+                                    "Uraian Lengkap": baris['uraian_lengkap'].title()
+                                })
+                            st.dataframe(pd.DataFrame(data_debug), use_container_width=True, hide_index=True)
+                    # ------------------------------------------------------
                     
                     st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
                     with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
