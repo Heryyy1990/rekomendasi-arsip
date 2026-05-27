@@ -1611,7 +1611,7 @@ def smart_classify(user_input, df, top_n=3):
     )[:20]
 
     # --- [TAMBAHAN DEBUG] Simpan 20 Kandidat ke Session State ---
-    import streamlit as st
+
     st.session_state['debug_top20'] = dua_puluh_kandidat_teratas
     # ------------------------------------------------------------
  
