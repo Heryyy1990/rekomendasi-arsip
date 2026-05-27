@@ -1391,8 +1391,18 @@ def load_data():
     # Kolom baru ini yang akan menjadi "Mata" bagi AI
     df['uraian_lengkap'] = df['kode'].apply(bangun_hierarki)
     
-    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal jalur hierarki secara penuh
-    df['clean_uraian'] = df['uraian_lengkap'].apply(preprocess_text)
+    # --- MULAI: SUNTIKAN HASIL ENRICHMENT AI ---
+    # 1. Pastikan kolom uraian_natural terbaca aman (jika kosong, ubah jadi string kosong)
+    if 'uraian_natural' not in df.columns:
+        df['uraian_natural'] = ""
+    df['uraian_natural'] = df['uraian_natural'].astype(str).fillna("").replace("nan", "")
+
+    # 2. Gabungkan hierarki baku dengan bahasa surat natural menjadi satu Korpus Raksasa
+    df['korpus_pencarian'] = df['uraian_lengkap'] + " " + df['uraian_natural']
+    # --- SELESAI: SUNTIKAN HASIL ENRICHMENT AI ---
+
+    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal KEDUA bahasa tersebut
+    df['clean_uraian'] = df['korpus_pencarian'].apply(preprocess_text)
     
     return df
     
