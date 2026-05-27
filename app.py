@@ -1753,10 +1753,10 @@ try:
         model="llama-3.3-70b-versatile",
         temperature=0.0,
         )
-        balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
+    balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
-        # Penangkap Angka Anti-Meleset
-        angka_pilihan = []
+    # Penangkap Angka Anti-Meleset
+    angka_pilihan = []
 
 try:
     hasil_json = json.loads(balasan_juri)
