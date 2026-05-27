@@ -1649,102 +1649,73 @@ def smart_classify(user_input, df, top_n=3):
         return hasil_fast, inti_dari_llm
 
 
-    # =========================================================
+        # =========================================================
     # 4. JURI AI
     # =========================================================
 
-    daftar_kandidat = []
+    daftar_kandidat = ""
 
     for urutan, item in enumerate(kandidat_untuk_juri):
 
         baris_data = df.iloc[item['idx']]
 
-        daftar_kandidat.append({
-            "opsi": urutan + 1,
-            "kode": baris_data['kode'],
-            "hierarki": baris_data['uraian_lengkap'].title(),
-            "skor_tfidf": round(item['skor'], 4)
-        })
-
-    daftar_kandidat_json = json.dumps(
-        daftar_kandidat,
-        ensure_ascii=False,
-        indent=2
-    )
+        daftar_kandidat += (
+            f"[OPSI {urutan+1}] "
+            f"Kode: {baris_data['kode']} | "
+            f"Hierarki: {baris_data['uraian_lengkap'].title()}\n"
+        )
 
     perintah_juri = f"""
 Anda adalah Arsiparis Utama Pemerintah Indonesia.
 
-Tugas Anda:
-menilai kandidat klasifikasi arsip berdasarkan MAKNA SUBSTANTIF surat,
+Tugas Anda adalah memilih 3 kandidat klasifikasi arsip
+yang PALING SESUAI secara SUBSTANSI,
 bukan sekadar kemiripan kata.
 
 ==================================================
-PERIHAL ASLI
+PERIHAL SURAT ASLI
 ==================================================
 
 {user_input}
 
 ==================================================
-HASIL ANALISIS SEMANTIK
+HASIL ANALISIS SEMANTIK AI
 ==================================================
 
-Fokus substansi:
 {inti_dari_llm}
 
 ==================================================
 ATURAN PENTING
 ==================================================
 
-1. Fokus pada SUBSTANSI utama surat.
-2. Jangan memilih hanya karena kata mirip.
-3. Prioritaskan kandidat paling spesifik.
-4. Jika ada kode induk dan rincian, pilih rincian terdalam.
-5. Utamakan kesamaan MAKNA arsip.
-6. Abaikan kata pembungkus seperti:
+1. Fokus pada MAKNA utama surat.
+2. Jangan tertipu kata pembungkus seperti:
    undangan, rapat, sosialisasi, permohonan.
+3. Jangan memilih hanya karena kata mirip.
+4. Prioritaskan kandidat yang paling spesifik.
+5. Jika ada kode induk dan kode rincian,
+   pilih kode rincian terdalam.
+6. Utamakan kesesuaian substansi arsip.
 
 ==================================================
-KANDIDAT
+DAFTAR KANDIDAT
 ==================================================
 
-{daftar_kandidat_json}
+{daftar_kandidat}
 
 ==================================================
 TUGAS
 ==================================================
 
-Untuk setiap kandidat:
-- beri skor relevansi 0 sampai 100
-- beri alasan singkat maksimal 1 kalimat
-
-Kemudian pilih 3 kandidat terbaik.
+1. Analisis substansi utama surat.
+2. Eliminasi kandidat jebakan yang hanya mirip kata.
+3. Pilih 3 kandidat terbaik.
 
 ==================================================
-FORMAT OUTPUT WAJIB JSON
+FORMAT JAWABAN WAJIB
 ==================================================
 
-{{
-  "top_3": [
-    {{
-      "opsi": 1,
-      "skor": 95,
-      "alasan": "..."
-    }},
-    {{
-      "opsi": 2,
-      "skor": 90,
-      "alasan": "..."
-    }},
-    {{
-      "opsi": 3,
-      "skor": 85,
-      "alasan": "..."
-    }}
-  ]
-}}
-
-Keluarkan HANYA JSON.
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
 
     try:
@@ -1758,7 +1729,6 @@ Keluarkan HANYA JSON.
             ],
             model="llama-3.3-70b-versatile",
             temperature=0.0,
-            response_format={"type": "json_object"}
         )
 
         balasan_juri = (
@@ -1769,24 +1739,22 @@ Keluarkan HANYA JSON.
             .strip()
         )
 
-        hasil_json = json.loads(balasan_juri)
-
         angka_pilihan = []
 
-        for item in hasil_json.get("top_3", []):
+        semua_angka = re.findall(r'\d+', balasan_juri)
 
-            opsi = item.get("opsi")
+        for angka in semua_angka:
 
-            if isinstance(opsi, int):
+            nomor = int(angka)
 
-                if 1 <= opsi <= len(kandidat_untuk_juri):
+            if 1 <= nomor <= len(kandidat_untuk_juri):
 
-                    if opsi not in angka_pilihan:
-                        angka_pilihan.append(opsi)
+                if nomor not in angka_pilihan:
+                    angka_pilihan.append(nomor)
 
         hasil_akhir = []
 
-        for nomor in angka_pilihan:
+        for nomor in angka_pilihan[:top_n]:
 
             indeks_kandidat = nomor - 1
 
