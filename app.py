@@ -1647,30 +1647,32 @@ def smart_classify(user_input, df, top_n=3):
             skor_sim = 0.99 - (len(hasil_fast) * 0.14)
             hasil_fast.append((item['idx'], skor_sim))
         return hasil_fast, inti_dari_llm
- 
-# =========================
-# 4. JURI AI
-# =========================
 
-daftar_kandidat = []
 
-for urutan, item in enumerate(kandidat_untuk_juri):
-    baris_data = df.iloc[item['idx']]
+    # =========================================================
+    # 4. JURI AI
+    # =========================================================
 
-    daftar_kandidat.append({
-        "opsi": urutan + 1,
-        "kode": baris_data['kode'],
-        "hierarki": baris_data['uraian_lengkap'].title(),
-        "skor_tfidf": round(item['skor'], 4)
-    })
+    daftar_kandidat = []
 
-daftar_kandidat_json = json.dumps(
-    daftar_kandidat,
-    ensure_ascii=False,
-    indent=2
-)
+    for urutan, item in enumerate(kandidat_untuk_juri):
 
-perintah_juri = f"""
+        baris_data = df.iloc[item['idx']]
+
+        daftar_kandidat.append({
+            "opsi": urutan + 1,
+            "kode": baris_data['kode'],
+            "hierarki": baris_data['uraian_lengkap'].title(),
+            "skor_tfidf": round(item['skor'], 4)
+        })
+
+    daftar_kandidat_json = json.dumps(
+        daftar_kandidat,
+        ensure_ascii=False,
+        indent=2
+    )
+
+    perintah_juri = f"""
 Anda adalah Arsiparis Utama Pemerintah Indonesia.
 
 Tugas Anda:
@@ -1699,6 +1701,8 @@ ATURAN PENTING
 3. Prioritaskan kandidat paling spesifik.
 4. Jika ada kode induk dan rincian, pilih rincian terdalam.
 5. Utamakan kesamaan MAKNA arsip.
+6. Abaikan kata pembungkus seperti:
+   undangan, rapat, sosialisasi, permohonan.
 
 ==================================================
 KANDIDAT
@@ -1712,9 +1716,9 @@ TUGAS
 
 Untuk setiap kandidat:
 - beri skor relevansi 0 sampai 100
-- beri alasan singkat
+- beri alasan singkat maksimal 1 kalimat
 
-Lalu pilih 3 kandidat terbaik.
+Kemudian pilih 3 kandidat terbaik.
 
 ==================================================
 FORMAT OUTPUT WAJIB JSON
@@ -1726,6 +1730,16 @@ FORMAT OUTPUT WAJIB JSON
       "opsi": 1,
       "skor": 95,
       "alasan": "..."
+    }},
+    {{
+      "opsi": 2,
+      "skor": 90,
+      "alasan": "..."
+    }},
+    {{
+      "opsi": 3,
+      "skor": 85,
+      "alasan": "..."
     }}
   ]
 }}
@@ -1733,61 +1747,68 @@ FORMAT OUTPUT WAJIB JSON
 Keluarkan HANYA JSON.
 """
 
-try:
-    penyelesaian_obrolan = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": perintah_juri
-            }
-        ],
-        model="llama-3.3-70b-versatile",
-        temperature=0.0,
-        response_format={"type": "json_object"}
-    )
+    try:
 
-    balasan_juri = penyelesaian_obrolan.choices[0].message.content
+        penyelesaian_obrolan = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": perintah_juri
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.0,
+            response_format={"type": "json_object"}
+        )
 
-    hasil_json = json.loads(balasan_juri)
+        balasan_juri = (
+            penyelesaian_obrolan
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
 
-    angka_pilihan = []
+        hasil_json = json.loads(balasan_juri)
 
-    for item in hasil_json.get("top_3", []):
-        opsi = item.get("opsi")
+        angka_pilihan = []
 
-        if isinstance(opsi, int):
-            if 1 <= opsi <= len(kandidat_untuk_juri):
-                if opsi not in angka_pilihan:
-                    angka_pilihan.append(opsi)
+        for item in hasil_json.get("top_3", []):
 
-    hasil_akhir = []
+            opsi = item.get("opsi")
 
-    for nomor in angka_pilihan:
-        indeks_kandidat = nomor - 1
+            if isinstance(opsi, int):
 
-        if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
+                if 1 <= opsi <= len(kandidat_untuk_juri):
 
-            skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+                    if opsi not in angka_pilihan:
+                        angka_pilihan.append(opsi)
 
-            hasil_akhir.append(
-                (
-                    kandidat_untuk_juri[indeks_kandidat]['idx'],
-                    skor_simulasi
+        hasil_akhir = []
+
+        for nomor in angka_pilihan:
+
+            indeks_kandidat = nomor - 1
+
+            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
+
+                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+
+                hasil_akhir.append(
+                    (
+                        kandidat_untuk_juri[indeks_kandidat]['idx'],
+                        skor_simulasi
+                    )
                 )
-            )
 
-    if hasil_akhir:
-        return hasil_akhir, inti_dari_llm
+        if hasil_akhir:
+            return hasil_akhir, inti_dari_llm
 
-except Exception as e:
-    st.error(f"🚨 KESALAHAN JURI AI: {e}")
-    
-    # Fallback murni jika Juri error total
-    return [
-        (item['idx'], item['skor'])
-        for item in kandidat_untuk_juri[:top_n]
-    ], inti_dari_llm
+    except Exception as e:
 
+        st.error(f"🚨 KESALAHAN JURI AI: {e}")
+
+    return [], inti_dari_llm
 
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
