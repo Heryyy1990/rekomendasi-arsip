@@ -1752,41 +1752,47 @@ try:
         messages=[{"role": "user", "content": perintah_juri}],
         model="llama-3.3-70b-versatile",
         temperature=0.0,
-        )
+    )
+
     balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
-    # Penangkap Angka Anti-Meleset
     angka_pilihan = []
 
-try:
-    hasil_json = json.loads(balasan_juri)
+    try:
+        hasil_json = json.loads(balasan_juri)
 
-    for item in hasil_json.get("top_3", []):
-        opsi = item.get("opsi")
+        for item in hasil_json.get("top_3", []):
+            opsi = item.get("opsi")
 
-        if isinstance(opsi, int):
-            if 1 <= opsi <= len(kandidat_untuk_juri):
-                if opsi not in angka_pilihan:
-                    angka_pilihan.append(opsi)
-
-except Exception as e:
-    st.warning(f"Gagal parsing JSON jury: {e}")
-
-        hasil_akhir = []
-        for nomor in angka_pilihan:
-            indeks_kandidat = nomor - 1
-            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
-                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
-                hasil_akhir.append(
-                    (kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi)
-                )
-
-        if hasil_akhir:
-            return hasil_akhir, inti_dari_llm
+            if isinstance(opsi, int):
+                if 1 <= opsi <= len(kandidat_untuk_juri):
+                    if opsi not in angka_pilihan:
+                        angka_pilihan.append(opsi)
 
     except Exception as e:
-        st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
+        st.warning(f"Gagal parsing JSON jury: {e}")
 
+    hasil_akhir = []
+
+    for nomor in angka_pilihan:
+        indeks_kandidat = nomor - 1
+
+        if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
+            skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+
+            hasil_akhir.append(
+                (
+                    kandidat_untuk_juri[indeks_kandidat]['idx'],
+                    skor_simulasi
+                )
+            )
+
+    if hasil_akhir:
+        return hasil_akhir, inti_dari_llm
+
+except Exception as e:
+    st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
+    
     # Fallback murni jika Juri error total
     return [
         (item['idx'], item['skor'])
