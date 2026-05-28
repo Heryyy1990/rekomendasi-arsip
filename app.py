@@ -1334,7 +1334,11 @@ def preprocess_text(text):
     # Baru masukkan ke mesin terjemahan
     text = terjemahkan_singkatan(text)
     text = remover.remove(text)
-    text = stemmer.stem(text)
+    
+    # PERBAIKAN #6: STEMMING DIMATIKAN
+    # Karena istilah birokrasi kehilangan identitas semantik
+    # text = stemmer.stem(text) 
+    
     return text
 
 # --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
@@ -1397,12 +1401,24 @@ def load_data():
         df['uraian_natural'] = ""
     df['uraian_natural'] = df['uraian_natural'].astype(str).fillna("").replace("nan", "")
 
-    # 2. Gabungkan hierarki baku dengan bahasa surat natural menjadi satu Korpus Raksasa
-    df['korpus_pencarian'] = df['uraian_lengkap'] + " " + df['uraian_natural']
-    # --- SELESAI: SUNTIKAN HASIL ENRICHMENT AI ---
+    # =========================================================
+    # PERBAIKAN #2: PISAHKAN KORPUS RETRIEVAL DAN HIERARKI
+    # =========================================================
+    
+    # KORPUS RETRIEVAL UTAMA (Fokus ke identitas spesifik kode)
+    df['retrieval_text'] = (
+        df['uraian'].astype(str) + " " +
+        df['uraian_natural'].astype(str)
+    )
 
-    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal KEDUA bahasa tersebut
-    df['clean_uraian'] = df['korpus_pencarian'].apply(preprocess_text)
+    # HIERARKI HANYA UNTUK INFORMASI TAMBAHAN
+    df['hierarchy_text'] = df['uraian_lengkap'].astype(str)
+
+    # =========================================================
+    # CLEAN TEXT
+    # =========================================================
+    df['clean_uraian'] = df['retrieval_text'].apply(preprocess_text)
+    df['clean_hierarchy'] = df['hierarchy_text'].apply(preprocess_text)
     
     return df
     
@@ -1480,31 +1496,24 @@ def smart_classify(user_input, df, top_n=3):
     st.session_state['model_aktif'] = atribut_6.get('_model', 'qwen3-32b')
  
     # =======================================================
-    # 2. QUERY EXPANSION (KONDISIONAL BERDASARKAN MODEL AI)
+    # PERBAIKAN #1: QUERY UTAMA = HANYA INTI
     # =======================================================
-    model_ai_aktif = atribut_6.get('_model', 'qwen3-32b')
+    query_utama = str(atribut_6.get("inti", user_input)).strip()
     
-    if "qwen" in model_ai_aktif:
-        # Jika Qwen (Pintar) -> Pakai Jaring Ekstraksi Penuh (Gabung 5 atribut)
-        query_gabungan = " ".join(filter(None, [
-            str(atribut_6.get("inti", "")),
-            str(atribut_6.get("objek", "")),
-            str(atribut_6.get("jenjang", "")),
-            str(atribut_6.get("kegiatan", "")),
-            str(atribut_6.get("produk", "")),
-        ]))
-    else:
-        # Jika Llama / Python (Bodoh) -> JANGAN DIGABUNG! Nanti TF-IDF tertipu noise.
-        # Cukup pakai hasil 'inti' mentahnya saja.
-        query_gabungan = str(atribut_6.get("inti", user_input))
-    
-    # Preprocessing
-    input_bersih = preprocess_text(query_gabungan)
+    # fallback jika inti kosong
+    if not query_utama:
+        query_utama = user_input
+        
+    input_bersih = preprocess_text(query_utama)
+
+    # atribut tambahan dipakai untuk reranking saja
+    objek_query    = preprocess_text(str(atribut_6.get("objek", "")))
+    kegiatan_query = preprocess_text(str(atribut_6.get("kegiatan", "")))
+    jenjang_query  = preprocess_text(str(atribut_6.get("jenjang", "")))
+    produk_query   = preprocess_text(str(atribut_6.get("produk", "")))
 
     # -------------------------------------------------------
     # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
-    # Dijalankan SEBELUM TF-IDF. Jika ada kecocokan di riwayat koreksi,
-    # langsung kembalikan hasil instan tanpa memanggil TF-IDF utama.
     # -------------------------------------------------------
     THRESHOLD_FEEDBACK = 90  # Nilai kecocokan fuzzy minimal (90%)
 
@@ -1512,7 +1521,6 @@ def smart_classify(user_input, df, top_n=3):
     if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
         try:
             df_feedback = pd.read_csv(file_feedback, dtype=str)
-
             kolom_ok = (
                 'inti_ekstraksi' in df_feedback.columns
                 and 'kode_terpilih' in df_feedback.columns
@@ -1540,7 +1548,7 @@ def smart_classify(user_input, df, top_n=3):
                         print(f"[SIKAP] Feedback Loop aktif: '{inti_dari_llm}' ≈ '{teks_cocok}' ({best_match[1]}%) → {kode_hasil_belajar}")
 
                         # Susun 3 hasil: feedback di #1, TF-IDF mini untuk mengisi #2 dan #3
-                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 3))
+                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 4), sublinear_tf=True, min_df=1)
                         semua_dok_fb     = df['clean_uraian'].tolist() + [input_bersih]
                         matriks_fb       = vectorizer_fb.fit_transform(semua_dok_fb)
                         skor_fb          = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
@@ -1563,30 +1571,36 @@ def smart_classify(user_input, df, top_n=3):
                                 break
 
                         return hasil_gabungan, inti_dari_llm
-
         except Exception as e:
             print(f"[SIKAP] Feedback Loop error (diabaikan): {e}")
  
     # =======================================================
-    # 2b. PENGHANCURAN FILTER (TOTAL BYPASS)
-    # Karena AI buta terhadap isi database klasifikasi,
-    # kita biarkan mesin TF-IDF berburu bebas di 2830 baris!
+    # PERBAIKAN #5: AKTIFKAN SOFT DOMAIN FILTER
     # =======================================================
-    
-    # Tetap ditangkap sekadar untuk dimunculkan di log/tampilan (jika perlu)
+    FILTER_AKTIF = True
     domain_terdeteksi = str(atribut_6.get("domain", "")).lower().strip()
-    
-    # Filter DIMATIKAN PERMANEN. Tidak ada lagi surat nyasar!
-    FILTER_AKTIF = False 
-    
-    # Mesin TF-IDF akan membaca seluruh data asli
-    df_subset = df.copy() 
-    
-    # Simpan indeks asli df sebelum reset
+
+    if FILTER_AKTIF and domain_terdeteksi:
+        kandidat_domain = df[
+            df['clean_hierarchy']
+            .str.contains(domain_terdeteksi, case=False, na=False)
+        ]
+
+        # fallback jika hasil terlalu sedikit
+        if len(kandidat_domain) >= 30:
+            df_subset = kandidat_domain.copy()
+        else:
+            df_subset = df.copy()
+    else:
+        df_subset = df.copy()
+ 
+    # Simpan indeks asli df_subset sebelum reset
     df_subset = df_subset.reset_index(drop=False)
  
-    # 3. TF-IDF & Fuzzy + LANGKAH 5: Depth Bonus Kondisional
-    vectorizer    = TfidfVectorizer(ngram_range=(1, 3))
+    # =======================================================
+    # PERBAIKAN #8: PERBESAR NGRAM TF-IDF (1, 4)
+    # =======================================================
+    vectorizer    = TfidfVectorizer(ngram_range=(1, 4), sublinear_tf=True, min_df=1)
     semua_dokumen = df_subset['clean_uraian'].tolist() + [input_bersih]
     matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
  
@@ -1600,18 +1614,24 @@ def smart_classify(user_input, df, top_n=3):
             input_bersih, df_subset.iloc[indeks]['clean_uraian']
         ) / 100
  
-        # Hitung skor dasar dulu
-        skor_dasar = (nilai_skor * 0.70) + (skor_samar * 0.30)
- 
-        # LANGKAH 5: Bonus kedalaman HANYA jika skor dasar sudah relevan
-        kode_item    = str(df_subset.iloc[indeks]['kode'])
-        jumlah_titik = kode_item.count('.')
-        if skor_dasar >= 0.15:
-            bonus_kedalaman = jumlah_titik * 0.01
-        else:
-            bonus_kedalaman = 0
- 
-        skor_gabungan = skor_dasar + bonus_kedalaman
+        # PERBAIKAN #3: KURANGI BOBOT FUZZY
+        skor_dasar = (nilai_skor * 0.90) + (skor_samar * 0.10)
+        
+        # PERBAIKAN #7: TAMBAHKAN BOOST BERBASIS ATRIBUT
+        teks_dokumen = df_subset.iloc[indeks]['clean_uraian']
+        bonus_atribut = 0
+
+        if objek_query and objek_query in teks_dokumen:
+            bonus_atribut += 0.08
+        if kegiatan_query and kegiatan_query in teks_dokumen:
+            bonus_atribut += 0.04
+        if jenjang_query and jenjang_query in teks_dokumen:
+            bonus_atribut += 0.03
+        if produk_query and produk_query in teks_dokumen:
+            bonus_atribut += 0.01
+
+        # PERBAIKAN #4: HAPUS DEPTH BONUS
+        skor_gabungan = skor_dasar + bonus_atribut
  
         idx_asli = df_subset.iloc[indeks]['index']
         skor_awal.append({'idx': idx_asli, 'skor': skor_gabungan})
@@ -1620,20 +1640,11 @@ def smart_classify(user_input, df, top_n=3):
         skor_awal, key=lambda x: x['skor'], reverse=True
     )[:20]
 
-    # --- [TAMBAHAN DEBUG] Simpan 20 Kandidat ke Session State ---
-
+    # Simpan ke Session State untuk Expandable Debug
     st.session_state['debug_top20'] = dua_puluh_kandidat_teratas
-    # ------------------------------------------------------------
  
     # =======================================================
-    # TAHAP 1 (LANGKAH 6): SMART ROUTING / BYPASS HAKIM AGUNG
-    # (Versi Disempurnakan: Tanpa syarat selisih skor!)
-    # =======================================================
-    skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
-    
-    # =======================================================
     # TAHAP 1: SMART ROUTING / BYPASS HAKIM AGUNG
-    # (Hanya bypass jika mesin LOKAL YAKIN 80% dan JELAS BEDANYA)
     # =======================================================
     skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
     skor_kedua = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
@@ -1647,138 +1658,92 @@ def smart_classify(user_input, df, top_n=3):
             skor_sim = 0.99 - (len(hasil_fast) * 0.14)
             hasil_fast.append((item['idx'], skor_sim))
         return hasil_fast, inti_dari_llm
-
-        
-
-
+ 
     # =========================================================
-    # 4. JURI AI
+    # 4. JURI AI 
     # =========================================================
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
 
     daftar_kandidat = ""
-
-    for urutan, item in enumerate(dua_puluh_kandidat_teratas):
-
+    for urutan, item in enumerate(kandidat_untuk_juri):
         baris_data = df.iloc[item['idx']]
-
         daftar_kandidat += (
-            f"[OPSI {urutan+1}] "
-            f"Kode: {baris_data['kode']} | "
-            f"Hierarki: {baris_data['uraian_lengkap'].title()}\n"
+            f"[OPSI {urutan+1}] Kode: {baris_data['kode']} | "
+            f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
         )
 
-    perintah_juri = f"""
-Anda adalah Arsiparis Utama Pemerintah Indonesia.
+    perintah_juri = f"""Anda adalah Arsiparis Senior.
+Tugas: Pilih 3 nomor urut OPSI yang paling tepat untuk urusan berikut.
 
-Tugas Anda adalah memilih 3 kandidat klasifikasi arsip
-yang PALING SESUAI secara SUBSTANSI,
-bukan sekadar kemiripan kata.
+URUSAN SURAT: "{inti_dari_llm}"
 
-==================================================
-PERIHAL SURAT ASLI
-==================================================
-
-{user_input}
-
-==================================================
-HASIL ANALISIS SEMANTIK AI
-==================================================
-
-{inti_dari_llm}
-
-==================================================
-ATURAN PENTING
-==================================================
-
-1. Fokus pada MAKNA utama surat.
-2. Jangan tertipu kata pembungkus seperti:
-   undangan, rapat, sosialisasi, permohonan.
-3. Jangan memilih hanya karena kata mirip.
-4. Prioritaskan kandidat yang paling spesifik.
-5. Jika ada kode induk dan kode rincian,
-   pilih kode rincian terdalam.
-6. Utamakan kesesuaian substansi arsip.
-
-==================================================
-DAFTAR KANDIDAT
-==================================================
-
+DAFTAR KANDIDAT:
 {daftar_kandidat}
 
-==================================================
-TUGAS
-==================================================
+LANGKAH BERPIKIR (Wajib diisi):
+- Domain urusan: [isi]
+- Kode Anak terdalam yang relevan: [isi]
+- Alasan menolak kode induk: [isi]
 
-1. Analisis substansi utama surat.
-2. Eliminasi kandidat jebakan yang hanya mirip kata.
-3. Pilih 3 kandidat terbaik.
-
-==================================================
-FORMAT JAWABAN WAJIB
-==================================================
-
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
-"""
+ATURAN MUTLAK:
+1. DILARANG KERAS memilih kode induk jika ada kode anaknya yang relevan (Kuartier/Tersier diutamakan).
+2. Tuliskan NOMOR URUT OPSINYA saja (1-20), bukan kode klasifikasinya!
+3. Tulis hasil akhir PERSIS seperti format ini:
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
 
     try:
-
         penyelesaian_obrolan = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": perintah_juri
-                }
-            ],
+            messages=[{"role": "user", "content": perintah_juri}],
             model="llama-3.3-70b-versatile",
             temperature=0.0,
         )
+        balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
-        balasan_juri = (
-            penyelesaian_obrolan
-            .choices[0]
-            .message
-            .content
-            .strip()
-        )
-
+        # Penangkap Angka Anti-Meleset
         angka_pilihan = []
+        for baris in balasan_juri.split('\n'):
+            if 'HASIL AKHIR' in baris.upper():
+                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
+                if not angka_mentah:
+                    angka_mentah = re.findall(r'\d+', baris)
+                    
+                for angka in angka_mentah:
+                    angka_bulat = int(angka)
+                    if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
+                        angka_pilihan.append(angka_bulat)
+                    if len(angka_pilihan) == 3:
+                        break
+                break
 
-        semua_angka = re.findall(r'\d+', balasan_juri)
-
-        for angka in semua_angka:
-
-            nomor = int(angka)
-
-            if 1 <= nomor <= len(dua_puluh_kandidat_teratas):
-
-                if nomor not in angka_pilihan:
-                    angka_pilihan.append(nomor)
+        # Fallback jika baris HASIL AKHIR gaib
+        if not angka_pilihan:
+            for angka in re.findall(r'\d+', balasan_juri):
+                angka_bulat = int(angka)
+                if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
+                    angka_pilihan.append(angka_bulat)
+                if len(angka_pilihan) == 3:
+                    break
 
         hasil_akhir = []
-
-        for nomor in angka_pilihan[:top_n]:
-
+        for nomor in angka_pilihan:
             indeks_kandidat = nomor - 1
-
-            if 0 <= indeks_kandidat < len(dua_puluh_kandidat_teratas):
-
+            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
-
                 hasil_akhir.append(
-                    (
-                        dua_puluh_kandidat_teratas[indeks_kandidat]['idx'],
-                        skor_simulasi
-                    )
+                    (kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi)
                 )
 
         if hasil_akhir:
             return hasil_akhir, inti_dari_llm
 
     except Exception as e:
+        st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
 
-        st.error(f"🚨 KESALAHAN JURI AI: {e}")
-
-    return [], inti_dari_llm
+    # Fallback murni jika Juri error total
+    return [
+        (item['idx'], item['skor'])
+        for item in kandidat_untuk_juri[:top_n]
+    ], inti_dari_llm
 
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
