@@ -9,7 +9,6 @@ import pytz
 import threading
 import time
 import logging
-import json as _json
 # Membungkam peringatan (warning) gaib dari Google API saat pertama kali load
 logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 from google.oauth2 import service_account
@@ -28,140 +27,6 @@ from google.genai import types
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
-
-def _kirim_json(data: dict):
-    """
-    Mengirim respons JSON ke Android.
-    Streamlit tidak punya built-in JSON response,
-    jadi kita gunakan st.json + st.stop() sebagai workaround.
-    """
-    st.json(data)
-    st.stop()
- 
-# Deteksi apakah request ini dari Android (bukan dari browser biasa)
-_params = st.query_params
-_api_action = _params.get("api", "")
- 
-# -------------------------------------------------------
-# ENDPOINT 1: Health Check
-# Android akan cek ini dulu untuk memastikan server hidup.
-#
-# Cara test di browser:
-# https://nama-app-anda.streamlit.app/?api=ping
-# Harusnya muncul: {"status": "ok", "app": "SIKAP"}
-# -------------------------------------------------------
-if _api_action == "ping":
-    _kirim_json({
-        "status": "ok",
-        "app": "SIKAP",
-        "versi": "1.0"
-    })
- 
-# -------------------------------------------------------
-# ENDPOINT 2: Klasifikasi Surat
-# Ini "jantung" API — menerima perihal surat dari Android
-# dan mengembalikan 3 rekomendasi kode arsip.
-#
-# Cara test di browser:
-# https://nama-app-anda.streamlit.app/?api=klasifikasi&q=perjalanan+dinas+pegawai
-# -------------------------------------------------------
-elif _api_action == "klasifikasi":
-    _perihal = _params.get("q", "").strip()
- 
-    if not _perihal:
-        _kirim_json({
-            "status": "error",
-            "pesan": "Parameter 'q' (perihal surat) tidak boleh kosong."
-        })
- 
-    # Load data — fungsi load_data() sudah ada di app.py Anda
-    _df = load_data()
- 
-    if _df is None or _df.empty:
-        _kirim_json({
-            "status": "error",
-            "pesan": "Database klasifikasi tidak dapat dimuat."
-        })
- 
-    try:
-        # Panggil otak SIKAP — smart_classify sudah ada di app.py Anda
-        _hasil_raw, _inti, _atribut = smart_classify(_perihal, _df)
- 
-        # Susun hasil menjadi format JSON yang bisa dibaca Android
-        _rekomendasi = []
-        for _urutan, (_idx, _skor) in enumerate(_hasil_raw):
-            _baris = _df.iloc[_idx]
- 
-            # Susun jalur hierarki (breadcrumb)
-            _kode = str(_baris.get('kode', ''))
-            _uraian = str(_baris.get('uraian', ''))
-            _uraian_lengkap = str(_baris.get('uraian_lengkap', ''))
- 
-            # Hitung level berdasarkan jumlah titik di kode
-            _jumlah_titik = _kode.count('.')
-            _level_nama = ['Primer', 'Sekunder', 'Tersier', 'Kuartier']
-            _level = _level_nama[min(_jumlah_titik, 3)]
- 
-            # Keyakinan — gunakan skor simulasi yang sudah ada
-            _keyakinan = round(_skor * 100, 1)
- 
-            _rekomendasi.append({
-                "urutan": _urutan + 1,
-                "kode": _kode,
-                "uraian": _uraian.title(),
-                "uraian_lengkap": _uraian_lengkap.title(),
-                "level": _level,
-                "keyakinan": _keyakinan,
-            })
- 
-        _kirim_json({
-            "status": "ok",
-            "perihal_asli": _perihal,
-            "inti_ekstraksi": _inti,
-            "domain": _atribut.get("domain", ""),
-            "model_ai": _atribut.get("_model", ""),
-            "rekomendasi": _rekomendasi
-        })
- 
-    except Exception as _e:
-        _kirim_json({
-            "status": "error",
-            "pesan": f"Terjadi kesalahan saat klasifikasi: {str(_e)}"
-        })
- 
-# -------------------------------------------------------
-# ENDPOINT 3: Simpan Feedback dari Android
-# Android mengirim kode yang dipilih pengguna.
-#
-# Cara test di browser:
-# https://nama-app-anda.streamlit.app/?api=feedback
-#   &nama=Arsiparis&q=perjalanan+dinas&inti=perjalanan+dinas+pegawai&kode=000.1.2.3
-# -------------------------------------------------------
-elif _api_action == "feedback":
-    _nama    = _params.get("nama", "Android User")
-    _perihal = _params.get("q", "")
-    _inti    = _params.get("inti", "")
-    _kode    = _params.get("kode", "")
- 
-    if not _kode or not _perihal:
-        _kirim_json({
-            "status": "error",
-            "pesan": "Parameter 'q' dan 'kode' wajib diisi."
-        })
- 
-    try:
-        # Panggil fungsi simpan feedback yang sudah ada di app.py Anda
-        simpan_feedback_csv(_nama, _perihal, _inti, _kode)
-        _kirim_json({
-            "status": "ok",
-            "pesan": f"Feedback untuk kode {_kode} berhasil disimpan."
-        })
-    except Exception as _e:
-        _kirim_json({
-            "status": "error",
-            "pesan": f"Gagal menyimpan feedback: {str(_e)}"
-        })
-
 
 # ====================================================
 # MESIN SINKRONISASI GOOGLE DRIVE (VERSI TAHAN BANTING)
@@ -1391,18 +1256,8 @@ def load_data():
     # Kolom baru ini yang akan menjadi "Mata" bagi AI
     df['uraian_lengkap'] = df['kode'].apply(bangun_hierarki)
     
-    # --- MULAI: SUNTIKAN HASIL ENRICHMENT AI ---
-    # 1. Pastikan kolom uraian_natural terbaca aman (jika kosong, ubah jadi string kosong)
-    if 'uraian_natural' not in df.columns:
-        df['uraian_natural'] = ""
-    df['uraian_natural'] = df['uraian_natural'].astype(str).fillna("").replace("nan", "")
-
-    # 2. Gabungkan hierarki baku dengan bahasa surat natural menjadi satu Korpus Raksasa
-    df['korpus_pencarian'] = df['uraian_lengkap'] + " " + df['uraian_natural']
-    # --- SELESAI: SUNTIKAN HASIL ENRICHMENT AI ---
-
-    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal KEDUA bahasa tersebut
-    df['clean_uraian'] = df['korpus_pencarian'].apply(preprocess_text)
+    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal jalur hierarki secara penuh
+    df['clean_uraian'] = df['uraian_lengkap'].apply(preprocess_text)
     
     return df
     
@@ -1619,11 +1474,6 @@ def smart_classify(user_input, df, top_n=3):
     dua_puluh_kandidat_teratas = sorted(
         skor_awal, key=lambda x: x['skor'], reverse=True
     )[:20]
-
-    # --- [TAMBAHAN DEBUG] Simpan 20 Kandidat ke Session State ---
-
-    st.session_state['debug_top20'] = dua_puluh_kandidat_teratas
-    # ------------------------------------------------------------
  
     # =======================================================
     # TAHAP 1 (LANGKAH 6): SMART ROUTING / BYPASS HAKIM AGUNG
@@ -1647,138 +1497,94 @@ def smart_classify(user_input, df, top_n=3):
             skor_sim = 0.99 - (len(hasil_fast) * 0.14)
             hasil_fast.append((item['idx'], skor_sim))
         return hasil_fast, inti_dari_llm
-
-        
-
-
-    # =========================================================
-    # 4. JURI AI
-    # =========================================================
+ 
+    # 4. Juri AI — hanya dipanggil jika smart routing tidak aktif
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20] # KITA KEMBALIKAN KE 20 AGAR DIA BISA MELIHAT DANA BOS
 
     daftar_kandidat = ""
-
-    for urutan, item in enumerate(dua_puluh_kandidat_teratas):
-
+    for urutan, item in enumerate(kandidat_untuk_juri):
         baris_data = df.iloc[item['idx']]
-
         daftar_kandidat += (
-            f"[OPSI {urutan+1}] "
-            f"Kode: {baris_data['kode']} | "
-            f"Hierarki: {baris_data['uraian_lengkap'].title()}\n"
+            f"[OPSI {urutan+1}] Kode: {baris_data['kode']} | "
+            f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
         )
 
-    perintah_juri = f"""
-Anda adalah Arsiparis Utama Pemerintah Indonesia.
+    perintah_juri = f"""Anda adalah Arsiparis Senior.
+Tugas: Pilih 3 nomor urut OPSI yang paling tepat untuk urusan berikut.
 
-Tugas Anda adalah memilih 3 kandidat klasifikasi arsip
-yang PALING SESUAI secara SUBSTANSI,
-bukan sekadar kemiripan kata.
+URUSAN SURAT: "{inti_dari_llm}"
 
-==================================================
-PERIHAL SURAT ASLI
-==================================================
-
-{user_input}
-
-==================================================
-HASIL ANALISIS SEMANTIK AI
-==================================================
-
-{inti_dari_llm}
-
-==================================================
-ATURAN PENTING
-==================================================
-
-1. Fokus pada MAKNA utama surat.
-2. Jangan tertipu kata pembungkus seperti:
-   undangan, rapat, sosialisasi, permohonan.
-3. Jangan memilih hanya karena kata mirip.
-4. Prioritaskan kandidat yang paling spesifik.
-5. Jika ada kode induk dan kode rincian,
-   pilih kode rincian terdalam.
-6. Utamakan kesesuaian substansi arsip.
-
-==================================================
-DAFTAR KANDIDAT
-==================================================
-
+DAFTAR KANDIDAT:
 {daftar_kandidat}
 
-==================================================
-TUGAS
-==================================================
+LANGKAH BERPIKIR (Wajib diisi):
+- Domain urusan: [isi]
+- Kode Anak terdalam yang relevan: [isi]
+- Alasan menolak kode induk: [isi]
 
-1. Analisis substansi utama surat.
-2. Eliminasi kandidat jebakan yang hanya mirip kata.
-3. Pilih 3 kandidat terbaik.
-
-==================================================
-FORMAT JAWABAN WAJIB
-==================================================
-
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
-"""
+ATURAN MUTLAK:
+1. DILARANG KERAS memilih kode induk jika ada kode anaknya yang relevan (Kuartier/Tersier diutamakan).
+2. Tuliskan NOMOR URUT OPSINYA saja (1-20), bukan kode klasifikasinya!
+3. Tulis hasil akhir PERSIS seperti format ini:
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
 
     try:
-
         penyelesaian_obrolan = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": perintah_juri
-                }
-            ],
+            messages=[{"role": "user", "content": perintah_juri}],
             model="llama-3.3-70b-versatile",
             temperature=0.0,
         )
+        balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
-        balasan_juri = (
-            penyelesaian_obrolan
-            .choices[0]
-            .message
-            .content
-            .strip()
-        )
-
+        # Penangkap Angka Anti-Meleset
         angka_pilihan = []
+        for baris in balasan_juri.split('\n'):
+            if 'HASIL AKHIR' in baris.upper():
+                # Wajib menangkap angka HANYA setelah kata OPSI
+                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
+                
+                # Jika Llama ngeyel tidak pakai kata OPSI, tangkap angka biasa
+                if not angka_mentah:
+                    angka_mentah = re.findall(r'\d+', baris)
+                    
+                for angka in angka_mentah:
+                    angka_bulat = int(angka)
+                    if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
+                        angka_pilihan.append(angka_bulat)
+                    if len(angka_pilihan) == 3:
+                        break
+                break
 
-        semua_angka = re.findall(r'\d+', balasan_juri)
-
-        for angka in semua_angka:
-
-            nomor = int(angka)
-
-            if 1 <= nomor <= len(dua_puluh_kandidat_teratas):
-
-                if nomor not in angka_pilihan:
-                    angka_pilihan.append(nomor)
+        # Fallback jika baris HASIL AKHIR gaib
+        if not angka_pilihan:
+            for angka in re.findall(r'\d+', balasan_juri):
+                angka_bulat = int(angka)
+                if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
+                    angka_pilihan.append(angka_bulat)
+                if len(angka_pilihan) == 3:
+                    break
 
         hasil_akhir = []
-
-        for nomor in angka_pilihan[:top_n]:
-
+        for nomor in angka_pilihan:
             indeks_kandidat = nomor - 1
-
-            if 0 <= indeks_kandidat < len(dua_puluh_kandidat_teratas):
-
+            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
-
                 hasil_akhir.append(
-                    (
-                        dua_puluh_kandidat_teratas[indeks_kandidat]['idx'],
-                        skor_simulasi
-                    )
+                    (kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi)
                 )
 
         if hasil_akhir:
             return hasil_akhir, inti_dari_llm
 
     except Exception as e:
+        st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
 
-        st.error(f"🚨 KESALAHAN JURI AI: {e}")
+    # Fallback murni jika Juri error total
+    return [
+        (item['idx'], item['skor'])
+        for item in kandidat_untuk_juri[:top_n]
+    ], inti_dari_llm
 
-    return [], inti_dari_llm
 
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
@@ -2630,22 +2436,6 @@ def halaman_utama():
                             simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode)
                             st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
-
-                    # --- [TAMBAHAN DEBUG] Tampilkan 20 Kandidat TF-IDF ---
-                    if st.session_state.get('debug_top20'):
-                        with st.expander("🐛 DEBUG ADMIN: Lihat 20 Top Kandidat TF-IDF (Sebelum Juri LLM)"):
-                            st.caption("Tabel di bawah adalah 20 kandidat dengan skor kemiripan TF-IDF + Fuzzy tertinggi yang dikirimkan ke Juri Llama sebagai konteks.")
-                            data_debug = []
-                            for rank, item in enumerate(st.session_state['debug_top20']):
-                                baris = df.iloc[item['idx']]
-                                data_debug.append({
-                                    "Rank": rank + 1,
-                                    "Skor": f"{item['skor']:.4f}",
-                                    "Kode": baris['kode'],
-                                    "Uraian Lengkap": baris['uraian_lengkap'].title()
-                                })
-                            st.dataframe(pd.DataFrame(data_debug), use_container_width=True, hide_index=True)
-                    # ------------------------------------------------------
                     
                     st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
                     with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
