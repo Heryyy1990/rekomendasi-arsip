@@ -1334,7 +1334,7 @@ def preprocess_text(text):
     # Baru masukkan ke mesin terjemahan
     text = terjemahkan_singkatan(text)
     text = remover.remove(text)
-    # text = stemmer.stem(text)
+    text = stemmer.stem(text)
     return text
 
 # --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
@@ -1397,38 +1397,14 @@ def load_data():
         df['uraian_natural'] = ""
     df['uraian_natural'] = df['uraian_natural'].astype(str).fillna("").replace("nan", "")
 
-    # =========================================================
-# KORPUS RETRIEVAL UTAMA
-# Fokus ke identitas spesifik kode
-# =========================================================
+    # 2. Gabungkan hierarki baku dengan bahasa surat natural menjadi satu Korpus Raksasa
+    df['korpus_pencarian'] = df['uraian_lengkap'] + " " + df['uraian_natural']
+    # --- SELESAI: SUNTIKAN HASIL ENRICHMENT AI ---
 
-df['retrieval_text'] = (
-    df['uraian'].astype(str) + " " +
-    df['uraian_natural'].astype(str)
-)
-
-# =========================================================
-# HIERARKI HANYA UNTUK INFORMASI TAMBAHAN
-# Jangan dijadikan retrieval utama
-# =========================================================
-
-df['hierarchy_text'] = df['uraian_lengkap'].astype(str)
-
-# =========================================================
-# CLEAN TEXT
-# =========================================================
-
-df['clean_uraian'] = (
-    df['retrieval_text']
-    .apply(preprocess_text)
-)
-
-df['clean_hierarchy'] = (
-    df['hierarchy_text']
-    .apply(preprocess_text)
-)
-
-return df
+    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal KEDUA bahasa tersebut
+    df['clean_uraian'] = df['korpus_pencarian'].apply(preprocess_text)
+    
+    return df
     
     # --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (PENCARIAN AI - PC & HP AMAN) ---
 def get_badge_html(kode, uraian, level):
@@ -1504,36 +1480,26 @@ def smart_classify(user_input, df, top_n=3):
     st.session_state['model_aktif'] = atribut_6.get('_model', 'qwen3-32b')
  
     # =======================================================
-# 2. QUERY UTAMA = HANYA INTI
-# =======================================================
-
-query_utama = str(
-    atribut_6.get("inti", user_input)
-).strip()
-
-# fallback jika kosong
-if not query_utama:
-    query_utama = user_input
-
-# query utama retrieval
-input_bersih = preprocess_text(query_utama)
-
-# atribut tambahan hanya untuk reranking
-objek_query = preprocess_text(
-    str(atribut_6.get("objek", ""))
-)
-
-kegiatan_query = preprocess_text(
-    str(atribut_6.get("kegiatan", ""))
-)
-
-jenjang_query = preprocess_text(
-    str(atribut_6.get("jenjang", ""))
-)
-
-produk_query = preprocess_text(
-    str(atribut_6.get("produk", ""))
-)
+    # 2. QUERY EXPANSION (KONDISIONAL BERDASARKAN MODEL AI)
+    # =======================================================
+    model_ai_aktif = atribut_6.get('_model', 'qwen3-32b')
+    
+    if "qwen" in model_ai_aktif:
+        # Jika Qwen (Pintar) -> Pakai Jaring Ekstraksi Penuh (Gabung 5 atribut)
+        query_gabungan = " ".join(filter(None, [
+            str(atribut_6.get("inti", "")),
+            str(atribut_6.get("objek", "")),
+            str(atribut_6.get("jenjang", "")),
+            str(atribut_6.get("kegiatan", "")),
+            str(atribut_6.get("produk", "")),
+        ]))
+    else:
+        # Jika Llama / Python (Bodoh) -> JANGAN DIGABUNG! Nanti TF-IDF tertipu noise.
+        # Cukup pakai hasil 'inti' mentahnya saja.
+        query_gabungan = str(atribut_6.get("inti", user_input))
+    
+    # Preprocessing
+    input_bersih = preprocess_text(query_gabungan)
 
     # -------------------------------------------------------
     # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
@@ -1611,33 +1577,16 @@ produk_query = preprocess_text(
     domain_terdeteksi = str(atribut_6.get("domain", "")).lower().strip()
     
     # Filter DIMATIKAN PERMANEN. Tidak ada lagi surat nyasar!
-    FILTER_AKTIF = True
-
-domain_terdeteksi = str(atribut_6.get("domain", "")).lower().strip()
-
-if FILTER_AKTIF and domain_terdeteksi:
-    kandidat_domain = df[
-        df['clean_hierarchy']
-        .str.contains(domain_terdeteksi, case=False, na=False)
-    ]
-
-    # fallback jika hasil terlalu sedikit
-    if len(kandidat_domain) >= 30:
-        df_subset = kandidat_domain.copy()
-    else:
-        df_subset = df.copy()
-else:
-    df_subset = df.copy()
+    FILTER_AKTIF = False 
+    
+    # Mesin TF-IDF akan membaca seluruh data asli
+    df_subset = df.copy() 
     
     # Simpan indeks asli df sebelum reset
     df_subset = df_subset.reset_index(drop=False)
  
     # 3. TF-IDF & Fuzzy + LANGKAH 5: Depth Bonus Kondisional
-    vectorizer    = TfidfVectorizer(
-    ngram_range=(1, 4),
-    sublinear_tf=True,
-    min_df=1
-)
+    vectorizer    = TfidfVectorizer(ngram_range=(1, 3))
     semua_dokumen = df_subset['clean_uraian'].tolist() + [input_bersih]
     matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
  
@@ -1646,32 +1595,23 @@ else:
     )[0]
  
     skor_awal = []
-    teks_dokumen = df_subset.iloc[indeks]['clean_uraian']
-
-bonus_atribut = 0
-
-if objek_query and objek_query in teks_dokumen:
-    bonus_atribut += 0.08
-
-if kegiatan_query and kegiatan_query in teks_dokumen:
-    bonus_atribut += 0.04
-
-if jenjang_query and jenjang_query in teks_dokumen:
-    bonus_atribut += 0.03
-
-if produk_query and produk_query in teks_dokumen:
-    bonus_atribut += 0.01
-
-skor_gabungan = skor_dasar + bonus_atribut
+    for indeks, nilai_skor in enumerate(kemiripan_kosinus):
         skor_samar = fuzz.token_set_ratio(
             input_bersih, df_subset.iloc[indeks]['clean_uraian']
         ) / 100
  
         # Hitung skor dasar dulu
-        skor_dasar = (nilai_skor * 0.90) + (skor_samar * 0.10)
+        skor_dasar = (nilai_skor * 0.70) + (skor_samar * 0.30)
  
         # LANGKAH 5: Bonus kedalaman HANYA jika skor dasar sudah relevan
-        skor_gabungan = skor_dasar
+        kode_item    = str(df_subset.iloc[indeks]['kode'])
+        jumlah_titik = kode_item.count('.')
+        if skor_dasar >= 0.15:
+            bonus_kedalaman = jumlah_titik * 0.01
+        else:
+            bonus_kedalaman = 0
+ 
+        skor_gabungan = skor_dasar + bonus_kedalaman
  
         idx_asli = df_subset.iloc[indeks]['index']
         skor_awal.append({'idx': idx_asli, 'skor': skor_gabungan})
