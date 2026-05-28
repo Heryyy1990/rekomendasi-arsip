@@ -1418,11 +1418,17 @@ df['hierarchy_text'] = df['uraian_lengkap'].astype(str)
 # CLEAN TEXT
 # =========================================================
 
-df['clean_uraian'] = df['retrieval_text'].apply(preprocess_text)
+df['clean_uraian'] = (
+    df['retrieval_text']
+    .apply(preprocess_text)
+)
 
-df['clean_hierarchy'] = df['hierarchy_text'].apply(preprocess_text)
-    
-    return df
+df['clean_hierarchy'] = (
+    df['hierarchy_text']
+    .apply(preprocess_text)
+)
+
+return df
     
     # --- FUNGSI PEMBUAT BADGE UNTUK TAB 1 (PENCARIAN AI - PC & HP AMAN) ---
 def get_badge_html(kode, uraian, level):
