@@ -1480,14 +1480,27 @@ def smart_classify(user_input, df, top_n=3):
     st.session_state['model_aktif'] = atribut_6.get('_model', 'qwen3-32b')
  
     # =======================================================
-    # 2. QUERY EXPANSION (DIBERSIHKAN DARI NOISE)
+    # 2. QUERY EXPANSION (KONDISIONAL BERDASARKAN MODEL AI)
     # =======================================================
-    # Kita HANYA menggunakan "inti" agar TF-IDF fokus pada substansi,
-    # tidak terdistraksi oleh kata generik penutup surat (produk/kegiatan).
-    query_gabungan = str(atribut_6.get("inti", user_input))
+    model_ai_aktif = atribut_6.get('_model', 'qwen3-32b')
+    
+    if "qwen" in model_ai_aktif:
+        # Jika Qwen (Pintar) -> Pakai Jaring Ekstraksi Penuh (Gabung 5 atribut)
+        query_gabungan = " ".join(filter(None, [
+            str(atribut_6.get("inti", "")),
+            str(atribut_6.get("objek", "")),
+            str(atribut_6.get("jenjang", "")),
+            str(atribut_6.get("kegiatan", "")),
+            str(atribut_6.get("produk", "")),
+        ]))
+    else:
+        # Jika Llama / Python (Bodoh) -> JANGAN DIGABUNG! Nanti TF-IDF tertipu noise.
+        # Cukup pakai hasil 'inti' mentahnya saja.
+        query_gabungan = str(atribut_6.get("inti", user_input))
     
     # Preprocessing
     input_bersih = preprocess_text(query_gabungan)
+
     # -------------------------------------------------------
     # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
     # Dijalankan SEBELUM TF-IDF. Jika ada kecocokan di riwayat koreksi,
@@ -1657,72 +1670,112 @@ def smart_classify(user_input, df, top_n=3):
     perintah_juri = f"""
 Anda adalah Arsiparis Utama Pemerintah Indonesia.
 
-Tugas Anda adalah memilih 3 kandidat klasifikasi arsip yang PALING SESUAI secara SUBSTANSI dari daftar kandidat di bawah ini.
+Tugas Anda adalah memilih 3 kandidat klasifikasi arsip
+yang PALING SESUAI secara SUBSTANSI,
+bukan sekadar kemiripan kata.
 
 ==================================================
-PERIHAL SURAT ASLI:
+PERIHAL SURAT ASLI
+==================================================
+
 {user_input}
 
-HASIL ANALISIS SEMANTIK AI:
-{inti_dari_llm}
+==================================================
+HASIL ANALISIS SEMANTIK AI
 ==================================================
 
-DAFTAR KANDIDAT:
+{inti_dari_llm}
+
+==================================================
+ATURAN PENTING
+==================================================
+
+1. Fokus pada MAKNA utama surat.
+2. Jangan tertipu kata pembungkus seperti:
+   undangan, rapat, sosialisasi, permohonan.
+3. Jangan memilih hanya karena kata mirip.
+4. Prioritaskan kandidat yang paling spesifik.
+5. Jika ada kode induk dan kode rincian,
+   pilih kode rincian terdalam.
+6. Utamakan kesesuaian substansi arsip.
+
+==================================================
+DAFTAR KANDIDAT
+==================================================
+
 {daftar_kandidat}
 
 ==================================================
-INSTRUKSI PENALARAN (WAJIB DIIKUTI):
-1. Tuliskan blok <analisis> terlebih dahulu.
-2. Identifikasi substansi kegiatan/objek utama (bukan kata generik seperti 'laporan' atau 'rapat').
-3. Eliminasi opsi yang sekadar mirip kata tetapi beda hierarki urusan pemerintahan.
-4. Pilih opsi yang paling spesifik (hierarki terdalam).
+TUGAS
+==================================================
 
-FORMAT JAWABAN WAJIB:
-<analisis>
-[Penalaran deduktif Anda di sini]
-</analisis>
+1. Analisis substansi utama surat.
+2. Eliminasi kandidat jebakan yang hanya mirip kata.
+3. Pilih 3 kandidat terbaik.
 
-HASIL AKHIR: [Nomor Opsi], [Nomor Opsi], [Nomor Opsi]
+==================================================
+FORMAT JAWABAN WAJIB
+==================================================
+
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
 
     try:
+
         penyelesaian_obrolan = client.chat.completions.create(
-            messages=[{"role": "user", "content": perintah_juri}],
+            messages=[
+                {
+                    "role": "user",
+                    "content": perintah_juri
+                }
+            ],
             model="llama-3.3-70b-versatile",
             temperature=0.0,
         )
 
-        balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
+        balasan_juri = (
+            penyelesaian_obrolan
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
 
-        # Ekstrak HANYA angka dari baris "HASIL AKHIR:" untuk mengabaikan teks di dalam <analisis>
         angka_pilihan = []
-        hasil_match = re.search(r'HASIL AKHIR:\s*(.*)', balasan_juri, re.IGNORECASE)
-        
-        if hasil_match:
-            semua_angka = re.findall(r'\d+', hasil_match.group(1))
-        else:
-            # Fallback jika LLM tidak patuh format
-            semua_angka = re.findall(r'\d+', balasan_juri.split("</analisis>")[-1] if "</analisis>" in balasan_juri else balasan_juri)
+
+        semua_angka = re.findall(r'\d+', balasan_juri)
 
         for angka in semua_angka:
+
             nomor = int(angka)
+
             if 1 <= nomor <= len(dua_puluh_kandidat_teratas):
+
                 if nomor not in angka_pilihan:
                     angka_pilihan.append(nomor)
 
         hasil_akhir = []
+
         for nomor in angka_pilihan[:top_n]:
+
             indeks_kandidat = nomor - 1
+
             if 0 <= indeks_kandidat < len(dua_puluh_kandidat_teratas):
+
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+
                 hasil_akhir.append(
-                    (dua_puluh_kandidat_teratas[indeks_kandidat]['idx'], skor_simulasi)
+                    (
+                        dua_puluh_kandidat_teratas[indeks_kandidat]['idx'],
+                        skor_simulasi
+                    )
                 )
 
         if hasil_akhir:
             return hasil_akhir, inti_dari_llm
 
     except Exception as e:
+
         st.error(f"🚨 KESALAHAN JURI AI: {e}")
 
     return [], inti_dari_llm
