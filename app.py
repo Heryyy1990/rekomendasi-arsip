@@ -1667,7 +1667,7 @@ def smart_classify(user_input, df, top_n=3):
     # BATASI KANDIDAT
     # Jangan terlalu banyak agar reasoning mendalam
     # =========================================================
-    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:7]
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
 
     # =========================================================
     # BANGUN DAFTAR KANDIDAT
