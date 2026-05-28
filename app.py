@@ -1664,20 +1664,25 @@ def smart_classify(user_input, df, top_n=3):
     # =========================================================
 
     # =========================================================
-    # BATASI KANDIDAT
-    # Jangan terlalu banyak agar reasoning mendalam
+    # AMBIL KANDIDAT TERATAS
     # =========================================================
+
     kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
 
     # =========================================================
-    # BANGUN DAFTAR KANDIDAT
+    # SUSUN DAFTAR KANDIDAT
     # =========================================================
+
     daftar_kandidat = ""
 
     for urutan, item in enumerate(kandidat_untuk_juri):
+
         baris_data = df.iloc[item['idx']]
+
         daftar_kandidat += f"""
+
 [OPSI {urutan + 1}]
+
 Kode:
 {baris_data['kode']}
 
@@ -1693,35 +1698,63 @@ Konteks Natural:
 """
 
     # =========================================================
-    # PROMPT JURI SEMANTIK
+    # PROMPT JURI
     # =========================================================
-    perintah_juri = f"""
-Anda adalah Arsiparis Senior Pemerintahan dan Ahli Klasifikasi Arsip.
 
-Tugas Anda adalah menentukan kode klasifikasi arsip
-yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat.
+    perintah_juri = f"""
+Anda adalah Arsiparis Senior Pemerintahan
+dan Ahli Klasifikasi Arsip.
+
+Tugas Anda adalah menentukan
+kode klasifikasi arsip
+yang PALING TEPAT
+berdasarkan SUBSTANSI UTAMA surat.
 
 =========================================================
 PRINSIP UTAMA
 =========================================================
 
 - Jangan hanya mencocokkan kata.
-- Pahami MAKSUD dan konteks administratif surat.
+- Pahami MAKSUD surat secara substantif.
 - Tentukan:
-  surat ini SEBENARNYA tentang apa.
+  surat ini sebenarnya tentang urusan apa.
 
 Bedakan antara:
-- kegiatan utama
+- substansi utama,
 - dan aktivitas administratif pendukung.
 
-Contoh:
-- "permohonan honor diklat"
-  substansi utamanya bisa jadi DIKLAT,
-  bukan pembayaran honor.
+=========================================================
+PENTING
+=========================================================
 
-- "laporan perjalanan dinas diklat"
-  substansi utamanya bisa jadi DIKLAT,
-  bukan perjalanan dinas.
+Jangan tertipu oleh:
+- format kegiatan,
+- bentuk acara,
+- media kegiatan,
+- atau kata administratif umum.
+
+Contoh:
+- rapat
+- sosialisasi
+- pemaparan
+- undangan
+- notulen
+- koordinasi
+
+karena itu sering hanya FORMAT kegiatan.
+
+Fokus utama adalah:
+URUSAN atau KEGIATAN INTI
+yang sedang dibahas.
+
+Contoh:
+"undangan sosialisasi hasil latsar cpns"
+
+substansi utamanya adalah:
+penyelenggaraan latsar/diklat CPNS,
+
+BUKAN:
+sosialisasi.
 
 =========================================================
 ATURAN KEARSIPAN
@@ -1739,28 +1772,34 @@ JIKA DAN HANYA JIKA:
 - domain kegiatan benar-benar cocok,
 - dan kode tersebut benar-benar menjelaskan inti surat.
 
+Jika terdapat parent dan child
+yang sama-sama substantif cocok,
+
+maka WAJIB memilih child
+(kuartier / tersier)
+karena klasifikasi arsip
+harus memilih kode paling spesifik.
+
+Parent hanya dipilih jika:
+- child terlalu sempit,
+- child tidak benar-benar menjelaskan inti surat,
+- atau child hanya cocok sebagian kecil konteks.
+
 Jangan memilih kode yang lebih spesifik
-jika hanya cocok sebagian kata
-atau hanya cocok konteks kecil.
-
-Jika kode kuartier tidak benar-benar tepat,
-boleh fallback ke tersier.
-
-Jika tersier juga tidak tepat,
-boleh fallback ke sekunder.
+jika hanya cocok sebagian kata.
 
 =========================================================
 UJI SUBSTANTIF
 =========================================================
 
-Untuk setiap kandidat, lakukan analisis:
+Untuk setiap kandidat:
 
 1. Apa substansi utama kandidat ini?
 2. Apakah sesuai dengan substansi surat?
 3. Apakah kandidat ini terlalu umum?
 4. Apakah kandidat ini terlalu spesifik?
-5. Apakah hanya cocok sebagian kecil konteks?
-6. Apakah parent atau child lebih substantif?
+5. Apakah kandidat ini hanya cocok karena kata tertentu?
+6. Apakah domain kegiatan utamanya benar?
 
 =========================================================
 SURAT YANG DIANALISIS
@@ -1782,19 +1821,15 @@ DAFTAR KANDIDAT
 TUGAS ANALISIS
 =========================================================
 
-Analisis SETIAP kandidat secara mendalam.
+Analisis kandidat secara mendalam.
 
-Untuk setiap kandidat:
-- jelaskan substansinya,
-- jelaskan kecocokannya,
-- jelaskan kekurangannya,
-- jelaskan apakah terlalu umum atau terlalu spesifik.
+Fokus pada:
+- substansi utama,
+- domain kegiatan utama,
+- dan konteks administratif utama.
 
-Lalu tentukan:
-
-1. kandidat paling tepat,
-2. kandidat alternatif,
-3. kandidat fallback jika kode spesifik tidak substantif.
+Jangan memilih kandidat
+hanya karena memiliki kata yang mirip.
 
 =========================================================
 FORMAT AKHIR WAJIB
@@ -1806,15 +1841,20 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
     # =========================================================
     # PANGGIL MODEL JURI
     # =========================================================
+
     try:
+
         penyelesaian_obrolan = client.chat.completions.create(
+
             messages=[
                 {
                     "role": "user",
                     "content": perintah_juri
                 }
             ],
+
             model="llama-3.3-70b-versatile",
+
             temperature=0.2,
         )
 
@@ -1829,23 +1869,29 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
         # =====================================================
         # PENANGKAP OPSI
         # =====================================================
+
         angka_pilihan = []
 
         for baris in balasan_juri.split('\n'):
+
             if 'HASIL AKHIR' in baris.upper():
+
                 angka_mentah = re.findall(
                     r'OPSI\s*(\d+)',
                     baris.upper()
                 )
 
                 if not angka_mentah:
+
                     angka_mentah = re.findall(
                         r'\d+',
                         baris
                     )
 
                 for angka in angka_mentah:
+
                     angka_bulat = int(angka)
+
                     if (
                         1 <= angka_bulat <= len(kandidat_untuk_juri)
                         and angka_bulat not in angka_pilihan
@@ -1854,14 +1900,19 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 
                     if len(angka_pilihan) == 3:
                         break
+
                 break
 
         # =====================================================
         # FALLBACK JIKA FORMAT GAGAL
         # =====================================================
+
         if not angka_pilihan:
+
             for angka in re.findall(r'\d+', balasan_juri):
+
                 angka_bulat = int(angka)
+
                 if (
                     1 <= angka_bulat <= len(kandidat_untuk_juri)
                     and angka_bulat not in angka_pilihan
@@ -1874,23 +1925,38 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
         # =====================================================
         # SUSUN HASIL AKHIR
         # =====================================================
+
         hasil_akhir = []
 
         for nomor in angka_pilihan:
+
             indeks_kandidat = nomor - 1
-            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
-                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+
+            if (
+                0 <= indeks_kandidat < len(kandidat_untuk_juri)
+            ):
+
+                skor_simulasi = (
+                    0.99 - (len(hasil_akhir) * 0.14)
+                )
+
                 hasil_akhir.append(
+
                     (
-                        kandidat_untuk_juri[indeks_kandidat]['idx'],
+                        kandidat_untuk_juri[
+                            indeks_kandidat
+                        ]['idx'],
+
                         skor_simulasi
                     )
                 )
 
         if hasil_akhir:
+
             return hasil_akhir, inti_dari_llm
 
     except Exception as e:
+
         st.error(
             f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}"
         )
@@ -1898,9 +1964,16 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
     # =========================================================
     # FALLBACK JIKA JURI GAGAL TOTAL
     # =========================================================
+
     return [
-        (item['idx'], item['skor'])
+
+        (
+            item['idx'],
+            item['skor']
+        )
+
         for item in kandidat_untuk_juri[:top_n]
+
     ], inti_dari_llm
 
     
