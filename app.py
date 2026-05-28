@@ -1548,7 +1548,7 @@ def smart_classify(user_input, df, top_n=3):
                         print(f"[SIKAP] Feedback Loop aktif: '{inti_dari_llm}' ≈ '{teks_cocok}' ({best_match[1]}%) → {kode_hasil_belajar}")
 
                         # Susun 3 hasil: feedback di #1, TF-IDF mini untuk mengisi #2 dan #3
-                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 4), sublinear_tf=True, min_df=1)
+                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
                         semua_dok_fb     = df['clean_uraian'].tolist() + [input_bersih]
                         matriks_fb       = vectorizer_fb.fit_transform(semua_dok_fb)
                         skor_fb          = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
@@ -1600,7 +1600,7 @@ def smart_classify(user_input, df, top_n=3):
     # =======================================================
     # PERBAIKAN #8: PERBESAR NGRAM TF-IDF (1, 4)
     # =======================================================
-    vectorizer    = TfidfVectorizer(ngram_range=(1, 4), sublinear_tf=True, min_df=1)
+    vectorizer    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
     semua_dokumen = df_subset['clean_uraian'].tolist() + [input_bersih]
     matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
  
