@@ -701,17 +701,17 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
     teks_user_terjemahan = terjemahkan_singkatan(teks_user) 
     
     # SIAPKAN DUA OTAK BERBEDA (Gunakan teks yang SUDAH DITERJEMAHKAN)
-    # prompt_qwen = _bangun_prompt_qwen(teks_user_terjemahan)
+    prompt_qwen = _bangun_prompt_qwen(teks_user_terjemahan)
     prompt_llama = _bangun_prompt_llama(teks_user_terjemahan)
  
     # === LAPIS 1: Qwen3 32B ===
-    # raw_qwen = _panggil_qwen3(prompt_qwen) # Qwen membaca prompt orisinal
-    # if raw_qwen:
-    #    data = _parse_json_atribut(raw_qwen)
-    #    if data and _validasi_json_atribut(data):
-    #        data["_model"] = "qwen3-32b"
-    #        inti = str(data["inti"]).strip().lower()
-    #        return inti, data
+     raw_qwen = _panggil_qwen3(prompt_qwen) # Qwen membaca prompt orisinal
+     if raw_qwen:
+        data = _parse_json_atribut(raw_qwen)
+        if data and _validasi_json_atribut(data):
+            data["_model"] = "qwen3-32b"
+            inti = str(data["inti"]).strip().lower()
+            return inti, data
  
     # === LAPIS 2: Llama Cadangan Pintar ===
     raw_llama = _panggil_llama_ekstraksi(prompt_llama) # Llama membaca hukum universal
