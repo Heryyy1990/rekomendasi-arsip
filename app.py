@@ -1501,19 +1501,33 @@ def smart_classify(user_input, df, top_n=3):
 # 2. QUERY UTAMA = HANYA INTI
 # =======================================================
 
-query_utama = str(atribut_6.get("inti", user_input)).strip()
+query_utama = str(
+    atribut_6.get("inti", user_input)
+).strip()
 
-# fallback jika inti kosong
+# fallback jika kosong
 if not query_utama:
     query_utama = user_input
 
+# query utama retrieval
 input_bersih = preprocess_text(query_utama)
 
-# atribut tambahan dipakai untuk reranking saja
-objek_query    = preprocess_text(str(atribut_6.get("objek", "")))
-kegiatan_query = preprocess_text(str(atribut_6.get("kegiatan", "")))
-jenjang_query  = preprocess_text(str(atribut_6.get("jenjang", "")))
-produk_query   = preprocess_text(str(atribut_6.get("produk", "")))
+# atribut tambahan hanya untuk reranking
+objek_query = preprocess_text(
+    str(atribut_6.get("objek", ""))
+)
+
+kegiatan_query = preprocess_text(
+    str(atribut_6.get("kegiatan", ""))
+)
+
+jenjang_query = preprocess_text(
+    str(atribut_6.get("jenjang", ""))
+)
+
+produk_query = preprocess_text(
+    str(atribut_6.get("produk", ""))
+)
 
     # -------------------------------------------------------
     # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
