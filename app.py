@@ -1651,130 +1651,133 @@ def smart_classify(user_input, df, top_n=3):
         
 
 
-        # =========================================================
+    # =========================================================
     # 4. JURI AI
     # =========================================================
- 
-    # --- FILTER BERTAHAP: buang kode primer dan sekunder ---
-    # Jury hanya boleh melihat tersier (≥2 titik) dan kuartier (≥3 titik)
-    kandidat_valid = [
-        item for item in dua_puluh_kandidat_teratas
-        if str(df.iloc[item['idx']]['kode']).count('.') >= 2
-    ]
- 
-    # Fallback 1: jika tersier+kuartier < 3, turunkan ke sekunder (≥1 titik)
-    if len(kandidat_valid) < 3:
-        kandidat_valid = [
-            item for item in dua_puluh_kandidat_teratas
-            if str(df.iloc[item['idx']]['kode']).count('.') >= 1
-        ]
- 
-    # Fallback 2: jika masih < 3, buka semua tanpa filter
-    if len(kandidat_valid) < 3:
-        kandidat_valid = dua_puluh_kandidat_teratas.copy()
- 
-    # Bangun daftar kandidat dari hasil filter
+
     daftar_kandidat = ""
-    for urutan, item in enumerate(kandidat_valid):
+
+    for urutan, item in enumerate(dua_puluh_kandidat_teratas):
+
         baris_data = df.iloc[item['idx']]
+
         daftar_kandidat += (
             f"[OPSI {urutan+1}] "
             f"Kode: {baris_data['kode']} | "
             f"Hierarki: {baris_data['uraian_lengkap'].title()}\n"
         )
- 
+
     perintah_juri = f"""
 Anda adalah Arsiparis Utama Pemerintah Indonesia.
+
 Tugas Anda adalah memilih 3 kandidat klasifikasi arsip
 yang PALING SESUAI secara SUBSTANSI,
 bukan sekadar kemiripan kata.
+
 ==================================================
 PERIHAL SURAT ASLI
 ==================================================
+
 {user_input}
+
 ==================================================
 HASIL ANALISIS SEMANTIK AI
 ==================================================
+
 {inti_dari_llm}
+
 ==================================================
 ATURAN PENTING
 ==================================================
+
 1. Fokus pada MAKNA utama surat.
 2. Jangan tertipu kata pembungkus seperti:
    undangan, rapat, sosialisasi, permohonan.
 3. Jangan memilih hanya karena kata mirip.
 4. Prioritaskan kandidat yang paling spesifik.
 5. Jika ada kode induk dan kode rincian,
-   pilih kode rincian TERDALAM (kuartier).
+   pilih kode rincian terdalam.
 6. Utamakan kesesuaian substansi arsip.
-7. WAJIB: Tempatkan kandidat PALING TEPAT di urutan pertama.
-   Urutan mencerminkan tingkat keyakinan Anda.
+
 ==================================================
 DAFTAR KANDIDAT
 ==================================================
+
 {daftar_kandidat}
+
 ==================================================
 TUGAS
 ==================================================
+
 1. Analisis substansi utama surat.
 2. Eliminasi kandidat jebakan yang hanya mirip kata.
-3. Pilih 3 kandidat terbaik, urutkan dari PALING TEPAT.
+3. Pilih 3 kandidat terbaik.
+
 ==================================================
 FORMAT JAWABAN WAJIB
 ==================================================
+
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
- 
+
     try:
+
         penyelesaian_obrolan = client.chat.completions.create(
-            messages=[{"role": "user", "content": perintah_juri}],
+            messages=[
+                {
+                    "role": "user",
+                    "content": perintah_juri
+                }
+            ],
             model="llama-3.3-70b-versatile",
             temperature=0.0,
         )
+
         balasan_juri = (
-            penyelesaian_obrolan.choices[0].message.content.strip()
+            penyelesaian_obrolan
+            .choices[0]
+            .message
+            .content
+            .strip()
         )
- 
+
         angka_pilihan = []
- 
-        # Tangkap HANYA dari baris HASIL AKHIR (aman dari angka acak di teks reasoning)
-        for baris in balasan_juri.split('\n'):
-            if 'HASIL AKHIR' in baris.upper():
-                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
-                if not angka_mentah:
-                    angka_mentah = re.findall(r'\d+', baris)
-                for angka in angka_mentah:
-                    nomor = int(angka)
-                    if 1 <= nomor <= len(kandidat_valid) and nomor not in angka_pilihan:
-                        angka_pilihan.append(nomor)
-                    if len(angka_pilihan) == 3:
-                        break
-                break
- 
-        # Fallback: jika Llama tidak tulis HASIL AKHIR, ambil angka valid dari seluruh respons
-        if not angka_pilihan:
-            for angka in re.findall(r'\d+', balasan_juri):
-                nomor = int(angka)
-                if 1 <= nomor <= len(kandidat_valid) and nomor not in angka_pilihan:
+
+        semua_angka = re.findall(r'\d+', balasan_juri)
+
+        for angka in semua_angka:
+
+            nomor = int(angka)
+
+            if 1 <= nomor <= len(dua_puluh_kandidat_teratas):
+
+                if nomor not in angka_pilihan:
                     angka_pilihan.append(nomor)
-                if len(angka_pilihan) == 3:
-                    break
- 
+
         hasil_akhir = []
+
         for nomor in angka_pilihan[:top_n]:
+
             indeks_kandidat = nomor - 1
-            if 0 <= indeks_kandidat < len(kandidat_valid):
+
+            if 0 <= indeks_kandidat < len(dua_puluh_kandidat_teratas):
+
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+
                 hasil_akhir.append(
-                    (kandidat_valid[indeks_kandidat]['idx'], skor_simulasi)
+                    (
+                        dua_puluh_kandidat_teratas[indeks_kandidat]['idx'],
+                        skor_simulasi
+                    )
                 )
- 
+
         if hasil_akhir:
             return hasil_akhir, inti_dari_llm
- 
+
     except Exception as e:
+
         st.error(f"🚨 KESALAHAN JURI AI: {e}")
- 
+
     return [], inti_dari_llm
 
     
