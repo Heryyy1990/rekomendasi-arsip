@@ -701,7 +701,7 @@ def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
     teks_user_terjemahan = terjemahkan_singkatan(teks_user) 
     
     # SIAPKAN DUA OTAK BERBEDA (Gunakan teks yang SUDAH DITERJEMAHKAN)
-    prompt_qwen = _bangun_prompt_qwen(teks_user_terjemahan)
+    # prompt_qwen = _bangun_prompt_qwen(teks_user_terjemahan)
     prompt_llama = _bangun_prompt_llama(teks_user_terjemahan)
  
     # === LAPIS 1: Qwen3 32B ===
