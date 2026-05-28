@@ -1660,86 +1660,244 @@ def smart_classify(user_input, df, top_n=3):
         return hasil_fast, inti_dari_llm
  
     # =========================================================
-    # 4. JURI AI 
+    # 4. JURI AI (SEMANTIC ARCHIVAL JUDGE)
     # =========================================================
-    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
 
+    # =========================================================
+    # BATASI KANDIDAT
+    # Jangan terlalu banyak agar reasoning mendalam
+    # =========================================================
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:7]
+
+    # =========================================================
+    # BANGUN DAFTAR KANDIDAT
+    # =========================================================
     daftar_kandidat = ""
+
     for urutan, item in enumerate(kandidat_untuk_juri):
         baris_data = df.iloc[item['idx']]
-        daftar_kandidat += (
-            f"[OPSI {urutan+1}] Kode: {baris_data['kode']} | "
-            f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
-        )
+        daftar_kandidat += f"""
+[OPSI {urutan + 1}]
+Kode:
+{baris_data['kode']}
 
-    perintah_juri = f"""Anda adalah Arsiparis Senior.
-Tugas: Pilih 3 nomor urut OPSI yang paling tepat untuk urusan berikut.
+Uraian Utama:
+{baris_data['uraian']}
 
-URUSAN SURAT: "{inti_dari_llm}"
+Hierarki Lengkap:
+{baris_data['uraian_lengkap']}
 
-DAFTAR KANDIDAT:
+Konteks Natural:
+{baris_data['uraian_natural']}
+
+"""
+
+    # =========================================================
+    # PROMPT JURI SEMANTIK
+    # =========================================================
+    perintah_juri = f"""
+Anda adalah Arsiparis Senior Pemerintahan dan Ahli Klasifikasi Arsip.
+
+Tugas Anda adalah menentukan kode klasifikasi arsip
+yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat.
+
+=========================================================
+PRINSIP UTAMA
+=========================================================
+
+- Jangan hanya mencocokkan kata.
+- Pahami MAKSUD dan konteks administratif surat.
+- Tentukan:
+  surat ini SEBENARNYA tentang apa.
+
+Bedakan antara:
+- kegiatan utama
+- dan aktivitas administratif pendukung.
+
+Contoh:
+- "permohonan honor diklat"
+  substansi utamanya bisa jadi DIKLAT,
+  bukan pembayaran honor.
+
+- "laporan perjalanan dinas diklat"
+  substansi utamanya bisa jadi DIKLAT,
+  bukan perjalanan dinas.
+
+=========================================================
+ATURAN KEARSIPAN
+=========================================================
+
+Dalam klasifikasi arsip:
+
+- kode yang lebih spesifik
+  (kuartier / tersier)
+  HARUS diprioritaskan
+
+JIKA DAN HANYA JIKA:
+
+- substansi surat benar-benar sesuai,
+- domain kegiatan benar-benar cocok,
+- dan kode tersebut benar-benar menjelaskan inti surat.
+
+Jangan memilih kode yang lebih spesifik
+jika hanya cocok sebagian kata
+atau hanya cocok konteks kecil.
+
+Jika kode kuartier tidak benar-benar tepat,
+boleh fallback ke tersier.
+
+Jika tersier juga tidak tepat,
+boleh fallback ke sekunder.
+
+=========================================================
+UJI SUBSTANTIF
+=========================================================
+
+Untuk setiap kandidat, lakukan analisis:
+
+1. Apa substansi utama kandidat ini?
+2. Apakah sesuai dengan substansi surat?
+3. Apakah kandidat ini terlalu umum?
+4. Apakah kandidat ini terlalu spesifik?
+5. Apakah hanya cocok sebagian kecil konteks?
+6. Apakah parent atau child lebih substantif?
+
+=========================================================
+SURAT YANG DIANALISIS
+=========================================================
+
+SURAT ASLI:
+"{user_input}"
+
+HASIL ANALISIS INTI:
+"{inti_dari_llm}"
+
+=========================================================
+DAFTAR KANDIDAT
+=========================================================
+
 {daftar_kandidat}
 
-LANGKAH BERPIKIR (Wajib diisi):
-- Domain urusan: [isi]
-- Kode Anak terdalam yang relevan: [isi]
-- Alasan menolak kode induk: [isi]
+=========================================================
+TUGAS ANALISIS
+=========================================================
 
-ATURAN MUTLAK:
-1. DILARANG KERAS memilih kode induk jika ada kode anaknya yang relevan (Kuartier/Tersier diutamakan).
-2. Tuliskan NOMOR URUT OPSINYA saja (1-20), bukan kode klasifikasinya!
-3. Tulis hasil akhir PERSIS seperti format ini:
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
+Analisis SETIAP kandidat secara mendalam.
 
+Untuk setiap kandidat:
+- jelaskan substansinya,
+- jelaskan kecocokannya,
+- jelaskan kekurangannya,
+- jelaskan apakah terlalu umum atau terlalu spesifik.
+
+Lalu tentukan:
+
+1. kandidat paling tepat,
+2. kandidat alternatif,
+3. kandidat fallback jika kode spesifik tidak substantif.
+
+=========================================================
+FORMAT AKHIR WAJIB
+=========================================================
+
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
+"""
+
+    # =========================================================
+    # PANGGIL MODEL JURI
+    # =========================================================
     try:
         penyelesaian_obrolan = client.chat.completions.create(
-            messages=[{"role": "user", "content": perintah_juri}],
+            messages=[
+                {
+                    "role": "user",
+                    "content": perintah_juri
+                }
+            ],
             model="llama-3.3-70b-versatile",
-            temperature=0.0,
+            temperature=0.2,
         )
-        balasan_juri = penyelesaian_obrolan.choices[0].message.content.strip()
 
-        # Penangkap Angka Anti-Meleset
+        balasan_juri = (
+            penyelesaian_obrolan
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+        # =====================================================
+        # PENANGKAP OPSI
+        # =====================================================
         angka_pilihan = []
+
         for baris in balasan_juri.split('\n'):
             if 'HASIL AKHIR' in baris.upper():
-                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
+                angka_mentah = re.findall(
+                    r'OPSI\s*(\d+)',
+                    baris.upper()
+                )
+
                 if not angka_mentah:
-                    angka_mentah = re.findall(r'\d+', baris)
-                    
+                    angka_mentah = re.findall(
+                        r'\d+',
+                        baris
+                    )
+
                 for angka in angka_mentah:
                     angka_bulat = int(angka)
-                    if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
+                    if (
+                        1 <= angka_bulat <= len(kandidat_untuk_juri)
+                        and angka_bulat not in angka_pilihan
+                    ):
                         angka_pilihan.append(angka_bulat)
+
                     if len(angka_pilihan) == 3:
                         break
                 break
 
-        # Fallback jika baris HASIL AKHIR gaib
+        # =====================================================
+        # FALLBACK JIKA FORMAT GAGAL
+        # =====================================================
         if not angka_pilihan:
             for angka in re.findall(r'\d+', balasan_juri):
                 angka_bulat = int(angka)
-                if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
+                if (
+                    1 <= angka_bulat <= len(kandidat_untuk_juri)
+                    and angka_bulat not in angka_pilihan
+                ):
                     angka_pilihan.append(angka_bulat)
+
                 if len(angka_pilihan) == 3:
                     break
 
+        # =====================================================
+        # SUSUN HASIL AKHIR
+        # =====================================================
         hasil_akhir = []
+
         for nomor in angka_pilihan:
             indeks_kandidat = nomor - 1
             if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
                 skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
                 hasil_akhir.append(
-                    (kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi)
+                    (
+                        kandidat_untuk_juri[indeks_kandidat]['idx'],
+                        skor_simulasi
+                    )
                 )
 
         if hasil_akhir:
             return hasil_akhir, inti_dari_llm
 
     except Exception as e:
-        st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
+        st.error(
+            f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}"
+        )
 
-    # Fallback murni jika Juri error total
+    # =========================================================
+    # FALLBACK JIKA JURI GAGAL TOTAL
+    # =========================================================
     return [
         (item['idx'], item['skor'])
         for item in kandidat_untuk_juri[:top_n]
