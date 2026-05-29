@@ -1448,8 +1448,8 @@ def smart_classify(user_input, df, top_n=3):
                         uraian_nat = str(row.get('uraian_natural', '')).replace('nan', '')
                         daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\nKonteks Natural: {uraian_nat}\n\n"
                         
-                    # === PROMPT JURI LLAMA (VERSI MATA TERBUKA) ===
-                    prompt_llama = f"""Anda adalah tahap final SIKAP.
+                    # === PROMPT JURI LLAMA (VERSI ANTI-JEBAKAN LEKSIKAL) ===
+                    prompt_llama = f"""Anda adalah Juri Final SIKAP (Sistem Informasi Klasifikasi Arsip Pintar) wilayah pemerintahan daerah Indonesia.
 Surat ini masuk ke domain sekunder: {kode_kandidat}.
 Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut.
 
@@ -1459,12 +1459,13 @@ INTI SURAT: "{inti_dari_llm}"
 SUB-DATASET:
 {daftar_kandidat}
 
-ATURAN WAJIB:
-1. BACA "Konteks Natural" pada setiap opsi. Jika kata kunci, esensi, atau singkatan dari Surat Asli cocok dengan Konteks Natural tersebut, MAKA OPSI ITU WAJIB JADI PRIORITAS UTAMA (Peringkat 1).
-2. Jika tidak ada di Konteks Natural, gunakan logika Anda sebagai arsiparis untuk mencocokkan makna surat dengan Uraian.
-3. Selalu prioritaskan kode yang paling spesifik/dalam (Kuartier/Tersier).
+ATURAN KETAT (DILARANG MELANGGAR):
+1. AWAS JEBAKAN KATA FASE: Surat sering mengandung kata fase/kegiatan seperti "Rancangan Awal", "Rancangan Akhir", "Penyampaian", "Revisi", "Laporan". JANGAN memilih opsi klasifikasi HANYA karena kata-kata fase ini kebetulan mirip!
+2. FOKUS OBJEK UTAMA: Cari tahu apa Objek/Program utamanya. Gunakan pengetahuan birokrasi Anda (Contoh: "Renja" adalah Rencana Kerja Tahunan, "RKA" adalah Rencana Kerja Anggaran).
+3. PRIORITAS KONTEKS NATURAL: Jika Objek Utama surat (misal: Renja) ada tertulis di dalam "Konteks Natural" pada salah satu opsi, MAKA OPSI ITU WAJIB JADI PERINGKAT 1.
+4. LOGIKA ARSIPARIS: Jika harus memilih antara opsi yang "kata fasenya mirip" dengan opsi yang "objek utamanya benar", WAJIB pilih yang objek utamanya benar.
 
-Keluarkan hasil akhir dengan format persis seperti ini:
+Keluarkan HANYA hasil akhir dengan format persis seperti ini:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
