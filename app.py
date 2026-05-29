@@ -553,21 +553,23 @@ def get_daftar_sekunder(df):
 
 def _bangun_prompt_qwen_tahap1(teks_user: str, daftar_sekunder: str) -> str:
     return f"""Anda adalah Sistem Informasi Klasifikasi Arsip Pintar (SIKAP).
-Tugas Anda adalah mengekstrak makna inti surat dan menentukan SATU Kode Sekunder yang paling tepat berdasarkan dataset yang diberikan.
+Tugas Anda adalah membedah struktur semantik surat dan menentukan SATU Kode Sekunder yang paling tepat.
 
 DATA INPUT:
 Uraian Surat: "{teks_user}"
 
-DAFTAR KODE PRIMER & SEKUNDER:
+DAFTAR KODE SEKUNDER:
 {daftar_sekunder}
 
 ATURAN KETAT:
-1. Output HANYA dalam format JSON valid.
-2. Jangan berikan sapaan, catatan, atau penjelasan apa pun.
-3. Format JSON yang wajib:
+1. Pisahkan mana yang merupakan OBJEK SUBSTANTIF (contoh: Renja, RKA, APBD, SPPD) dan mana yang hanya FASE ADMINISTRATIF (contoh: penyampaian, rancangan awal, laporan, undangan).
+2. Output HANYA dalam format JSON valid tanpa basa-basi.
+
+Format JSON yang wajib:
 {{
-    "inti": "<inti surat maksimal 8 kata, hilangkan nama orang/jabatan/tempat/daerah>",
-    "kode_sekunder": "<pilih SATU kode angka dari daftar di atas, misal: 500.1>"
+    "objek_utama": "<Tulis entitas substantif utamanya, misal: RENJA>",
+    "fase_administratif": "<Tulis kata kerja/status dokumen, misal: penyampaian rancangan akhir>",
+    "kode_sekunder": "<pilih SATU kode angka dari daftar di atas, misal: 000.7>"
 }}
 """
 
@@ -1441,31 +1443,41 @@ def smart_classify(user_input, df, top_n=3):
                     df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
                     df_subset = df_subset.reset_index(drop=False)
                     
-                    # === MENYUSUN KANDIDAT DENGAN CONTEKAN URAIAN NATURAL ===
+                    # === PENYUSUNAN KANDIDAT YANG DIMAMPATKAN (COMPRESSION) ===
                     daftar_kandidat = ""
                     for urutan, row in df_subset.iterrows():
-                        # Ambil uraian natural, jika nan/kosong ubah jadi string kosong
-                        uraian_nat = str(row.get('uraian_natural', '')).replace('nan', '')
-                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\nKonteks Natural: {uraian_nat}\n\n"
+                        # Kita buang uraian_natural panjang agar tidak jadi Lexical Trap
+                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nKategori/Uraian: {row['uraian_lengkap']}\n\n"
                         
-                    # === PROMPT JURI LLAMA (VERSI ANTI-JEBAKAN LEKSIKAL) ===
-                    prompt_llama = f"""Anda adalah Juri Final SIKAP (Sistem Informasi Klasifikasi Arsip Pintar) wilayah pemerintahan daerah Indonesia.
-Surat ini masuk ke domain sekunder: {kode_kandidat}.
-Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut.
+                    # Tangkap hasil bedah dari Qwen
+                    objek_utama = data_t1.get("objek_utama", teks_diterjemahkan)
+                    fase_admin = data_t1.get("fase_administratif", "")
 
-SURAT ASLI: "{user_input}"
-INTI SURAT: "{inti_dari_llm}"
+                    # === PROMPT LLAMA (FORCED COMPARATIVE REASONING) ===
+                    prompt_llama = f"""Anda adalah Arsiparis Ahli Pemerintah.
+Tugas Anda BUKAN mencari kemiripan kata (lexical matching). Tugas Anda adalah mencocokkan SUBSTANSI UTAMA dokumen dengan klasifikasi arsip.
 
-SUB-DATASET:
+==================================================
+STRUKTUR SURAT
+OBJEK UTAMA: {objek_utama}
+FASE ADMINISTRATIF: {fase_admin}
+==================================================
+
+KANDIDAT KODE:
 {daftar_kandidat}
 
-ATURAN KETAT (DILARANG MELANGGAR):
-1. AWAS JEBAKAN KATA FASE: Surat sering mengandung kata fase/kegiatan seperti "Rancangan Awal", "Rancangan Akhir", "Penyampaian", "Revisi", "Laporan". JANGAN memilih opsi klasifikasi HANYA karena kata-kata fase ini kebetulan mirip!
-2. FOKUS OBJEK UTAMA: Cari tahu apa Objek/Program utamanya. Gunakan pengetahuan birokrasi Anda (Contoh: "Renja" adalah Rencana Kerja Tahunan, "RKA" adalah Rencana Kerja Anggaran).
-3. PRIORITAS KONTEKS NATURAL: Jika Objek Utama surat (misal: Renja) ada tertulis di dalam "Konteks Natural" pada salah satu opsi, MAKA OPSI ITU WAJIB JADI PERINGKAT 1.
-4. LOGIKA ARSIPARIS: Jika harus memilih antara opsi yang "kata fasenya mirip" dengan opsi yang "objek utamanya benar", WAJIB pilih yang objek utamanya benar.
+==================================================
+ATURAN PENILAIAN WAJIB (DIBACA HATI-HATI):
+1. Kecocokan "FASE ADMINISTRATIF" (seperti rancangan akhir, laporan, penyampaian) TIDAK BOLEH mengalahkan kecocokan "OBJEK UTAMA" (seperti Renja, RKA, SPPD).
+2. Gunakan pengetahuan Anda tentang birokrasi Indonesia. Jika Objek Utama adalah "Renja", Anda harus tahu bahwa itu adalah Rencana Pembangunan Tahunan.
 
-Keluarkan HANYA hasil akhir dengan format persis seperti ini:
+LANGKAH BERPIKIR (CHAIN OF THOUGHT):
+Untuk SETIAP opsi, lakukan analisis:
+- Objek Utama Opsi: [Tebak objek utamanya]
+- Kecocokan: [TOLAK / TERIMA - Jelaskan apakah objek utama surat cocok dengan opsi ini, atau opsi ini hanya kebetulan mirip kata fase administratifnya]
+
+FORMAT OUTPUT AKHIR:
+Setelah menganalisis semua opsi, berikan 3 pilihan terbaik Anda di baris paling bawah dengan format persis seperti ini:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
