@@ -605,7 +605,7 @@ def _panggil_juri_llama_tahap3(prompt: str) -> str | None:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1,
-            max_completion_tokens=256,
+            max_completion_tokens=2048,
         )
         return chat.choices[0].message.content.strip()
     except Exception as e:
