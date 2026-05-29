@@ -631,7 +631,7 @@ def _panggil_juri_llama_tahap3(prompt: str, max_retries: int = 3) -> str | None:
 # =========================================================
 # OTAK UTAMA: HYBRID SMART CLASSIFY (ANTI SILENT-ERROR)
 # =========================================================
-@st.cache_data(show_spinner=False, ttl=3600)
+# @st.cache_data(show_spinner=False, ttl=3600)
 def smart_classify(user_input, df, top_n=3):
     st.session_state['model_aktif'] = 'Hybrid Qwen-Llama'
     
