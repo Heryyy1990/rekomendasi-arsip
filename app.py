@@ -584,7 +584,7 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                 ],
                 temperature=0.4,
                 top_p=0.95,
-                max_completion_tokens=500,
+                max_completion_tokens=2048,
             )
             return chat.choices[0].message.content.strip()
         except Exception as e:
