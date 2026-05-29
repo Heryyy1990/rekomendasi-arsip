@@ -633,6 +633,7 @@ def _panggil_juri_llama_tahap3(prompt: str, max_retries: int = 3) -> str | None:
 # =========================================================
 # @st.cache_data(show_spinner=False, ttl=3600)
 def smart_classify(user_input, df, top_n=3):
+    st.error("🚨 HALO! SISTEM BERHASIL MASUK KE FUNGSI SMART CLASSIFY!")
     st.session_state['model_aktif'] = 'Hybrid Qwen-Llama'
     
     # 0. JURUS AUTO-TRANSLATE
