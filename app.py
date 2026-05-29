@@ -1441,10 +1441,14 @@ def smart_classify(user_input, df, top_n=3):
                     df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
                     df_subset = df_subset.reset_index(drop=False)
                     
+                    # === MENYUSUN KANDIDAT DENGAN CONTEKAN URAIAN NATURAL ===
                     daftar_kandidat = ""
                     for urutan, row in df_subset.iterrows():
-                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\n\n"
+                        # Ambil uraian natural, jika nan/kosong ubah jadi string kosong
+                        uraian_nat = str(row.get('uraian_natural', '')).replace('nan', '')
+                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\nKonteks Natural: {uraian_nat}\n\n"
                         
+                    # === PROMPT JURI LLAMA (VERSI MATA TERBUKA) ===
                     prompt_llama = f"""Anda adalah tahap final SIKAP.
 Surat ini masuk ke domain sekunder: {kode_kandidat}.
 Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut.
@@ -1454,6 +1458,11 @@ INTI SURAT: "{inti_dari_llm}"
 
 SUB-DATASET:
 {daftar_kandidat}
+
+ATURAN WAJIB:
+1. BACA "Konteks Natural" pada setiap opsi. Jika kata kunci, esensi, atau singkatan dari Surat Asli cocok dengan Konteks Natural tersebut, MAKA OPSI ITU WAJIB JADI PRIORITAS UTAMA (Peringkat 1).
+2. Jika tidak ada di Konteks Natural, gunakan logika Anda sebagai arsiparis untuk mencocokkan makna surat dengan Uraian.
+3. Selalu prioritaskan kode yang paling spesifik/dalam (Kuartier/Tersier).
 
 Keluarkan hasil akhir dengan format persis seperti ini:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
