@@ -574,7 +574,7 @@ Format JSON yang wajib:
 """
 
 # =========================================================
-# PANGGIL QWEN (DENGAN NAFAS PANJANG 2048 TOKEN & ALARM ERROR)
+# PANGGIL QWEN (DENGAN AUTO-RETRY & RADAR ERROR)
 # =========================================================
 def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
     for percobaan in range(max_retries):
@@ -587,7 +587,7 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                 ],
                 temperature=0.3,
                 top_p=0.95,
-                max_completion_tokens=2048,
+                max_completion_tokens=1024,
             )
             return chat.choices[0].message.content.strip()
         except Exception as e:
@@ -597,39 +597,49 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                     time.sleep((2 ** percobaan) * 2)
                     continue
             import streamlit as st
-            st.toast(f"⚠️ Qwen API Error: {e}", icon="🚨")
+            st.error(f"🚨 API QWEN GAGAL: {e}")
             break
     return None
 
-def _panggil_juri_llama_tahap3(prompt: str) -> str | None:
-    try:
-        chat = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil akhir sesuai instruksi."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1,
-            max_completion_tokens=2048,
-        )
-        return chat.choices[0].message.content.strip()
-    except Exception as e:
-        import streamlit as st
-        st.toast(f"⚠️ Llama API Error: {e}", icon="🚨")
-        return None
+# =========================================================
+# PANGGIL LLAMA (DENGAN AUTO-RETRY & RADAR ERROR)
+# =========================================================
+def _panggil_juri_llama_tahap3(prompt: str, max_retries: int = 3) -> str | None:
+    for percobaan in range(max_retries):
+        try:
+            chat = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil akhir sesuai instruksi."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_completion_tokens=1024,
+            )
+            return chat.choices[0].message.content.strip()
+        except Exception as e:
+            pesan = str(e).lower()
+            if any(k in pesan for k in ["429", "503", "rate", "quota", "overloaded"]):
+                if percobaan < max_retries - 1:
+                    time.sleep((2 ** percobaan) * 2)
+                    continue
+            import streamlit as st
+            st.error(f"🚨 API LLAMA GAGAL: {e}")
+            break
+    return None
 
 # =========================================================
-# OTAK UTAMA: HYBRID SMART CLASSIFY (ANTI LEXICAL TRAP)
+# OTAK UTAMA: HYBRID SMART CLASSIFY (ANTI SILENT-ERROR)
 # =========================================================
 @st.cache_data(show_spinner=False, ttl=3600)
 def smart_classify(user_input, df, top_n=3):
     st.session_state['model_aktif'] = 'Hybrid Qwen-Llama'
     
-    # 0. JURUS AUTO-TRANSLATE (Menerjemahkan singkatan seperti Renja, RKA, dll)
+    # 0. JURUS AUTO-TRANSLATE
     teks_diterjemahkan = terjemahkan_singkatan(user_input).title()
     input_bersih = preprocess_text(teks_diterjemahkan)
     
-    # Inisialisasi variabel awal agar aman
+    # Variabel aman anti-korsleting
     inti_dari_llm = teks_diterjemahkan
     objek_utama = teks_diterjemahkan
     fase_admin = ""
@@ -637,10 +647,9 @@ def smart_classify(user_input, df, top_n=3):
     pipeline_berhasil = False
     hasil_akhir = []
 
-    # --- TAHAP 1: QWEN MEMBEDAH MAKNA & MENCARI KODE SEKUNDER ---
+    # --- TAHAP 1: QWEN MEMBEDAH MAKNA ---
     try:
         daftar_sekunder = get_daftar_sekunder(df)
-        
         prompt_t1 = f"""Anda adalah Sistem Informasi Klasifikasi Arsip Pintar (SIKAP).
 Tugas Anda adalah membedah struktur semantik surat dan menentukan SATU Kode Sekunder yang paling tepat.
 
@@ -649,8 +658,8 @@ DAFTAR KODE SEKUNDER:
 {daftar_sekunder}
 
 ATURAN KETAT:
-1. Pisahkan mana yang merupakan OBJEK SUBSTANTIF (contoh: Rencana Pembangunan Tahunan, Anggaran, Perjalanan Dinas) dan mana yang hanya FASE ADMINISTRATIF (contoh: penyampaian, rancangan akhir, laporan).
-2. Output HANYA dalam format JSON valid.
+1. Pisahkan mana yang merupakan OBJEK SUBSTANTIF dan mana FASE ADMINISTRATIF.
+2. Output HANYA format JSON valid.
 
 Format JSON yang wajib:
 {{
@@ -668,11 +677,11 @@ Format JSON yang wajib:
                 objek_utama = str(data_t1.get("objek_utama", teks_diterjemahkan)).strip()
                 fase_admin = str(data_t1.get("fase_administratif", "")).strip()
             else:
-                st.toast("⚠️ Qwen gagal memberikan format JSON yang valid.", icon="❌")
+                st.error(f"🚨 JSON Qwen Rusak!\nOutput Asli:\n{raw_qwen}")
         else:
-            st.toast("⚠️ Qwen tidak merespons (Kosong).", icon="❌")
+            st.error("🚨 Qwen mengembalikan jawaban kosong (None).")
     except Exception as e:
-        print(f"TAHAP 1 (Qwen) Error Kritis: {e}")
+        st.error(f"🚨 TAHAP 1 (Qwen) Error Sistem: {e}")
 
     # --- TAHAP 1.5: FEEDBACK LOOP (Ingatan AI) ---
     THRESHOLD_FEEDBACK = 90 
@@ -688,14 +697,12 @@ Format JSON yang wajib:
                     teks_cocok         = best_match[0]
                     kode_hasil_belajar = (df_feedback[df_feedback['inti_ekstraksi'] == teks_cocok].iloc[-1]['kode_terpilih'])
                     idx_belajar = df[df['kode'] == kode_hasil_belajar].index
-
                     if not idx_belajar.empty:
                         st.caption(f"🧠 SIKAP Mengingat! ({best_match[1]}% cocok dengan riwayat koreksi)")
                         vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
                         semua_dok_fb     = df['clean_uraian'].tolist() + [input_bersih]
                         matriks_fb       = vectorizer_fb.fit_transform(semua_dok_fb)
                         skor_fb          = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
-
                         kandidat_fb = sorted([{'idx': i, 'skor': s} for i, s in enumerate(skor_fb) if i != idx_belajar[0]], key=lambda x: x['skor'], reverse=True)
                         hasil_gabungan = [(idx_belajar[0], 0.999)]
                         for item in kandidat_fb:
@@ -706,7 +713,7 @@ Format JSON yang wajib:
         except Exception as e:
             pass
 
-    # --- TAHAP 2 & 3: PANDAS FILTER -> JURI LLAMA (CHAIN OF THOUGHT) ---
+    # --- TAHAP 2 & 3: PANDAS FILTER -> JURI LLAMA ---
     if kode_sekunder:
         try:
             pola = re.search(r'\b(\d{3}(?:\.\d{1,2})?)\b', kode_sekunder)
@@ -716,35 +723,30 @@ Format JSON yang wajib:
                     df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
                     df_subset = df_subset.reset_index(drop=False)
                     
-                    # Susun Kandidat (Tanpa Uraian Natural agar tidak ada Lexical Trap)
                     daftar_kandidat = ""
                     for urutan, row in df_subset.iterrows():
                         daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nKategori/Uraian: {row['uraian_lengkap']}\n\n"
                         
                     prompt_llama = f"""Anda adalah Arsiparis Ahli Pemerintah.
-Tugas Anda BUKAN mencari kemiripan kata (lexical matching). Tugas Anda adalah mencocokkan SUBSTANSI UTAMA dokumen dengan klasifikasi arsip.
+Tugas Anda BUKAN mencari kemiripan kata. Tugas Anda mencocokkan SUBSTANSI UTAMA dokumen dengan klasifikasi.
 
-==================================================
 STRUKTUR SURAT
 OBJEK UTAMA: {objek_utama}
 FASE ADMINISTRATIF: {fase_admin}
-==================================================
 
 KANDIDAT KODE:
 {daftar_kandidat}
 
-==================================================
-ATURAN PENILAIAN WAJIB (DIBACA HATI-HATI):
-1. Kecocokan "FASE ADMINISTRATIF" (seperti rancangan akhir, laporan, penyampaian) TIDAK BOLEH mengalahkan kecocokan "OBJEK UTAMA".
-2. Gunakan pengetahuan birokrasi Anda untuk memahami Objek Utama.
+ATURAN PENILAIAN WAJIB:
+1. Kecocokan "FASE ADMINISTRATIF" TIDAK BOLEH mengalahkan "OBJEK UTAMA".
+2. Gunakan pengetahuan birokrasi Anda untuk Objek Utama.
 
-LANGKAH BERPIKIR (CHAIN OF THOUGHT):
-Untuk SETIAP opsi di atas, lakukan analisis singkat:
-- Objek Utama Opsi: [Tebak objek utamanya]
-- Kecocokan: [TOLAK / TERIMA - Jelaskan apakah objek utama surat cocok dengan opsi ini, atau opsi ini hanya kebetulan mirip kata fase administratifnya]
+LANGKAH BERPIKIR (SANGAT PENTING):
+Pilih MAKSIMAL 3 HINGGA 5 OPSI SAJA dari daftar di atas yang paling mendekati Objek Utama. Lakukan analisis HANYA untuk opsi yang Anda pilih:
+- Opsi [X]: [Tebak objek utamanya] -> [TOLAK / TERIMA]
 
 FORMAT OUTPUT AKHIR:
-Setelah menganalisis semua opsi, berikan 3 pilihan terbaik Anda di baris paling bawah dengan format persis seperti ini:
+Setelah menganalisis, WAJIB berikan 3 pilihan terbaik di baris paling bawah dengan format persis seperti ini:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
@@ -763,7 +765,6 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
                                     if len(angka_pilihan) == 3: break
                                 break
                         
-                        # Fallback Parser
                         if not angka_pilihan:
                             for angka in re.findall(r'\d+', balasan_juri):
                                 angka_bulat = int(angka)
@@ -782,10 +783,12 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
                             if len(hasil_akhir) > 0:
                                 pipeline_berhasil = True
                                 return hasil_akhir, inti_dari_llm
+                        else:
+                            st.error(f"🚨 Llama gagal diparsing!\nBalasan Asli:\n{balasan_juri}")
                     else:
-                        st.toast("⚠️ Llama gagal memberikan respons (Kosong).", icon="❌")
+                        st.error("🚨 Llama mengembalikan jawaban kosong (None).")
         except Exception as e:
-            print(f"TAHAP 2/3 (Llama) Error Kritis: {e}")
+            st.error(f"🚨 TAHAP 2/3 Error Sistem: {e}")
 
     # --- TAHAP 4: FALLBACK TF-IDF (HANYA JIKA PIPELINE GAGAL) ---
     if not pipeline_berhasil:
