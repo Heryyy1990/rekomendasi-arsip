@@ -1443,8 +1443,7 @@ def smart_classify(user_input, df, top_n=3):
                     
                     daftar_kandidat = ""
                     for urutan, row in df_subset.iterrows():
-                        uraian_nat = str(row.get('uraian_natural', ''))
-                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\nKonteks Natural: {uraian_nat}\n\n"
+                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\n\n"
                         
                     prompt_llama = f"""Anda adalah tahap final SIKAP.
 Surat ini masuk ke domain sekunder: {kode_kandidat}.
@@ -1456,14 +1455,9 @@ INTI SURAT: "{inti_dari_llm}"
 SUB-DATASET:
 {daftar_kandidat}
 
-ATURAN WAJIB:
-1. Cocokkan kata kunci pada surat dengan "Konteks Natural" di setiap opsi. Jika ada singkatan atau jargon (misal: Renja, RKA, SPPD) yang cocok dengan Konteks Natural, JADIKAN ITU PRIORITAS UTAMA (Peringkat 1).
-2. Pilih kode yang paling spesifik (Kuartier).
-
 Keluarkan hasil akhir dengan format persis seperti ini:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
-
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
                     
                     if balasan_juri:
