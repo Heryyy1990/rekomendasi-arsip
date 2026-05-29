@@ -553,29 +553,24 @@ def get_daftar_sekunder(df):
 
 def _bangun_prompt_qwen_tahap1(teks_user: str, daftar_sekunder: str) -> str:
     return f"""Anda adalah Sistem Informasi Klasifikasi Arsip Pintar (SIKAP).
-Tugas Anda adalah membedah struktur semantik surat dan menentukan SATU Kode Sekunder yang paling tepat.
+Tugas Anda adalah mengekstrak makna inti surat dan menentukan SATU Kode Sekunder yang paling tepat berdasarkan dataset yang diberikan.
 
 DATA INPUT:
 Uraian Surat: "{teks_user}"
 
-DAFTAR KODE SEKUNDER:
+DAFTAR KODE PRIMER & SEKUNDER:
 {daftar_sekunder}
 
 ATURAN KETAT:
-1. Pisahkan mana yang merupakan OBJEK SUBSTANTIF (contoh: Renja, RKA, APBD, SPPD) dan mana yang hanya FASE ADMINISTRATIF (contoh: penyampaian, rancangan awal, laporan, undangan).
-2. Output HANYA dalam format JSON valid tanpa basa-basi.
-
-Format JSON yang wajib:
+1. Output HANYA dalam format JSON valid.
+2. Jangan berikan sapaan, catatan, atau penjelasan apa pun.
+3. Format JSON yang wajib:
 {{
-    "objek_utama": "<Tulis entitas substantif utamanya, misal: RENJA>",
-    "fase_administratif": "<Tulis kata kerja/status dokumen, misal: penyampaian rancangan akhir>",
-    "kode_sekunder": "<pilih SATU kode angka dari daftar di atas, misal: 000.7>"
+    "inti": "<inti surat maksimal 8 kata, hilangkan nama orang/jabatan/tempat/daerah>",
+    "kode_sekunder": "<pilih SATU kode angka dari daftar di atas, misal: 500.1>"
 }}
 """
 
-# =========================================================
-# PANGGIL QWEN (DENGAN AUTO-RETRY & RADAR ERROR)
-# =========================================================
 def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
     for percobaan in range(max_retries):
         try:
@@ -585,9 +580,9 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                     {"role": "system", "content": "Anda adalah asisten AI kearsipan. Jawab dengan murni JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,
+                temperature=0.4,
                 top_p=0.95,
-                max_completion_tokens=1024,
+                max_completion_tokens=500,
             )
             return chat.choices[0].message.content.strip()
         except Exception as e:
@@ -596,237 +591,25 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
                 if percobaan < max_retries - 1:
                     time.sleep((2 ** percobaan) * 2)
                     continue
-            import streamlit as st
-            st.error(f"🚨 API QWEN GAGAL: {e}")
             break
     return None
 
-# =========================================================
-# PANGGIL LLAMA (DENGAN AUTO-RETRY & RADAR ERROR)
-# =========================================================
-def _panggil_juri_llama_tahap3(prompt: str, max_retries: int = 3) -> str | None:
-    for percobaan in range(max_retries):
-        try:
-            chat = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil akhir sesuai instruksi."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,
-                max_completion_tokens=1024,
-            )
-            return chat.choices[0].message.content.strip()
-        except Exception as e:
-            pesan = str(e).lower()
-            if any(k in pesan for k in ["429", "503", "rate", "quota", "overloaded"]):
-                if percobaan < max_retries - 1:
-                    time.sleep((2 ** percobaan) * 2)
-                    continue
-            import streamlit as st
-            st.error(f"🚨 API LLAMA GAGAL: {e}")
-            break
-    return None
-
-# =========================================================
-# OTAK UTAMA: HYBRID SMART CLASSIFY (ANTI SILENT-ERROR)
-# =========================================================
-# @st.cache_data(show_spinner=False, ttl=3600)
-def smart_classify(user_input, df, top_n=3):
-    st.error("🚨 HALO! SISTEM BERHASIL MASUK KE FUNGSI SMART CLASSIFY!")
-    st.session_state['model_aktif'] = 'Hybrid Qwen-Llama'
-    
-    # 0. JURUS AUTO-TRANSLATE
-    teks_diterjemahkan = terjemahkan_singkatan(user_input).title()
-    input_bersih = preprocess_text(teks_diterjemahkan)
-    
-    # Variabel aman anti-korsleting
-    inti_dari_llm = teks_diterjemahkan
-    objek_utama = teks_diterjemahkan
-    fase_admin = ""
-    kode_sekunder = ""
-    pipeline_berhasil = False
-    hasil_akhir = []
-
-    # --- TAHAP 1: QWEN MEMBEDAH MAKNA ---
+def _panggil_juri_llama_tahap3(prompt: str) -> str | None:
     try:
-        daftar_sekunder = get_daftar_sekunder(df)
-        prompt_t1 = f"""Anda adalah Sistem Informasi Klasifikasi Arsip Pintar (SIKAP).
-Tugas Anda adalah membedah struktur semantik surat dan menentukan SATU Kode Sekunder yang paling tepat.
-
-DATA INPUT: "{teks_diterjemahkan}"
-DAFTAR KODE SEKUNDER:
-{daftar_sekunder}
-
-ATURAN KETAT:
-1. Pisahkan mana yang merupakan OBJEK SUBSTANTIF dan mana FASE ADMINISTRATIF.
-2. Output HANYA format JSON valid.
-
-Format JSON yang wajib:
-{{
-    "objek_utama": "<Tulis entitas substantif utamanya>",
-    "fase_administratif": "<Tulis kata kerja/status dokumen>",
-    "kode_sekunder": "<pilih SATU kode angka dari daftar, misal: 000.7>"
-}}"""
-        raw_qwen = _panggil_qwen3(prompt_t1, max_retries=2)
-        
-        if raw_qwen:
-            data_t1 = _parse_json_atribut(raw_qwen)
-            if data_t1:
-                inti_dari_llm = str(data_t1.get("objek_utama", teks_diterjemahkan)).strip().lower()
-                kode_sekunder = str(data_t1.get("kode_sekunder", "")).strip()
-                objek_utama = str(data_t1.get("objek_utama", teks_diterjemahkan)).strip()
-                fase_admin = str(data_t1.get("fase_administratif", "")).strip()
-            else:
-                st.error(f"🚨 JSON Qwen Rusak!\nOutput Asli:\n{raw_qwen}")
-        else:
-            st.error("🚨 Qwen mengembalikan jawaban kosong (None).")
+        chat = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil akhir sesuai instruksi."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_completion_tokens=256,
+        )
+        return chat.choices[0].message.content.strip()
     except Exception as e:
-        st.error(f"🚨 TAHAP 1 (Qwen) Error Sistem: {e}")
-
-    # --- TAHAP 1.5: FEEDBACK LOOP (Ingatan AI) ---
-    THRESHOLD_FEEDBACK = 90 
-    file_feedback = 'feedback_ai.csv'
-    if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
-        try:
-            df_feedback = pd.read_csv(file_feedback, dtype=str)
-            kolom_ok = ('inti_ekstraksi' in df_feedback.columns and 'kode_terpilih' in df_feedback.columns and not df_feedback['inti_ekstraksi'].dropna().empty)
-            if kolom_ok:
-                daftar_inti = df_feedback['inti_ekstraksi'].dropna().tolist()
-                best_match  = process.extractOne(inti_dari_llm, daftar_inti, scorer=fuzz.token_sort_ratio)
-                if best_match and best_match[1] >= THRESHOLD_FEEDBACK:
-                    teks_cocok         = best_match[0]
-                    kode_hasil_belajar = (df_feedback[df_feedback['inti_ekstraksi'] == teks_cocok].iloc[-1]['kode_terpilih'])
-                    idx_belajar = df[df['kode'] == kode_hasil_belajar].index
-                    if not idx_belajar.empty:
-                        st.caption(f"🧠 SIKAP Mengingat! ({best_match[1]}% cocok dengan riwayat koreksi)")
-                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
-                        semua_dok_fb     = df['clean_uraian'].tolist() + [input_bersih]
-                        matriks_fb       = vectorizer_fb.fit_transform(semua_dok_fb)
-                        skor_fb          = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
-                        kandidat_fb = sorted([{'idx': i, 'skor': s} for i, s in enumerate(skor_fb) if i != idx_belajar[0]], key=lambda x: x['skor'], reverse=True)
-                        hasil_gabungan = [(idx_belajar[0], 0.999)]
-                        for item in kandidat_fb:
-                            skor_sim = 0.85 - (len(hasil_gabungan) * 0.14)
-                            hasil_gabungan.append((item['idx'], skor_sim))
-                            if len(hasil_gabungan) == 3: break
-                        return hasil_gabungan, inti_dari_llm
-        except Exception as e:
-            pass
-
-    # --- TAHAP 2 & 3: PANDAS FILTER -> JURI LLAMA ---
-    if kode_sekunder:
-        try:
-            pola = re.search(r'\b(\d{3}(?:\.\d{1,2})?)\b', kode_sekunder)
-            if pola:
-                kode_kandidat = pola.group(1)
-                if any(df['kode'].str.startswith(kode_kandidat)):
-                    df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
-                    df_subset = df_subset.reset_index(drop=False)
-                    
-                    daftar_kandidat = ""
-                    for urutan, row in df_subset.iterrows():
-                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nKategori/Uraian: {row['uraian_lengkap']}\n\n"
-                        
-                    prompt_llama = f"""Anda adalah Arsiparis Ahli Pemerintah.
-Tugas Anda BUKAN mencari kemiripan kata. Tugas Anda mencocokkan SUBSTANSI UTAMA dokumen dengan klasifikasi.
-
-STRUKTUR SURAT
-OBJEK UTAMA: {objek_utama}
-FASE ADMINISTRATIF: {fase_admin}
-
-KANDIDAT KODE:
-{daftar_kandidat}
-
-ATURAN PENILAIAN WAJIB:
-1. Kecocokan "FASE ADMINISTRATIF" TIDAK BOLEH mengalahkan "OBJEK UTAMA".
-2. Gunakan pengetahuan birokrasi Anda untuk Objek Utama.
-
-LANGKAH BERPIKIR (SANGAT PENTING):
-Pilih MAKSIMAL 3 HINGGA 5 OPSI SAJA dari daftar di atas yang paling mendekati Objek Utama. Lakukan analisis HANYA untuk opsi yang Anda pilih:
-- Opsi [X]: [Tebak objek utamanya] -> [TOLAK / TERIMA]
-
-FORMAT OUTPUT AKHIR:
-Setelah menganalisis, WAJIB berikan 3 pilihan terbaik di baris paling bawah dengan format persis seperti ini:
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
-"""
-                    balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
-                    
-                    if balasan_juri:
-                        angka_pilihan = []
-                        for baris in balasan_juri.split('\n'):
-                            if 'HASIL AKHIR' in baris.upper():
-                                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
-                                if not angka_mentah:
-                                    angka_mentah = re.findall(r'\d+', baris)
-                                for angka in angka_mentah:
-                                    angka_bulat = int(angka)
-                                    if 1 <= angka_bulat <= len(df_subset) and angka_bulat not in angka_pilihan:
-                                        angka_pilihan.append(angka_bulat)
-                                    if len(angka_pilihan) == 3: break
-                                break
-                        
-                        if not angka_pilihan:
-                            for angka in re.findall(r'\d+', balasan_juri):
-                                angka_bulat = int(angka)
-                                if 1 <= angka_bulat <= len(df_subset) and angka_bulat not in angka_pilihan:
-                                    angka_pilihan.append(angka_bulat)
-                                if len(angka_pilihan) == 3: break
-                                
-                        if angka_pilihan:
-                            for nomor in angka_pilihan:
-                                indeks_kandidat = nomor - 1
-                                if 0 <= indeks_kandidat < len(df_subset):
-                                    idx_asli = df_subset.iloc[indeks_kandidat]['index']
-                                    skor_sim = 0.99 - (len(hasil_akhir) * 0.14)
-                                    hasil_akhir.append((idx_asli, skor_sim))
-                            
-                            if len(hasil_akhir) > 0:
-                                pipeline_berhasil = True
-                                return hasil_akhir, inti_dari_llm
-                        else:
-                            st.error(f"🚨 Llama gagal diparsing!\nBalasan Asli:\n{balasan_juri}")
-                    else:
-                        st.error("🚨 Llama mengembalikan jawaban kosong (None).")
-        except Exception as e:
-            st.error(f"🚨 TAHAP 2/3 Error Sistem: {e}")
-
-    # --- TAHAP 4: FALLBACK TF-IDF (HANYA JIKA PIPELINE GAGAL) ---
-    if not pipeline_berhasil:
-        st.session_state['model_aktif'] = 'TF-IDF Fallback'
-        st.toast("🔄 SIKAP beralih ke Mode Cadangan (TF-IDF)", icon="🛡️")
-        
-        if inti_dari_llm == teks_diterjemahkan:
-            inti_dari_llm, _ = _fallback_ekstraksi_manual(user_input)
-
-        vectorizer    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
-        semua_dokumen = df['clean_uraian'].tolist() + [input_bersih]
-        matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
-
-        kemiripan_kosinus = cosine_similarity(matriks_tfidf[-1], matriks_tfidf[:-1])[0]
-
-        skor_awal = []
-        for indeks, nilai_skor in enumerate(kemiripan_kosinus):
-            skor_samar = fuzz.token_set_ratio(input_bersih, df.iloc[indeks]['clean_uraian']) / 100
-            skor_dasar = (nilai_skor * 0.90) + (skor_samar * 0.10)
-            skor_awal.append({'idx': indeks, 'skor': skor_dasar})
-
-        dua_puluh_kandidat_teratas = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:20]
-        st.session_state['debug_top20'] = dua_puluh_kandidat_teratas
-
-        skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
-        skor_kedua = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
-        THRESHOLD_BYPASS = 0.80 
-        SELISIH_AMAN = 0.15
-        
-        if skor_tertinggi >= THRESHOLD_BYPASS and (skor_tertinggi - skor_kedua) >= SELISIH_AMAN:
-            hasil_fast = []
-            for item in dua_puluh_kandidat_teratas[:top_n]:
-                skor_sim = 0.99 - (len(hasil_fast) * 0.14)
-                hasil_fast.append((item['idx'], skor_sim))
-            return hasil_fast, inti_dari_llm
-
-        return [(item['idx'], item['skor']) for item in dua_puluh_kandidat_teratas[:top_n]], inti_dari_llm
+        import streamlit as st
+        st.warning(f"Fallback Llama gagal: {e}")
+        return None
 
 
 
@@ -1658,41 +1441,21 @@ def smart_classify(user_input, df, top_n=3):
                     df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
                     df_subset = df_subset.reset_index(drop=False)
                     
-                    # === PENYUSUNAN KANDIDAT YANG DIMAMPATKAN (COMPRESSION) ===
                     daftar_kandidat = ""
                     for urutan, row in df_subset.iterrows():
-                        # Kita buang uraian_natural panjang agar tidak jadi Lexical Trap
-                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nKategori/Uraian: {row['uraian_lengkap']}\n\n"
+                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\n\n"
                         
-                    # Tangkap hasil bedah dari Qwen
-                    objek_utama = data_t1.get("objek_utama", teks_diterjemahkan)
-                    fase_admin = data_t1.get("fase_administratif", "")
+                    prompt_llama = f"""Anda adalah tahap final SIKAP.
+Surat ini masuk ke domain sekunder: {kode_kandidat}.
+Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut.
 
-                    # === PROMPT LLAMA (FORCED COMPARATIVE REASONING) ===
-                    prompt_llama = f"""Anda adalah Arsiparis Ahli Pemerintah.
-Tugas Anda BUKAN mencari kemiripan kata (lexical matching). Tugas Anda adalah mencocokkan SUBSTANSI UTAMA dokumen dengan klasifikasi arsip.
+SURAT ASLI: "{user_input}"
+INTI SURAT: "{inti_dari_llm}"
 
-==================================================
-STRUKTUR SURAT
-OBJEK UTAMA: {objek_utama}
-FASE ADMINISTRATIF: {fase_admin}
-==================================================
-
-KANDIDAT KODE:
+SUB-DATASET:
 {daftar_kandidat}
 
-==================================================
-ATURAN PENILAIAN WAJIB (DIBACA HATI-HATI):
-1. Kecocokan "FASE ADMINISTRATIF" (seperti rancangan akhir, laporan, penyampaian) TIDAK BOLEH mengalahkan kecocokan "OBJEK UTAMA" (seperti Renja, RKA, SPPD).
-2. Gunakan pengetahuan Anda tentang birokrasi Indonesia. Jika Objek Utama adalah "Renja", Anda harus tahu bahwa itu adalah Rencana Pembangunan Tahunan.
-
-LANGKAH BERPIKIR (CHAIN OF THOUGHT):
-Untuk SETIAP opsi, lakukan analisis:
-- Objek Utama Opsi: [Tebak objek utamanya]
-- Kecocokan: [TOLAK / TERIMA - Jelaskan apakah objek utama surat cocok dengan opsi ini, atau opsi ini hanya kebetulan mirip kata fase administratifnya]
-
-FORMAT OUTPUT AKHIR:
-Setelah menganalisis semua opsi, berikan 3 pilihan terbaik Anda di baris paling bawah dengan format persis seperti ini:
+Keluarkan hasil akhir dengan format persis seperti ini:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
