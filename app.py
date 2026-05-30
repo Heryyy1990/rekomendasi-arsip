@@ -457,21 +457,21 @@ def _panggil_qwen3(prompt: str, max_retries: int = 3) -> str | None:
             break
     return None
 
-def _panggil_juri_llama_tahap3(prompt: str) -> str | None:
+def _panggil_llama_penentu(prompt: str) -> str | None:
     try:
         chat = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "Anda adalah asisten arsiparis. Keluarkan hasil akhir sesuai instruksi."},
+                {"role": "system", "content": "Anda adalah asisten arsiparis utama SIKAP. Keluarkan hasil akhir sesuai instruksi."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1,
+            temperature=0,  # <-- Memastikan hasil Llama mutlak dan konsisten
             max_completion_tokens=256,
         )
         return chat.choices[0].message.content.strip()
     except Exception as e:
         import streamlit as st
-        st.warning(f"Fallback Llama gagal: {e}")
+        st.warning(f"Llama gagal mengeksekusi: {e}")
         return None
 
 
