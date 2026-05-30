@@ -1318,15 +1318,15 @@ KANDIDAT:
 {daftar_kandidat}
 
 INSTRUKSI KETAT:
-1. Analisis substansi utama surat.
+1. Pikirkan matang-matang aktivitas UTAMA surat ini. (Contoh: "Sertifikat" berarti Hak/Legalitas Tanah, BUKAN Pengadaan/Pembebasan lahan).
 2. Pilih tepat 3 opsi terbaik.
-3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
-4. OPSI PERTAMA = kode yang PALING TEPAT (wajib memprioritaskan kode Kuartier/Tersier yang paling spesifik).
-5. HANYA TULIS NOMOR OPSI-NYA SAJA (Jangan tulis kode klasifikasinya!).
+3. OPSI PERTAMA = kode yang PALING TEPAT (wajib memprioritaskan kode spesifik Kuartier/Tersier).
+4. Tulis analisis singkat Anda di baris "ANALISIS:".
+5. Tulis jawaban di baris "HASIL AKHIR:" (HANYA NOMOR OPSI).
 
-Format output (WAJIB persis seperti contoh, dilarang menambahkan teks lain):
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
-(Contoh: HASIL AKHIR: OPSI 14, OPSI 5, OPSI 2)
+Format output (WAJIB persis seperti contoh):
+ANALISIS: Surat ini berfokus pada legalitas tanah (sertifikat), bukan pengadaan fisiknya, sehingga masuk ke urusan penguatan hak.
+HASIL AKHIR: OPSI 14, OPSI 5, OPSI 2
 """
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
                     
@@ -1415,15 +1415,16 @@ DAFTAR KANDIDAT:
 {daftar_kandidat_juri}
 
 INSTRUKSI KETAT:
-1. Fokus pada SUBSTANSI UTAMA surat, bukan sekadar kecocokan kata.
+1. Fokus pada SUBSTANSI UTAMA surat (Bedakan antara legalitas/sertifikat dengan fisik/pembangunan).
 2. Pilih tepat 3 opsi terbaik.
 3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
-4. OPSI PERTAMA = kode yang PALING TEPAT dan spesifik (Juara 1).
-5. HANYA TULIS NOMOR OPSI-NYA SAJA (Jangan tulis kode klasifikasinya!).
+4. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
+5. Tulis analisis singkat Anda di baris "ANALISIS:".
+6. Tulis jawaban di baris "HASIL AKHIR:" (HANYA NOMOR OPSI).
 
-Format output (WAJIB persis seperti contoh, dilarang menambahkan teks lain):
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
-(Contoh: HASIL AKHIR: OPSI 12, OPSI 3, OPSI 8)
+Format output (WAJIB persis seperti contoh):
+ANALISIS: Fokus dokumen adalah legalitas (sertifikat), sehingga kode yang tepat adalah penguatan hak atas tanah.
+HASIL AKHIR: OPSI 12, OPSI 3, OPSI 8
 """
 
         balasan_juri = _panggil_juri_llama_tahap3(perintah_juri)
