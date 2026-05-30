@@ -1294,7 +1294,7 @@ def smart_classify(user_input, df, top_n=3):
         except Exception as e:
             pass
 
-    # --- TAHAP 2 & 3: PANDAS FILTER -> LLAMA ---
+    # --- TAHAP 2 & 3: PANDAS FILTER -> LLAMA (ESTAFET) ---
     if kode_sekunder:
         try:
             pola = re.search(r'\b(\d{3}(?:\.\d{1,2})?)\b', kode_sekunder)
@@ -1303,66 +1303,148 @@ def smart_classify(user_input, df, top_n=3):
                 if any(df['kode'].str.startswith(kode_kandidat)):
                     df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
                     df_subset = df_subset.reset_index(drop=False)
-                    
-                    daftar_kandidat = ""
-                    for urutan, row in df_subset.iterrows():
-                        daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\n\n"
-                        
-                    prompt_llama = f"""Anda adalah tahap final SIKAP.
-Surat ini masuk ke domain sekunder: {kode_kandidat}.
-Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut.
+
+                    # ── PISAH LEVEL HIERARKI ──────────────────────────────
+                    df_tersier = df_subset[
+                        df_subset['kode'].str.match(r'^\d{3}\.\d$')
+                    ].reset_index(drop=True)
+
+                    df_kuartier = df_subset[
+                        df_subset['kode'].str.match(r'^\d{3}\.\d{2}$')
+                    ].reset_index(drop=True)
+
+                    # ── LANGKAH 1: LLAMA PILIH 1 TERSIER ─────────────────
+                    kode_tersier_terpilih = None
+
+                    if not df_tersier.empty:
+                        daftar_tersier = ""
+                        for i, row in df_tersier.iterrows():
+                            daftar_tersier += (
+                                f"[OPSI {i+1}]\n"
+                                f"Kode: {row['kode']}\n"
+                                f"Uraian: {row['uraian_lengkap']}\n\n"
+                            )
+
+                        prompt_tersier = f"""Anda adalah Arsiparis Senior SIKAP.
+Domain sekunder: {kode_kandidat}
 
 SURAT ASLI: "{user_input}"
 INTI SURAT: "{inti_dari_llm}"
 
-SUB-DATASET:
-{daftar_kandidat}
+KANDIDAT TERSIER:
+{daftar_tersier}
 
-Keluarkan hasil akhir dengan format persis seperti ini:
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
-"""
-                    balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
-                    
-                    if balasan_juri:
-                        angka_pilihan = []
-                        for baris in balasan_juri.split('\n'):
-                            if 'HASIL AKHIR' in baris.upper():
-                                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
-                                if not angka_mentah:
-                                    angka_mentah = re.findall(r'\d+', baris)
-                                for angka in angka_mentah:
+INSTRUKSI KETAT:
+1. Pikirkan matang-matang urusan UTAMA surat (Contoh: "Sertifikat" berarti Penguatan Hak, BUKAN Pengadaan Tanah).
+2. Pilih 1 KODE TERSIER yang paling sesuai.
+3. Tulis analisis singkat Anda di baris "ANALISIS:".
+4. Tulis hasil di baris "HASIL TERSIER:" (HANYA TULIS NOMOR OPSI-NYA SAJA).
+
+Format output (WAJIB persis seperti contoh):
+ANALISIS: Surat ini soal legalitas/sertifikat, jadi masuk urusan hak atas tanah.
+HASIL TERSIER: OPSI X"""
+
+                        jawaban_tersier = _panggil_llama_penentu(prompt_tersier)
+
+                        if jawaban_tersier:
+                            angka_t = re.findall(r'OPSI\s*(\d+)', jawaban_tersier.upper())
+                            if angka_t:
+                                idx_t = int(angka_t[0]) - 1
+                                if 0 <= idx_t < len(df_tersier):
+                                    kode_tersier_terpilih = df_tersier.iloc[idx_t]['kode']
+
+                    # ── LANGKAH 2: LLAMA RANKING KUARTIER ────────────────
+                    if kode_tersier_terpilih:
+                        df_kuartier_filter = df_kuartier[
+                            df_kuartier['kode'].str.startswith(kode_tersier_terpilih)
+                        ].reset_index(drop=True)
+                    elif df_tersier.empty:
+                        # Qwen sudah pointing ke tersier langsung, ambil semua kuartier di subset
+                        df_kuartier_filter = df_kuartier.reset_index(drop=True)
+                    else:
+                        # Llama gagal pilih tersier — lempar ke Exception agar TF-IDF ambil alih
+                        raise Exception("Llama gagal identifikasi tersier")
+
+                    if not df_kuartier_filter.empty:
+                        daftar_kuartier = ""
+                        for i, row in df_kuartier_filter.iterrows():
+                            daftar_kuartier += (
+                                f"[OPSI {i+1}]\n"
+                                f"Kode: {row['kode']}\n"
+                                f"Uraian: {row['uraian_lengkap']}\n\n"
+                            )
+
+                        prompt_kuartier = f"""Anda adalah Arsiparis Senior SIKAP.
+Tersier terpilih: {kode_tersier_terpilih or kode_kandidat}
+
+SURAT ASLI: "{user_input}"
+INTI SURAT: "{inti_dari_llm}"
+
+KANDIDAT KUARTIER:
+{daftar_kuartier}
+
+INSTRUKSI KETAT:
+1. Analisis substansi utama surat secara spesifik.
+2. Urutkan tepat 3 opsi dari PALING TEPAT ke KURANG TEPAT (atau sebanyak opsi yang tersedia jika kurang dari 3).
+3. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
+4. Tulis analisis singkat Anda di baris "ANALISIS:".
+5. Tulis jawaban di baris "HASIL AKHIR:" (HANYA TULIS NOMOR OPSI).
+
+Format output (WAJIB persis seperti contoh):
+ANALISIS: Mengurus sertifikat perpustakaan adalah bentuk penguatan atas tanah.
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
+
+                        jawaban_kuartier = _panggil_llama_penentu(prompt_kuartier)
+
+                        if jawaban_kuartier:
+                            angka_pilihan = []
+
+                            # Parser utama — HANYA TANGKAP ANGKA SETELAH KATA "OPSI"
+                            for baris in jawaban_kuartier.split('\n'):
+                                if 'HASIL AKHIR' in baris.upper():
+                                    for angka in re.findall(r'OPSI\s*(\d+)', baris.upper()):
+                                        angka_bulat = int(angka)
+                                        if (1 <= angka_bulat <= len(df_kuartier_filter)
+                                                and angka_bulat not in angka_pilihan):
+                                            angka_pilihan.append(angka_bulat)
+                                        if len(angka_pilihan) == 3:
+                                            break
+                                    break
+
+                            # Fallback parser — cari OPSI di seluruh response
+                            if not angka_pilihan:
+                                for angka in re.findall(r'OPSI\s*(\d+)', jawaban_kuartier.upper()):
                                     angka_bulat = int(angka)
-                                    if 1 <= angka_bulat <= len(df_subset) and angka_bulat not in angka_pilihan:
+                                    if (1 <= angka_bulat <= len(df_kuartier_filter)
+                                            and angka_bulat not in angka_pilihan):
                                         angka_pilihan.append(angka_bulat)
-                                    if len(angka_pilihan) == 3: break
-                                break
-                        
-                        if not angka_pilihan:
-                            for angka in re.findall(r'\d+', balasan_juri):
-                                angka_bulat = int(angka)
-                                if 1 <= angka_bulat <= len(df_subset) and angka_bulat not in angka_pilihan:
-                                    angka_pilihan.append(angka_bulat)
-                                if len(angka_pilihan) == 3: break
-                                
-                        if angka_pilihan:
-                            for nomor in angka_pilihan:
-                                indeks_kandidat = nomor - 1
-                                if 0 <= indeks_kandidat < len(df_subset):
-                                    idx_asli = df_subset.iloc[indeks_kandidat]['index']
-                                    skor_sim = 0.99 - (len(hasil_akhir) * 0.14)
-                                    hasil_akhir.append((idx_asli, skor_sim))
-                            
-                            if len(hasil_akhir) > 0:
-                                pipeline_berhasil = True
-                                return hasil_akhir, inti_dari_llm
+                                    if len(angka_pilihan) == 3:
+                                        break
+
+                            if angka_pilihan:
+                                for nomor in angka_pilihan:
+                                    idx_k = nomor - 1
+                                    if 0 <= idx_k < len(df_kuartier_filter):
+                                        idx_asli = df_kuartier_filter.iloc[idx_k]['index']
+                                        skor_sim = 0.99 - (len(hasil_akhir) * 0.14)
+                                        hasil_akhir.append((idx_asli, skor_sim))
+
+                                if hasil_akhir:
+                                    pipeline_berhasil = True
+                                    return hasil_akhir, inti_dari_llm
+                    else:
+                        # EDGE CASE 2: Tersier tidak punya anak Kuartier, maka Tersier-nya yang menang mutlak!
+                        if kode_tersier_terpilih:
+                            idx_tersier = df_tersier[df_tersier['kode'] == kode_tersier_terpilih].iloc[0]['index']
+                            pipeline_berhasil = True
+                            return [(idx_tersier, 0.99)], inti_dari_llm
         except Exception as e:
             print("Tahap 2/3 gagal:", e)
 
-    # --- TAHAP 4: FALLBACK TF-IDF + JURI LAMA ---
+    # --- TAHAP 4: FALLBACK TF-IDF + LLAMA ---
     if not pipeline_berhasil:
         st.session_state['model_aktif'] = 'TF-IDF Fallback'
         
-        # Ekstrak inti secara manual bila Agentic gagal
         if inti_dari_llm == user_input:
             inti_dari_llm, _ = _fallback_ekstraksi_manual(user_input)
 
@@ -1399,14 +1481,27 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
             daftar_kandidat_juri += f"[OPSI {urutan + 1}]\nKode: {baris_data['kode']}\nUraian Utama: {baris_data['uraian']}\nHierarki Lengkap: {baris_data['uraian_lengkap']}\nKonteks Natural: {baris_data['uraian_natural']}\n\n"
 
         perintah_juri = f"""Anda adalah Arsiparis Senior Pemerintahan dan Ahli Klasifikasi Arsip.
-Tentukan kode klasifikasi arsip yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat.
+Tentukan maksimal 3 kode klasifikasi arsip yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat, lalu URUTKAN dari yang paling tepat.
+
 SURAT ASLI: "{user_input}"
 HASIL ANALISIS INTI: "{inti_dari_llm}"
+
 DAFTAR KANDIDAT:
 {daftar_kandidat_juri}
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
 
-        balasan_juri = _panggil_juri_llama_tahap3(perintah_juri)
+INSTRUKSI KETAT:
+1. Fokus pada SUBSTANSI UTAMA surat (Bedakan antara legalitas/sertifikat dengan fisik/pembangunan).
+2. Pilih tepat 3 opsi terbaik.
+3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
+4. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
+5. Tulis analisis singkat Anda di baris "ANALISIS:".
+6. Tulis jawaban di baris "HASIL AKHIR:" (HANYA NOMOR OPSI).
+
+Format output (WAJIB persis seperti contoh):
+ANALISIS: Fokus dokumen adalah legalitas (sertifikat), sehingga kode yang tepat adalah penguatan hak atas tanah.
+HASIL AKHIR: OPSI 12, OPSI 3, OPSI 8
+"""
+        balasan_juri = _panggil_llama_penentu(perintah_juri)
         if balasan_juri:
             angka_pilihan = []
             for baris in balasan_juri.split('\n'):
