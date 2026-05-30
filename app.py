@@ -9,7 +9,6 @@ import pytz
 import threading
 import time
 import logging
-import json as _json
 # Membungkam peringatan (warning) gaib dari Google API saat pertama kali load
 logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 from google.oauth2 import service_account
@@ -22,146 +21,10 @@ from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 from thefuzz import process, fuzz
 from groq import Groq
-from google import genai
-from google.genai import types
 
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
-
-def _kirim_json(data: dict):
-    """
-    Mengirim respons JSON ke Android.
-    Streamlit tidak punya built-in JSON response,
-    jadi kita gunakan st.json + st.stop() sebagai workaround.
-    """
-    st.json(data)
-    st.stop()
- 
-# Deteksi apakah request ini dari Android (bukan dari browser biasa)
-_params = st.query_params
-_api_action = _params.get("api", "")
- 
-# -------------------------------------------------------
-# ENDPOINT 1: Health Check
-# Android akan cek ini dulu untuk memastikan server hidup.
-#
-# Cara test di browser:
-# https://nama-app-anda.streamlit.app/?api=ping
-# Harusnya muncul: {"status": "ok", "app": "SIKAP"}
-# -------------------------------------------------------
-if _api_action == "ping":
-    _kirim_json({
-        "status": "ok",
-        "app": "SIKAP",
-        "versi": "1.0"
-    })
- 
-# -------------------------------------------------------
-# ENDPOINT 2: Klasifikasi Surat
-# Ini "jantung" API — menerima perihal surat dari Android
-# dan mengembalikan 3 rekomendasi kode arsip.
-#
-# Cara test di browser:
-# https://nama-app-anda.streamlit.app/?api=klasifikasi&q=perjalanan+dinas+pegawai
-# -------------------------------------------------------
-elif _api_action == "klasifikasi":
-    _perihal = _params.get("q", "").strip()
- 
-    if not _perihal:
-        _kirim_json({
-            "status": "error",
-            "pesan": "Parameter 'q' (perihal surat) tidak boleh kosong."
-        })
- 
-    # Load data — fungsi load_data() sudah ada di app.py Anda
-    _df = load_data()
- 
-    if _df is None or _df.empty:
-        _kirim_json({
-            "status": "error",
-            "pesan": "Database klasifikasi tidak dapat dimuat."
-        })
- 
-    try:
-        # Panggil otak SIKAP — smart_classify sudah ada di app.py Anda
-        _hasil_raw, _inti, _atribut = smart_classify(_perihal, _df)
- 
-        # Susun hasil menjadi format JSON yang bisa dibaca Android
-        _rekomendasi = []
-        for _urutan, (_idx, _skor) in enumerate(_hasil_raw):
-            _baris = _df.iloc[_idx]
- 
-            # Susun jalur hierarki (breadcrumb)
-            _kode = str(_baris.get('kode', ''))
-            _uraian = str(_baris.get('uraian', ''))
-            _uraian_lengkap = str(_baris.get('uraian_lengkap', ''))
- 
-            # Hitung level berdasarkan jumlah titik di kode
-            _jumlah_titik = _kode.count('.')
-            _level_nama = ['Primer', 'Sekunder', 'Tersier', 'Kuartier']
-            _level = _level_nama[min(_jumlah_titik, 3)]
- 
-            # Keyakinan — gunakan skor simulasi yang sudah ada
-            _keyakinan = round(_skor * 100, 1)
- 
-            _rekomendasi.append({
-                "urutan": _urutan + 1,
-                "kode": _kode,
-                "uraian": _uraian.title(),
-                "uraian_lengkap": _uraian_lengkap.title(),
-                "level": _level,
-                "keyakinan": _keyakinan,
-            })
- 
-        _kirim_json({
-            "status": "ok",
-            "perihal_asli": _perihal,
-            "inti_ekstraksi": _inti,
-            "domain": _atribut.get("domain", ""),
-            "model_ai": _atribut.get("_model", ""),
-            "rekomendasi": _rekomendasi
-        })
- 
-    except Exception as _e:
-        _kirim_json({
-            "status": "error",
-            "pesan": f"Terjadi kesalahan saat klasifikasi: {str(_e)}"
-        })
- 
-# -------------------------------------------------------
-# ENDPOINT 3: Simpan Feedback dari Android
-# Android mengirim kode yang dipilih pengguna.
-#
-# Cara test di browser:
-# https://nama-app-anda.streamlit.app/?api=feedback
-#   &nama=Arsiparis&q=perjalanan+dinas&inti=perjalanan+dinas+pegawai&kode=000.1.2.3
-# -------------------------------------------------------
-elif _api_action == "feedback":
-    _nama    = _params.get("nama", "Android User")
-    _perihal = _params.get("q", "")
-    _inti    = _params.get("inti", "")
-    _kode    = _params.get("kode", "")
- 
-    if not _kode or not _perihal:
-        _kirim_json({
-            "status": "error",
-            "pesan": "Parameter 'q' dan 'kode' wajib diisi."
-        })
- 
-    try:
-        # Panggil fungsi simpan feedback yang sudah ada di app.py Anda
-        simpan_feedback_csv(_nama, _perihal, _inti, _kode)
-        _kirim_json({
-            "status": "ok",
-            "pesan": f"Feedback untuk kode {_kode} berhasil disimpan."
-        })
-    except Exception as _e:
-        _kirim_json({
-            "status": "error",
-            "pesan": f"Gagal menyimpan feedback: {str(_e)}"
-        })
-
 
 # ====================================================
 # MESIN SINKRONISASI GOOGLE DRIVE (VERSI TAHAN BANTING)
@@ -1516,7 +1379,6 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
             skor_awal.append({'idx': indeks, 'skor': skor_dasar})
 
         dua_puluh_kandidat_teratas = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:20]
-        st.session_state['debug_top20'] = dua_puluh_kandidat_teratas
 
         skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
         skor_kedua = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
@@ -2426,22 +2288,6 @@ def halaman_utama():
                             simpan_feedback_csv(st.session_state['nama'], st.session_state['last_query'], inti_llm, kode)
                             st.success(f"✨ Terima kasih! Anda memvalidasi **Kode {kode}**. Pilihan ini terekam di sistem kami.")
                         st.markdown('</div>', unsafe_allow_html=True)
-
-                    # --- [TAMBAHAN DEBUG] Tampilkan 20 Kandidat TF-IDF ---
-                    if st.session_state.get('debug_top20'):
-                        with st.expander("🐛 DEBUG ADMIN: Lihat 20 Top Kandidat TF-IDF (Sebelum Juri LLM)"):
-                            st.caption("Tabel di bawah adalah 20 kandidat dengan skor kemiripan TF-IDF + Fuzzy tertinggi yang dikirimkan ke Juri Llama sebagai konteks.")
-                            data_debug = []
-                            for rank, item in enumerate(st.session_state['debug_top20']):
-                                baris = df.iloc[item['idx']]
-                                data_debug.append({
-                                    "Rank": rank + 1,
-                                    "Skor": f"{item['skor']:.4f}",
-                                    "Kode": baris['kode'],
-                                    "Uraian Lengkap": baris['uraian_lengkap'].title()
-                                })
-                            st.dataframe(pd.DataFrame(data_debug), use_container_width=True, hide_index=True)
-                    # ------------------------------------------------------
                     
                     st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
                     with st.expander("🛠️ Hasil AI Kurang Tepat? Ajari SIKAP Kode yang Benar secara Manual"):
