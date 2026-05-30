@@ -1304,13 +1304,15 @@ def smart_classify(user_input, df, top_n=3):
                     df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
                     df_subset = df_subset.reset_index(drop=False)
 
-                    # ── PISAH LEVEL HIERARKI ──────────────────────────────
+                    # ── PISAH LEVEL HIERARKI (PERBAIKAN FATAL CLAUDE) ─────────
+                    # Tersier = Memiliki tepat 2 titik (contoh: 500.17.3)
                     df_tersier = df_subset[
-                        df_subset['kode'].str.match(r'^\d{3}\.\d$')
+                        df_subset['kode'].str.count(r'\.') == 2
                     ].reset_index(drop=True)
 
+                    # Kuartier = Memiliki tepat 3 titik (contoh: 500.17.3.1)
                     df_kuartier = df_subset[
-                        df_subset['kode'].str.match(r'^\d{3}\.\d{2}$')
+                        df_subset['kode'].str.count(r'\.') == 3
                     ].reset_index(drop=True)
 
                     # ── LANGKAH 1: LLAMA PILIH 1 TERSIER ─────────────────
@@ -1438,6 +1440,11 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
                             idx_tersier = df_tersier[df_tersier['kode'] == kode_tersier_terpilih].iloc[0]['index']
                             pipeline_berhasil = True
                             return [(idx_tersier, 0.99)], inti_dari_llm
+                        else:
+                            # EDGE CASE 3: Jika bahkan tidak ada Tersier/Kuartier sama sekali, kembalikan kode Sekunder
+                            idx_sekunder = df_subset[df_subset['kode'] == kode_kandidat].iloc[0]['index']
+                            pipeline_berhasil = True
+                            return [(idx_sekunder, 0.99)], inti_dari_llm
         except Exception as e:
             print("Tahap 2/3 gagal:", e)
 
