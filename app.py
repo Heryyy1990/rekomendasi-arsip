@@ -1310,13 +1310,19 @@ def smart_classify(user_input, df, top_n=3):
                         
                     prompt_llama = f"""Anda adalah tahap final SIKAP.
 Surat ini masuk ke domain sekunder: {kode_kandidat}.
-Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut.
+Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut, lalu URUTKAN dari yang paling tepat.
 
 SURAT ASLI: "{user_input}"
 INTI SURAT: "{inti_dari_llm}"
 
 SUB-DATASET:
 {daftar_kandidat}
+
+INSTRUKSI KETAT:
+1. Analisis substansi utama surat berdasarkan inti surat.
+2. Pilih tepat 3 opsi terbaik.
+3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
+4. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
 
 Keluarkan hasil akhir dengan format persis seperti ini:
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
@@ -1399,12 +1405,23 @@ HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
             daftar_kandidat_juri += f"[OPSI {urutan + 1}]\nKode: {baris_data['kode']}\nUraian Utama: {baris_data['uraian']}\nHierarki Lengkap: {baris_data['uraian_lengkap']}\nKonteks Natural: {baris_data['uraian_natural']}\n\n"
 
         perintah_juri = f"""Anda adalah Arsiparis Senior Pemerintahan dan Ahli Klasifikasi Arsip.
-Tentukan kode klasifikasi arsip yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat.
+Tentukan maksimal 3 kode klasifikasi arsip yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat, lalu URUTKAN dari yang paling tepat.
+
 SURAT ASLI: "{user_input}"
 HASIL ANALISIS INTI: "{inti_dari_llm}"
+
 DAFTAR KANDIDAT:
 {daftar_kandidat_juri}
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
+
+INSTRUKSI KETAT:
+1. Fokus pada SUBSTANSI UTAMA surat, bukan sekadar kecocokan kata.
+2. Pilih tepat 3 opsi terbaik.
+3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
+4. OPSI PERTAMA = kode yang PALING TEPAT dan spesifik (Juara 1).
+
+Keluarkan hasil akhir dengan format persis seperti ini:
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
+"""
 
         balasan_juri = _panggil_juri_llama_tahap3(perintah_juri)
         if balasan_juri:
