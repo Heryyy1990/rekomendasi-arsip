@@ -1308,24 +1308,25 @@ def smart_classify(user_input, df, top_n=3):
                     for urutan, row in df_subset.iterrows():
                         daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\n\n"
                         
-                    prompt_llama = f"""Anda adalah tahap final SIKAP.
-Surat ini masuk ke domain sekunder: {kode_kandidat}.
-Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut, lalu URUTKAN dari yang paling tepat.
+                    prompt_llama = f"""Anda adalah Sistem Informasi Klasifikasi Arsip Pintar (SIKAP). Tugas Anda: pilih dan URUTKAN dari PALING TEPAT ke KURANG TEPAT.
 
 SURAT ASLI: "{user_input}"
 INTI SURAT: "{inti_dari_llm}"
+DOMAIN: {kode_kandidat}
 
-SUB-DATASET:
+KANDIDAT:
 {daftar_kandidat}
 
 INSTRUKSI KETAT:
-1. Analisis substansi utama surat berdasarkan inti surat.
+1. Analisis substansi utama surat.
 2. Pilih tepat 3 opsi terbaik.
 3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
-4. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
+4. OPSI PERTAMA = kode yang PALING TEPAT (wajib memprioritaskan kode Kuartier/Tersier yang paling spesifik).
+5. HANYA TULIS NOMOR OPSI-NYA SAJA (Jangan tulis kode klasifikasinya!).
 
-Keluarkan hasil akhir dengan format persis seperti ini:
+Format output (WAJIB persis seperti contoh, dilarang menambahkan teks lain):
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
+(Contoh: HASIL AKHIR: OPSI 14, OPSI 5, OPSI 2)
 """
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
                     
@@ -1418,9 +1419,11 @@ INSTRUKSI KETAT:
 2. Pilih tepat 3 opsi terbaik.
 3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
 4. OPSI PERTAMA = kode yang PALING TEPAT dan spesifik (Juara 1).
+5. HANYA TULIS NOMOR OPSI-NYA SAJA (Jangan tulis kode klasifikasinya!).
 
-Keluarkan hasil akhir dengan format persis seperti ini:
+Format output (WAJIB persis seperti contoh, dilarang menambahkan teks lain):
 HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
+(Contoh: HASIL AKHIR: OPSI 12, OPSI 3, OPSI 8)
 """
 
         balasan_juri = _panggil_juri_llama_tahap3(perintah_juri)
