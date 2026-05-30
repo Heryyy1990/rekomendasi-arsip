@@ -1308,25 +1308,18 @@ def smart_classify(user_input, df, top_n=3):
                     for urutan, row in df_subset.iterrows():
                         daftar_kandidat += f"[OPSI {urutan + 1}]\nKode: {row['kode']}\nUraian: {row['uraian_lengkap']}\n\n"
                         
-                    prompt_llama = f"""Anda adalah Sistem Informasi Klasifikasi Arsip Pintar (SIKAP). Tugas Anda: pilih dan URUTKAN dari PALING TEPAT ke KURANG TEPAT.
+                    prompt_llama = f"""Anda adalah tahap final SIKAP.
+Surat ini masuk ke domain sekunder: {kode_kandidat}.
+Tentukan maksimal 3 kode akhir yang paling spesifik (Kuartier/Tersier) dari subset berikut.
 
 SURAT ASLI: "{user_input}"
 INTI SURAT: "{inti_dari_llm}"
-DOMAIN: {kode_kandidat}
 
-KANDIDAT:
+SUB-DATASET:
 {daftar_kandidat}
 
-INSTRUKSI KETAT:
-1. Pikirkan matang-matang aktivitas UTAMA surat ini. (Contoh: "Sertifikat" berarti Hak/Legalitas Tanah, BUKAN Pengadaan/Pembebasan lahan).
-2. Pilih tepat 3 opsi terbaik.
-3. OPSI PERTAMA = kode yang PALING TEPAT (wajib memprioritaskan kode spesifik Kuartier/Tersier).
-4. Tulis analisis singkat Anda di baris "ANALISIS:".
-5. Tulis jawaban di baris "HASIL AKHIR:" (HANYA NOMOR OPSI).
-
-Format output (WAJIB persis seperti contoh):
-ANALISIS: Surat ini berfokus pada legalitas tanah (sertifikat), bukan pengadaan fisiknya, sehingga masuk ke urusan penguatan hak.
-HASIL AKHIR: OPSI 14, OPSI 5, OPSI 2
+Keluarkan hasil akhir dengan format persis seperti ini:
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
 """
                     balasan_juri = _panggil_juri_llama_tahap3(prompt_llama)
                     
@@ -1406,26 +1399,12 @@ HASIL AKHIR: OPSI 14, OPSI 5, OPSI 2
             daftar_kandidat_juri += f"[OPSI {urutan + 1}]\nKode: {baris_data['kode']}\nUraian Utama: {baris_data['uraian']}\nHierarki Lengkap: {baris_data['uraian_lengkap']}\nKonteks Natural: {baris_data['uraian_natural']}\n\n"
 
         perintah_juri = f"""Anda adalah Arsiparis Senior Pemerintahan dan Ahli Klasifikasi Arsip.
-Tentukan maksimal 3 kode klasifikasi arsip yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat, lalu URUTKAN dari yang paling tepat.
-
+Tentukan kode klasifikasi arsip yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat.
 SURAT ASLI: "{user_input}"
 HASIL ANALISIS INTI: "{inti_dari_llm}"
-
 DAFTAR KANDIDAT:
 {daftar_kandidat_juri}
-
-INSTRUKSI KETAT:
-1. Fokus pada SUBSTANSI UTAMA surat (Bedakan antara legalitas/sertifikat dengan fisik/pembangunan).
-2. Pilih tepat 3 opsi terbaik.
-3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
-4. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
-5. Tulis analisis singkat Anda di baris "ANALISIS:".
-6. Tulis jawaban di baris "HASIL AKHIR:" (HANYA NOMOR OPSI).
-
-Format output (WAJIB persis seperti contoh):
-ANALISIS: Fokus dokumen adalah legalitas (sertifikat), sehingga kode yang tepat adalah penguatan hak atas tanah.
-HASIL AKHIR: OPSI 12, OPSI 3, OPSI 8
-"""
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
 
         balasan_juri = _panggil_juri_llama_tahap3(perintah_juri)
         if balasan_juri:
