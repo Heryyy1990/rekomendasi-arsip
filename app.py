@@ -20,8 +20,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 from thefuzz import process, fuzz
-from groq import Groq
-import google.generativeai as genai
+from google import genai
+from google.genai import types
+
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="SIKAP - Klasifikasi Arsip Pintar", page_icon="🗂️", layout="wide", initial_sidebar_state="auto")
@@ -276,51 +277,15 @@ def halaman_login():
                 else:
                     st.error("Username atau Password salah!")
 
-# =========================================================
-# KONFIGURASI GEMINI 3 FLASH (PENGGANTI GROQ/QWEN/LLAMA)
-# =========================================================
-import google.generativeai as genai
-
+# Inisialisasi klien Gemini Flash
 try:
-    api_key_gemini = st.secrets["GEMINI_API_KEY"]
+    gemini_api_key = st.secrets["GOOGLE_API_KEY"]
 except:
-    api_key_gemini = "MASUKKAN_API_KEY_GEMINI_ANDA_DI_SINI"
+    gemini_api_key = "MASUKKAN_GOOGLE_API_KEY_DI_SINI_UNTUK_TES_LOKAL"
 
-genai.configure(api_key=api_key_gemini)
-model_gemini = genai.GenerativeModel('gemini-3-flash')
-
-def _panggil_gemini(prompt: str, max_retries: int = 2) -> str | None:
-    for percobaan in range(max_retries):
-        try:
-            response = model_gemini.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(temperature=0.0)
-            )
-            return response.text.strip()
-        except Exception as e:
-            pesan = str(e).lower()
-            if any(k in pesan for k in ["429", "quota", "rate limit"]):
-                if percobaan < max_retries - 1:
-                    time.sleep(2)
-                    continue
-                import streamlit as st
-                st.warning("⏳ Sistem sedang sibuk (Limit API). Mohon tunggu sebentar.")
-            return None
-    return None
-
-def _parse_json_gemini(raw: str) -> dict | None:
-    try:
-        bersih = re.sub(r'```(?:json)?', '', raw).strip().rstrip('`').strip()
-        awal = bersih.find('{')
-        akhir = bersih.rfind('}')
-        if awal == -1 or akhir == -1:
-            return None
-        return json.loads(bersih[awal:akhir + 1])
-    except Exception:
-        return None
-
-# --- TAMBAHKAN DI BAWAH FUNGSI _parse_json_gemini ---
-
+client_gemini = genai.Client(api_key=gemini_api_key)
+GEMINI_MODEL = "gemini-3-flash-preview"
+ 
 KATA_PENGANTAR = {
     "penyampaian", "permohonan", "undangan", "laporan", "tindak",
     "lanjut", "usulan", "hal", "mengenai", "draf", "rancangan",
@@ -330,195 +295,227 @@ KATA_PENGANTAR = {
     "penetapan", "pengiriman", "pengesahan", "permintaan", "data",
     "hasil", "tindaklanjut", "konfirmasi", "koordinasi", "pemantauan",
 }
-
+ 
+# Nilai valid atribut jenjang per rumpun — hasil validasi Gemini
+REFERENSI_JENJANG = {
+    "umum": [
+        "kepala daerah", "dprd", "pegawai umum",
+        "nasional", "provinsi", "kabupaten", "kecamatan", "desa"
+    ],
+    "pemerintahan": [
+        "gubernur", "bupati", "sekda provinsi", "sekda kabupaten"
+    ],
+    "politik": [
+        "dpr pusat", "dprd provinsi", "dprd kabupaten", "dprd kota"
+    ],
+    "keamanan": ["harian", "bulanan", "tahunan"],
+    "kesejahteraan": [
+        "paud", "sd", "smp", "sma", "smk", "perguruan tinggi",
+        "daerah", "nasional", "internasional",
+        "rumah sakit", "puskesmas"
+    ],
+    "perekonomian": [
+        "ikm", "industri kecil menengah", "industri besar",
+        "dalam negeri", "luar negeri", "ekspor"
+    ],
+    "pekerjaan umum": [
+        "nasional", "provinsi", "kabupaten", "kota", "desa"
+    ],
+    "pengawasan": [
+        "kementerian", "lembaga pusat", "pemerintah provinsi",
+        "pemerintah kabupaten", "pemerintah kota", "kelurahan", "desa"
+    ],
+    "kepegawaian": [
+        "cpns", "pns", "pppk", "honorer",
+        "golongan i", "golongan ii", "golongan iii", "golongan iv",
+        "eselon i", "eselon ii", "eselon iii", "eselon iv",
+        "jabatan fungsional"
+    ],
+    "keuangan": [
+        "apbn", "apbd provinsi", "apbd kabupaten", "apbd kota", "apbdes"
+    ],
+}
+ 
+ 
 def _fallback_ekstraksi_manual(teks):
     """
-    Lapis ke-3: ekstraksi Python murni sebagai jaring pengaman.
+    Lapis ke-3: ekstraksi Python murni, tidak pakai LLM, tidak bisa gagal.
+    Mengembalikan (inti_string, atribut_dict) dengan nilai default.
     """
     teks_bersih = re.sub(r'[^a-zA-Z0-9\s(),/-]', ' ', teks.lower()).strip()
     kata = teks_bersih.split()
     while kata and kata[0] in KATA_PENGANTAR:
         kata.pop(0)
     inti = " ".join(kata[:10]) if kata else teks.lower()[:80]
-    return inti, {}
+    atribut_default = {
+        "konteks": "fasilitatif",
+        "domain": "umum",
+        "objek": inti,
+        "jenjang": "",
+        "kegiatan": "pelaksanaan",
+        "produk": "laporan",
+        "inti": inti,
+        "_model": "python-manual",
+    }
+    return inti, atribut_default
+ 
+ 
+def _validasi_json_atribut(data: dict) -> bool:
+    """
+    Validasi output JSON dari LLM.
+    Cek kelengkapan kunci dan nilai 'inti' yang bermakna.
+    """
+    kunci_wajib = {"konteks", "domain", "objek", "jenjang",
+                   "kegiatan", "produk", "inti"}
+    if not kunci_wajib.issubset(data.keys()):
+        return False
+    inti = str(data.get("inti", "")).strip()
+    if len(inti) < 3 or len(inti) > 200:
+        return False
+    penanda_gagal = [
+        "maaf", "saya tidak", "i cannot", "i don't", "i'm sorry",
+        "as an ai", "note:", "catatan:", "semoga membantu",
+    ]
+    if any(p in inti.lower() for p in penanda_gagal):
+        return False
+        
+    # PERBAIKAN CLAUDE: Validasi Konsistensi
+    konteks = str(data.get("konteks", "")).lower().strip()
+    domain = str(data.get("domain", "")).lower().strip()
+    if konteks == "substantif" and domain == "umum":
+        return False # Tolak dan paksa turun ke fallback
+        
+    return True
+ 
+ 
+def _parse_json_atribut(raw: str) -> dict | None:
+    """
+    Parse JSON dari output LLM.
+    Toleran terhadap pembungkus markdown (```json ... ```).
+    """
+    try:
+        bersih = re.sub(r'```(?:json)?', '', raw).strip().rstrip('`').strip()
+        awal = bersih.find('{')
+        akhir = bersih.rfind('}')
+        if awal == -1 or akhir == -1:
+            return None
+        return json.loads(bersih[awal:akhir + 1])
+    except Exception:
+        return None
+ 
+ 
+# =========================================================
+# PROMPT UNTUK GEMINI FLASH (LOGIKA ARSIPARIS SENIOR)
+# =========================================================
+def _bangun_prompt_gemini(teks_user: str) -> str:
+    referensi_str = "\n".join(
+        f"  - {rumpun}: {', '.join(nilai)}"
+        for rumpun, nilai in REFERENSI_JENJANG.items()
+    )
+    return f"""Anda adalah Arsiparis Senior ahli kearsipan pemerintahan daerah Indonesia.
+Tugas: Analisis perihal surat berikut dan ekstrak 6 atribut terstruktur. Keluarkan HANYA JSON valid, tanpa tag <think>, tanpa markdown, tanpa penjelasan.
 
-@st.cache_data
-def get_daftar_sekunder(df):
-    mask = df['kode'].str.count(r'\.') <= 1
-    sekunder_df = df[mask]
-    daftar = []
-    for _, row in sekunder_df.iterrows():
-        daftar.append(f"{row['kode']}: {row['uraian']}")
-    return "\n".join(daftar)
+LANGKAH BERPIKIR (Wajib sesuai urutan ini agar tidak salah konteks):
+1. OBJEK: Benda fisik atau substansi yang diurus. BUKAN tindakannya. 
+   [FILTER WAJIB]: Jika ada kata transaksi (pencairan/pembayaran/honor/dana/biaya/termin), tanya dulu "UNTUK kegiatan apa uang ini?" — jawaban itulah OBJEK-nya. (Contoh: "Pencairan dana Diklatpim IV" → OBJEK: "pendidikan pelatihan kepemimpinan tingkat iv").
+2. KEGIATAN: Tindakan terhadap objek (Contoh: pengadaan, evaluasi, permohonan).
+3. PRODUK: Wujud fisik dokumen (sk, laporan, sppd, undangan). AWAS: Jangan biarkan produk menutupi substansi utama!
+4. DOMAIN: Berdasarkan Objek, tentukan Bidang utama (umum/pemerintahan/kepegawaian/keuangan/kesejahteraan/perekonomian/pekerjaan umum/pengawasan/keamanan/politik).
+5. KONTEKS: Validasi dari Domain, apakah ini fasilitatif (internal/administrasi) ATAU substantif (teknis/layanan publik)?
+6. JENJANG: Apakah ada hierarki sasaran? ({referensi_str}). Jika tidak ada, isi "".
+7. INTI: Gabungkan (Objek + Kegiatan + Jenjang) menjadi frasa pencarian retrieval-friendly.
 
-def _bangun_prompt_gemini_tahap1(teks_user: str, daftar_sekunder: str) -> str:
-    return f"""Anda adalah Sistem Informasi Klasifikasi Arsip Pintar (SIKAP).
-Tugas Anda mengekstrak makna inti surat dan menentukan SATU Kode Sekunder.
+PRINSIP KRITIS ARSIPARIS SENIOR:
+- PRINSIP NILAI GUNA & TOKEN PRUNING (SANGAT PENTING):
+  Birokrat mencari arsip menggunakan kata kunci inti, bukan kalimat lengkap.
+  Batasi field "inti" MAKSIMAL 8-10 KATA.
+  PRIORITASKAN: Fungsi utama dan objek substantif.
+  BUANG MUTLAK: Nama tempat/lokasi (Kendari, Jakarta), nama instansi/jabatan (Dinas, Eselon, Bupati), dan kata formalitas.
+  Contoh: "SPPD staf bagian umum untuk pengambilan LHKPN ke Kendari" → Inti: "perjalanan dinas pengambilan lhkpn".
 
-ATURAN KRUSIAL:
-1. Jika teks mengandung kata "Sertifikat", "Tanah", "Lahan", atau "SHM", fokus utama adalah PERTANAHAN/LEGALITAS. Abaikan kata fisik seperti "Gedung".
-2. Output HANYA format JSON valid tanpa penjelasan apapun.
+- HUKUM "DALAM RANGKA / UNTUK" (KONDISIONAL + KONTEKS SEKUNDER):
+  Jika terdapat pola "[Aksi] dalam rangka / untuk [Tujuan]":
+  a. Jika [Aksi] adalah fungsi administrasi utama (Perjalanan Dinas, Pengadaan, Mutasi), MAKA INTI = [Aksi] + Konteks [Tujuan]. (Contoh: "SPPD evaluasi APBD" → Inti: "perjalanan dinas evaluasi apbd").
+  b. Jika [Aksi] HANYA transaksi pengantar (Pencairan, Pembayaran), MAKA INTI = [Tujuan]. (Contoh: "Pencairan honor untuk Diklatpim" → Inti: "diklat kepemimpinan").
 
-DATA INPUT:
-Uraian Surat: "{teks_user}"
+- ATURAN PENGADAAN (FASILITATIF VS SUBSTANTIF):
+  Pengadaan sarana internal (ATK, laptop) = Fasilitatif. Pengadaan barang program publik (obat, bibit) = Substantif.
 
-DAFTAR KODE SEKUNDER:
-{daftar_sekunder}
+- ATURAN RAPAT & UNDANGAN (MEDIA VS SUBSTANSI):
+  Rapat seringkali hanya media koordinasi. Prioritaskan substansinya! (Contoh: "Daftar hadir rapat evaluasi APBD" → Inti: "rapat evaluasi apbd").
 
-FORMAT JSON WAJIB:
-{{
-    "inti": "<inti surat maksimal 5 kata>",
-    "kode_sekunder": "<pilih SATU kode angka dari daftar, misal: 590>"
-}}
+- ATURAN "PERMOHONAN" (PENGANTAR VS LAYANAN FORMAL):
+  Buang kata 'permohonan' jika hanya pengantar (misal: Permohonan pencairan dana). 
+  PERTAHANKAN jika itu layanan hak formal (misal: Permohonan Cuti, Permohonan Informasi Publik). 
+
+- PENGECUALIAN DOKUMEN HASIL & LEGAL SEKTORAL:
+  Dokumen Laporan Hasil / Evaluasi fokus pada SUBSTANSI TUJUAN. Dokumen Legal Sektoral (Izin RS, Sertifikat Halal) domainnya mengikuti substansi sektoralnya.
+
+SEKARANG KERJAKAN:
+Input: "{teks_user}"
+Keluarkan hasil murni dalam format JSON. Jangan tulis tag <think>, jangan beri penjelasan, jangan tambahkan markdown ```json. HANYA format JSON valid yang diawali dengan {{ dan diakhiri dengan }}.
 """
 
-def _bangun_prompt_gemini_tahap2(teks_user: str, inti_dari_llm: str, daftar_kandidat: str) -> str:
-    return f"""Anda adalah Arsiparis Utama SIKAP.
-Tugas Anda meranking 3 kode klasifikasi terbaik dari kandidat di bawah.
 
-ATURAN KUARTIER SELECTION (PRIORITAS UTAMA 🔥):
-Sistem ini mewajibkan pencarian hingga level Kuartier (4 level kode, contoh: 000.0.0.0). Jika ada Kuartier yang relevan, prioritaskan di atas Tersier.
 
-SURAT ASLI: "{teks_user}"
-INTI SURAT: "{inti_dari_llm}"
+def _panggil_gemini(prompt: str, max_retries: int = 3, thinking_level: str = "minimal") -> str | None:
+    for percobaan in range(max_retries):
+        try:
+            response = client_gemini.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level=thinking_level),
+                    max_output_tokens=2048,
+                )
+            )
+            return response.text.strip()
 
-KANDIDAT KODE:
-{daftar_kandidat}
+        except Exception as e:
+            import streamlit as st
+            st.error(f"Peringatan Sistem: Gagal memanggil Gemini Flash (Percobaan {percobaan+1}). Detail: {e}")
 
-INSTRUKSI:
-1. Pilih maksimal 3 opsi yang paling tepat (Juara 1 = OPSI PERTAMA).
-2. Tulis analisis di baris "ANALISIS:".
-3. Tulis hasil di baris "HASIL AKHIR:" (HANYA NOMOR OPSI).
+            pesan = str(e).lower()
+            if any(k in pesan for k in ["429", "503", "rate", "quota", "overloaded"]):
+                if percobaan < max_retries - 1:
+                    jeda = (2 ** percobaan) * 2
+                    time.sleep(jeda)
+                    continue
+            break
+    return None
 
-Format output WAJIB:
-ANALISIS: [alasan singkat]
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z
-"""
+
+
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def smart_classify(user_input, df, top_n=3):
-    st.session_state['model_aktif'] = 'Gemini 3 Flash'
-    input_bersih = preprocess_text(user_input)
-    inti_dari_llm = user_input
-    pipeline_berhasil = False
-    hasil_akhir = []
-    kode_sekunder = ""
+def ekstrak_inti_surat(teks_user: str) -> tuple[str, dict]:
+    """
+    Mengekstrak 6 atribut terstruktur dari perihal surat.
+    Hierarki fallback: Gemini Flash -> Python
+    """
+    # ========================================================
+    # TANDEM EXTRACTOR: Python membersihkan singkatan DULU sebelum dikirim ke AI
+    # ========================================================
+    teks_user_terjemahan = terjemahkan_singkatan(teks_user)
 
-    # --- TAHAP 1: EKSTRAKSI & CARI SEKUNDER (API CALL 1) ---
-    try:
-        daftar_sekunder = get_daftar_sekunder(df)
-        prompt_t1 = _bangun_prompt_gemini_tahap1(user_input, daftar_sekunder)
-        raw_gemini = _panggil_gemini(prompt_t1)
+    # Bangun prompt untuk Gemini Flash
+    prompt_gemini = _bangun_prompt_gemini(teks_user_terjemahan)
+
+    # === LAPIS 1: Gemini Flash ===
+    raw_gemini = _panggil_gemini(prompt_gemini)
+    if raw_gemini:
+        data = _parse_json_atribut(raw_gemini)
+        if data and _validasi_json_atribut(data):
+            data["_model"] = "gemini-3-flash"
+            inti = str(data["inti"]).strip().lower()
+            return inti, data
+
+    # === LAPIS 2: Python manual (fallback aman) ===
+    return _fallback_ekstraksi_manual(teks_user)
+
+
+
         
-        if raw_gemini:
-            data_t1 = _parse_json_gemini(raw_gemini)
-            if data_t1:
-                inti_dari_llm = str(data_t1.get("inti", user_input)).strip().lower()
-                kode_sekunder = str(data_t1.get("kode_sekunder", "")).strip()
-    except Exception as e:
-        print("Tahap 1 Gemini gagal:", e)
-
-    # --- TAHAP 1.5: FEEDBACK LOOP (Mengingat Koreksi) ---
-    THRESHOLD_FEEDBACK = 90 
-    file_feedback = 'feedback_ai.csv'
-    if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
-        try:
-            df_feedback = pd.read_csv(file_feedback, dtype=str)
-            kolom_ok = ('inti_ekstraksi' in df_feedback.columns and 'kode_terpilih' in df_feedback.columns and not df_feedback['inti_ekstraksi'].dropna().empty)
-            if kolom_ok:
-                daftar_inti = df_feedback['inti_ekstraksi'].dropna().tolist()
-                best_match  = process.extractOne(inti_dari_llm, daftar_inti, scorer=fuzz.token_sort_ratio)
-                if best_match and best_match[1] >= THRESHOLD_FEEDBACK:
-                    teks_cocok = best_match[0]
-                    kode_hasil_belajar = (df_feedback[df_feedback['inti_ekstraksi'] == teks_cocok].iloc[-1]['kode_terpilih'])
-                    idx_belajar = df[df['kode'] == kode_hasil_belajar].index
-
-                    if not idx_belajar.empty:
-                        st.caption(f"🧠 SIKAP Mengingat! ({best_match[1]}% cocok dengan riwayat koreksi)")
-                        
-                        vectorizer_fb = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
-                        semua_dok_fb = df['clean_uraian'].tolist() + [input_bersih]
-                        matriks_fb = vectorizer_fb.fit_transform(semua_dok_fb)
-                        skor_fb = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
-
-                        kandidat_fb = sorted([{'idx': i, 'skor': s} for i, s in enumerate(skor_fb) if i != idx_belajar[0]], key=lambda x: x['skor'], reverse=True)
-                        hasil_gabungan = [(idx_belajar[0], 0.999)]
-                        for item in kandidat_fb:
-                            skor_sim = 0.85 - (len(hasil_gabungan) * 0.14)
-                            hasil_gabungan.append((item['idx'], skor_sim))
-                            if len(hasil_gabungan) == 3: break
-                        return hasil_gabungan, inti_dari_llm
-        except Exception:
-            pass
-
-    # --- TAHAP 2: RANKING HINGGA KUARTIER (API CALL 2) ---
-    if kode_sekunder:
-        try:
-            pola = re.search(r'\b(\d{3}(?:\.\d{1,2})?)\b', kode_sekunder)
-            if pola:
-                kode_kandidat = pola.group(1)
-                df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy().reset_index(drop=False)
-
-                if not df_subset.empty:
-                    daftar_kandidat = ""
-                    for i, row in df_subset.iterrows():
-                        daftar_kandidat += (
-                            f"[OPSI {i+1}]\n"
-                            f"Kode: {row['kode']}\n"
-                            f"Hierarki: {row['uraian_lengkap']}\n\n"
-                        )
-
-                    prompt_t2 = _bangun_prompt_gemini_tahap2(user_input, inti_dari_llm, daftar_kandidat)
-                    jawaban_t2 = _panggil_gemini(prompt_t2)
-
-                    if jawaban_t2:
-                        angka_pilihan = []
-                        for baris in jawaban_t2.split('\n'):
-                            if 'HASIL AKHIR' in baris.upper():
-                                for angka in re.findall(r'OPSI\s*(\d+)', baris.upper()):
-                                    angka_bulat = int(angka)
-                                    if 1 <= angka_bulat <= len(df_subset) and angka_bulat not in angka_pilihan:
-                                        angka_pilihan.append(angka_bulat)
-                                    if len(angka_pilihan) == 3: break
-                                break
-
-                        if not angka_pilihan:
-                            for angka in re.findall(r'OPSI\s*(\d+)', jawaban_t2.upper()):
-                                angka_bulat = int(angka)
-                                if 1 <= angka_bulat <= len(df_subset) and angka_bulat not in angka_pilihan:
-                                    angka_pilihan.append(angka_bulat)
-                                if len(angka_pilihan) == 3: break
-
-                        if angka_pilihan:
-                            for nomor in angka_pilihan:
-                                idx_subset = nomor - 1
-                                idx_asli = df_subset.iloc[idx_subset]['index']
-                                skor_sim = 0.99 - (len(hasil_akhir) * 0.14)
-                                hasil_akhir.append((idx_asli, skor_sim))
-                            
-                            pipeline_berhasil = True
-                            return hasil_akhir, inti_dari_llm
-        except Exception as e:
-            print("Tahap 2 Gemini gagal:", e)
-
-    # --- TAHAP 3: FALLBACK TF-IDF LOKAL ---
-    if not pipeline_berhasil:
-        st.session_state['model_aktif'] = 'TF-IDF Fallback'
-        
-        vectorizer    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
-        semua_dokumen = df['clean_uraian'].tolist() + [input_bersih]
-        matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
-        kemiripan_kosinus = cosine_similarity(matriks_tfidf[-1], matriks_tfidf[:-1])[0]
-
-        skor_awal = []
-        for indeks, nilai_skor in enumerate(kemiripan_kosinus):
-            skor_samar = fuzz.token_set_ratio(input_bersih, df.iloc[indeks]['clean_uraian']) / 100
-            skor_dasar = (nilai_skor * 0.90) + (skor_samar * 0.10)
-            skor_awal.append({'idx': indeks, 'skor': skor_dasar})
-
-        kandidat_teratas = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:top_n]
-        return [(item['idx'], item['skor']) for item in kandidat_teratas], inti_dari_llm
-     
 # --- UI & CSS CUSTOM ---
 st.markdown("""
 <style>
@@ -1125,11 +1122,7 @@ def preprocess_text(text):
     # Baru masukkan ke mesin terjemahan
     text = terjemahkan_singkatan(text)
     text = remover.remove(text)
-    
-    # PERBAIKAN #6: STEMMING DIMATIKAN
-    # Karena istilah birokrasi kehilangan identitas semantik
-    # text = stemmer.stem(text) 
-    
+    text = stemmer.stem(text)
     return text
 
 # --- 1. MEMUAT DATABASE (DENGAN SUNTIKAN KONTEKS HIERARKI) ---
@@ -1186,30 +1179,8 @@ def load_data():
     # Kolom baru ini yang akan menjadi "Mata" bagi AI
     df['uraian_lengkap'] = df['kode'].apply(bangun_hierarki)
     
-    # --- MULAI: SUNTIKAN HASIL ENRICHMENT AI ---
-    # 1. Pastikan kolom uraian_natural terbaca aman (jika kosong, ubah jadi string kosong)
-    if 'uraian_natural' not in df.columns:
-        df['uraian_natural'] = ""
-    df['uraian_natural'] = df['uraian_natural'].astype(str).fillna("").replace("nan", "")
-
-    # =========================================================
-    # PERBAIKAN #2: PISAHKAN KORPUS RETRIEVAL DAN HIERARKI
-    # =========================================================
-    
-    # KORPUS RETRIEVAL UTAMA (Fokus ke identitas spesifik kode)
-    df['retrieval_text'] = (
-        df['uraian'].astype(str) + " " +
-        df['uraian_natural'].astype(str)
-    )
-
-    # HIERARKI HANYA UNTUK INFORMASI TAMBAHAN
-    df['hierarchy_text'] = df['uraian_lengkap'].astype(str)
-
-    # =========================================================
-    # CLEAN TEXT
-    # =========================================================
-    df['clean_uraian'] = df['retrieval_text'].apply(preprocess_text)
-    df['clean_hierarchy'] = df['hierarchy_text'].apply(preprocess_text)
+    # TF-IDF dan Sastrawi sekarang membersihkan dan menghafal jalur hierarki secara penuh
+    df['clean_uraian'] = df['uraian_lengkap'].apply(preprocess_text)
     
     return df
     
@@ -1278,309 +1249,268 @@ def get_hierarchy(kode_target, df):
         hierarchy_list.append(html_string)
     return hierarchy_list
 
-# =========================================================
-# MESIN KLASIFIKASI HYBRID (AGENTIC -> FALLBACK TF-IDF)
-# =========================================================
+# --- 3. LOGIKA AI HYBRID (RERANKING) ---
 @st.cache_data(show_spinner=False, ttl=3600)
 def smart_classify(user_input, df, top_n=3):
-    st.session_state['model_aktif'] = 'Hybrid Qwen-Llama'
-    input_bersih = preprocess_text(user_input)
-    inti_dari_llm = user_input
-    pipeline_berhasil = False
-    hasil_akhir = []
-    kode_sekunder = ""
+ 
+    # 1. Ekstraksi 6 atribut
+    inti_dari_llm, atribut_6 = ekstrak_inti_surat(user_input)
+    st.session_state['model_aktif'] = atribut_6.get('_model', 'gemini-3-flash')
+ 
+    # =======================================================
+    # 2. QUERY EXPANSION (KONDISIONAL BERDASARKAN MODEL AI)
+    # =======================================================
+    model_ai_aktif = atribut_6.get('_model', 'gemini-3-flash')
 
-    # --- TAHAP 1: QWEN MENCARI KODE SEKUNDER & INTI ---
-    try:
-        daftar_sekunder = get_daftar_sekunder(df)
-        prompt_t1 = _bangun_prompt_qwen_tahap1(user_input, daftar_sekunder)
-        raw_qwen = _panggil_qwen3(prompt_t1, max_retries=2)
-        
-        if raw_qwen:
-            data_t1 = _parse_json_atribut(raw_qwen)
-            if data_t1:
-                inti_dari_llm = str(data_t1.get("inti", user_input)).strip().lower()
-                kode_sekunder = str(data_t1.get("kode_sekunder", "")).strip()
-    except Exception as e:
-        print("Tahap 1 Agentic gagal:", e)
+    if "gemini" in model_ai_aktif:
+        # Jika Gemini Flash (Pintar) -> Pakai Jaring Ekstraksi Penuh (Gabung 5 atribut)
+        query_gabungan = " ".join(filter(None, [
+            str(atribut_6.get("inti", "")),
+            str(atribut_6.get("objek", "")),
+            str(atribut_6.get("jenjang", "")),
+            str(atribut_6.get("kegiatan", "")),
+            str(atribut_6.get("produk", "")),
+        ]))
+    else:
+        # Jika Python fallback -> JANGAN DIGABUNG! Nanti TF-IDF tertipu noise.
+        # Cukup pakai hasil 'inti' mentahnya saja.
+        query_gabungan = str(atribut_6.get("inti", user_input))
+    
+    # Preprocessing
+    input_bersih = preprocess_text(query_gabungan)
 
-    # --- TAHAP 1.5: FEEDBACK LOOP (Sistem Belajar Otomatis) ---
-    THRESHOLD_FEEDBACK = 90 
+    # -------------------------------------------------------
+    # LANGKAH 4: FEEDBACK LOOP — Sistem Belajar Otomatis
+    # Dijalankan SEBELUM TF-IDF. Jika ada kecocokan di riwayat koreksi,
+    # langsung kembalikan hasil instan tanpa memanggil TF-IDF utama.
+    # -------------------------------------------------------
+    THRESHOLD_FEEDBACK = 90  # Nilai kecocokan fuzzy minimal (90%)
+
     file_feedback = 'feedback_ai.csv'
     if os.path.isfile(file_feedback) and os.path.getsize(file_feedback) > 0:
         try:
             df_feedback = pd.read_csv(file_feedback, dtype=str)
-            kolom_ok = ('inti_ekstraksi' in df_feedback.columns and 'kode_terpilih' in df_feedback.columns and not df_feedback['inti_ekstraksi'].dropna().empty)
+
+            kolom_ok = (
+                'inti_ekstraksi' in df_feedback.columns
+                and 'kode_terpilih' in df_feedback.columns
+                and not df_feedback['inti_ekstraksi'].dropna().empty
+            )
+
             if kolom_ok:
                 daftar_inti = df_feedback['inti_ekstraksi'].dropna().tolist()
-                best_match  = process.extractOne(inti_dari_llm, daftar_inti, scorer=fuzz.token_sort_ratio)
+                best_match  = process.extractOne(
+                    inti_dari_llm,
+                    daftar_inti,
+                    scorer=fuzz.token_sort_ratio
+                )
+
                 if best_match and best_match[1] >= THRESHOLD_FEEDBACK:
                     teks_cocok         = best_match[0]
-                    kode_hasil_belajar = (df_feedback[df_feedback['inti_ekstraksi'] == teks_cocok].iloc[-1]['kode_terpilih'])
+                    kode_hasil_belajar = (
+                        df_feedback[df_feedback['inti_ekstraksi'] == teks_cocok]
+                        .iloc[-1]['kode_terpilih']
+                    )
                     idx_belajar = df[df['kode'] == kode_hasil_belajar].index
 
                     if not idx_belajar.empty:
                         st.caption(f"🧠 SIKAP Mengingat! ({best_match[1]}% cocok dengan riwayat koreksi)")
-                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
+                        print(f"[SIKAP] Feedback Loop aktif: '{inti_dari_llm}' ≈ '{teks_cocok}' ({best_match[1]}%) → {kode_hasil_belajar}")
+
+                        # Susun 3 hasil: feedback di #1, TF-IDF mini untuk mengisi #2 dan #3
+                        vectorizer_fb    = TfidfVectorizer(ngram_range=(1, 3))
                         semua_dok_fb     = df['clean_uraian'].tolist() + [input_bersih]
                         matriks_fb       = vectorizer_fb.fit_transform(semua_dok_fb)
                         skor_fb          = cosine_similarity(matriks_fb[-1], matriks_fb[:-1])[0]
 
-                        kandidat_fb = sorted([{'idx': i, 'skor': s} for i, s in enumerate(skor_fb) if i != idx_belajar[0]], key=lambda x: x['skor'], reverse=True)
+                        kandidat_fb = sorted(
+                            [
+                                {'idx': i, 'skor': s}
+                                for i, s in enumerate(skor_fb)
+                                if i != idx_belajar[0]  # hindari duplikat
+                            ],
+                            key=lambda x: x['skor'],
+                            reverse=True
+                        )
+
                         hasil_gabungan = [(idx_belajar[0], 0.999)]
                         for item in kandidat_fb:
                             skor_sim = 0.85 - (len(hasil_gabungan) * 0.14)
                             hasil_gabungan.append((item['idx'], skor_sim))
-                            if len(hasil_gabungan) == 3: break
+                            if len(hasil_gabungan) == 3:
+                                break
+
                         return hasil_gabungan, inti_dari_llm
+
         except Exception as e:
-            pass
+            print(f"[SIKAP] Feedback Loop error (diabaikan): {e}")
+ 
+    # =======================================================
+    # 2b. PENGHANCURAN FILTER (TOTAL BYPASS)
+    # Karena AI buta terhadap isi database klasifikasi,
+    # kita biarkan mesin TF-IDF berburu bebas di 2830 baris!
+    # =======================================================
+    
+    # Tetap ditangkap sekadar untuk dimunculkan di log/tampilan (jika perlu)
+    domain_terdeteksi = str(atribut_6.get("domain", "")).lower().strip()
+    
+    # Filter DIMATIKAN PERMANEN. Tidak ada lagi surat nyasar!
+    FILTER_AKTIF = False 
+    
+    # Mesin TF-IDF akan membaca seluruh data asli
+    df_subset = df.copy() 
+    
+    # Simpan indeks asli df sebelum reset
+    df_subset = df_subset.reset_index(drop=False)
+ 
+    # 3. TF-IDF & Fuzzy + LANGKAH 5: Depth Bonus Kondisional
+    vectorizer    = TfidfVectorizer(ngram_range=(1, 3))
+    semua_dokumen = df_subset['clean_uraian'].tolist() + [input_bersih]
+    matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
+ 
+    kemiripan_kosinus = cosine_similarity(
+        matriks_tfidf[-1], matriks_tfidf[:-1]
+    )[0]
+ 
+    skor_awal = []
+    for indeks, nilai_skor in enumerate(kemiripan_kosinus):
+        skor_samar = fuzz.token_set_ratio(
+            input_bersih, df_subset.iloc[indeks]['clean_uraian']
+        ) / 100
+ 
+        # Hitung skor dasar dulu
+        skor_dasar = (nilai_skor * 0.70) + (skor_samar * 0.30)
+ 
+        # LANGKAH 5: Bonus kedalaman HANYA jika skor dasar sudah relevan
+        kode_item    = str(df_subset.iloc[indeks]['kode'])
+        jumlah_titik = kode_item.count('.')
+        if skor_dasar >= 0.15:
+            bonus_kedalaman = jumlah_titik * 0.01
+        else:
+            bonus_kedalaman = 0
+ 
+        skor_gabungan = skor_dasar + bonus_kedalaman
+ 
+        idx_asli = df_subset.iloc[indeks]['index']
+        skor_awal.append({'idx': idx_asli, 'skor': skor_gabungan})
+ 
+    dua_puluh_kandidat_teratas = sorted(
+        skor_awal, key=lambda x: x['skor'], reverse=True
+    )[:20]
+ 
+    # =======================================================
+    # TAHAP 1 (LANGKAH 6): SMART ROUTING / BYPASS HAKIM AGUNG
+    # (Versi Disempurnakan: Tanpa syarat selisih skor!)
+    # =======================================================
+    skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
+    
+    # =======================================================
+    # TAHAP 1: SMART ROUTING / BYPASS HAKIM AGUNG
+    # (Hanya bypass jika mesin LOKAL YAKIN 80% dan JELAS BEDANYA)
+    # =======================================================
+    skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
+    skor_kedua = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
+    
+    THRESHOLD_BYPASS = 0.80 
+    SELISIH_AMAN = 0.15
+    
+    if skor_tertinggi >= THRESHOLD_BYPASS and (skor_tertinggi - skor_kedua) >= SELISIH_AMAN:
+        hasil_fast = []
+        for item in dua_puluh_kandidat_teratas[:top_n]:
+            skor_sim = 0.99 - (len(hasil_fast) * 0.14)
+            hasil_fast.append((item['idx'], skor_sim))
+        return hasil_fast, inti_dari_llm
+ 
+    # 4. Juri AI — hanya dipanggil jika smart routing tidak aktif
+    kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20] # KITA KEMBALIKAN KE 20 AGAR DIA BISA MELIHAT DANA BOS
 
-    # --- TAHAP 2 & 3: PANDAS FILTER -> LLAMA (ESTAFET) ---
-    if kode_sekunder:
-        try:
-            pola = re.search(r'\b(\d{3}(?:\.\d{1,2})?)\b', kode_sekunder)
-            if pola:
-                kode_kandidat = pola.group(1)
-                if any(df['kode'].str.startswith(kode_kandidat)):
-                    df_subset = df[df['kode'].str.startswith(kode_kandidat)].copy()
-                    df_subset = df_subset.reset_index(drop=False)
+    daftar_kandidat = ""
+    for urutan, item in enumerate(kandidat_untuk_juri):
+        baris_data = df.iloc[item['idx']]
+        daftar_kandidat += (
+            f"[OPSI {urutan+1}] Kode: {baris_data['kode']} | "
+            f"Konteks Hierarki: {baris_data['uraian_lengkap'].title()}\n"
+        )
 
-                    # ── PISAH LEVEL HIERARKI (PERBAIKAN FATAL CLAUDE) ─────────
-                    # Tersier = Memiliki tepat 2 titik (contoh: 500.17.3)
-                    df_tersier = df_subset[
-                        df_subset['kode'].str.count(r'\.') == 2
-                    ].reset_index(drop=True)
+    perintah_juri = f"""Anda adalah Arsiparis Senior.
+Tugas: Pilih 3 nomor urut OPSI yang paling tepat untuk urusan berikut.
 
-                    # Kuartier = Memiliki tepat 3 titik (contoh: 500.17.3.1)
-                    df_kuartier = df_subset[
-                        df_subset['kode'].str.count(r'\.') == 3
-                    ].reset_index(drop=True)
-
-                    # ── LANGKAH 1: LLAMA PILIH 1 TERSIER ─────────────────
-                    kode_tersier_terpilih = None
-
-                    if not df_tersier.empty:
-                        daftar_tersier = ""
-                        for i, row in df_tersier.iterrows():
-                            daftar_tersier += (
-                                f"[OPSI {i+1}]\n"
-                                f"Kode: {row['kode']}\n"
-                                f"Uraian: {row['uraian_lengkap']}\n\n"
-                            )
-
-                        prompt_tersier = f"""Anda adalah Arsiparis Senior SIKAP.
-Domain sekunder: {kode_kandidat}
-
-SURAT ASLI: "{user_input}"
-INTI SURAT: "{inti_dari_llm}"
-
-KANDIDAT TERSIER:
-{daftar_tersier}
-
-INSTRUKSI KETAT:
-1. Pikirkan matang-matang urusan UTAMA surat (Contoh: "Sertifikat" berarti Penguatan Hak, BUKAN Pengadaan Tanah).
-2. Pilih 1 KODE TERSIER yang paling sesuai.
-3. Tulis analisis singkat Anda di baris "ANALISIS:".
-4. Tulis hasil di baris "HASIL TERSIER:" (HANYA TULIS NOMOR OPSI-NYA SAJA).
-
-Format output (WAJIB persis seperti contoh):
-ANALISIS: Surat ini soal legalitas/sertifikat, jadi masuk urusan hak atas tanah.
-HASIL TERSIER: OPSI X"""
-
-                        jawaban_tersier = _panggil_llama_penentu(prompt_tersier)
-
-                        if jawaban_tersier:
-                            angka_t = re.findall(r'OPSI\s*(\d+)', jawaban_tersier.upper())
-                            if angka_t:
-                                idx_t = int(angka_t[0]) - 1
-                                if 0 <= idx_t < len(df_tersier):
-                                    kode_tersier_terpilih = df_tersier.iloc[idx_t]['kode']
-
-                    # ── LANGKAH 2: LLAMA RANKING KUARTIER ────────────────
-                    if kode_tersier_terpilih:
-                        df_kuartier_filter = df_kuartier[
-                            df_kuartier['kode'].str.startswith(kode_tersier_terpilih)
-                        ].reset_index(drop=True)
-                    elif df_tersier.empty:
-                        # Qwen sudah pointing ke tersier langsung, ambil semua kuartier di subset
-                        df_kuartier_filter = df_kuartier.reset_index(drop=True)
-                    else:
-                        # Llama gagal pilih tersier — lempar ke Exception agar TF-IDF ambil alih
-                        raise Exception("Llama gagal identifikasi tersier")
-
-                    if not df_kuartier_filter.empty:
-                        daftar_kuartier = ""
-                        for i, row in df_kuartier_filter.iterrows():
-                            daftar_kuartier += (
-                                f"[OPSI {i+1}]\n"
-                                f"Kode: {row['kode']}\n"
-                                f"Uraian: {row['uraian_lengkap']}\n\n"
-                            )
-
-                        prompt_kuartier = f"""Anda adalah Arsiparis Senior SIKAP.
-Tersier terpilih: {kode_tersier_terpilih or kode_kandidat}
-
-SURAT ASLI: "{user_input}"
-INTI SURAT: "{inti_dari_llm}"
-
-KANDIDAT KUARTIER:
-{daftar_kuartier}
-
-INSTRUKSI KETAT:
-1. Analisis substansi utama surat secara spesifik.
-2. Urutkan tepat 3 opsi dari PALING TEPAT ke KURANG TEPAT (atau sebanyak opsi yang tersedia jika kurang dari 3).
-3. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
-4. Tulis analisis singkat Anda di baris "ANALISIS:".
-5. Tulis jawaban di baris "HASIL AKHIR:" (HANYA TULIS NOMOR OPSI).
-
-Format output (WAJIB persis seperti contoh):
-ANALISIS: Mengurus sertifikat perpustakaan adalah bentuk penguatan atas tanah.
-HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
-
-                        jawaban_kuartier = _panggil_llama_penentu(prompt_kuartier)
-
-                        if jawaban_kuartier:
-                            angka_pilihan = []
-
-                            # Parser utama — HANYA TANGKAP ANGKA SETELAH KATA "OPSI"
-                            for baris in jawaban_kuartier.split('\n'):
-                                if 'HASIL AKHIR' in baris.upper():
-                                    for angka in re.findall(r'OPSI\s*(\d+)', baris.upper()):
-                                        angka_bulat = int(angka)
-                                        if (1 <= angka_bulat <= len(df_kuartier_filter)
-                                                and angka_bulat not in angka_pilihan):
-                                            angka_pilihan.append(angka_bulat)
-                                        if len(angka_pilihan) == 3:
-                                            break
-                                    break
-
-                            # Fallback parser — cari OPSI di seluruh response
-                            if not angka_pilihan:
-                                for angka in re.findall(r'OPSI\s*(\d+)', jawaban_kuartier.upper()):
-                                    angka_bulat = int(angka)
-                                    if (1 <= angka_bulat <= len(df_kuartier_filter)
-                                            and angka_bulat not in angka_pilihan):
-                                        angka_pilihan.append(angka_bulat)
-                                    if len(angka_pilihan) == 3:
-                                        break
-
-                            if angka_pilihan:
-                                for nomor in angka_pilihan:
-                                    idx_k = nomor - 1
-                                    if 0 <= idx_k < len(df_kuartier_filter):
-                                        idx_asli = df_kuartier_filter.iloc[idx_k]['index']
-                                        skor_sim = 0.99 - (len(hasil_akhir) * 0.14)
-                                        hasil_akhir.append((idx_asli, skor_sim))
-
-                                if hasil_akhir:
-                                    pipeline_berhasil = True
-                                    return hasil_akhir, inti_dari_llm
-                    else:
-                        # EDGE CASE 2: Tersier tidak punya anak Kuartier, maka Tersier-nya yang menang mutlak!
-                        if kode_tersier_terpilih:
-                            idx_tersier = df_tersier[df_tersier['kode'] == kode_tersier_terpilih].iloc[0]['index']
-                            pipeline_berhasil = True
-                            return [(idx_tersier, 0.99)], inti_dari_llm
-                        else:
-                            # EDGE CASE 3: Jika bahkan tidak ada Tersier/Kuartier sama sekali, kembalikan kode Sekunder
-                            idx_sekunder = df_subset[df_subset['kode'] == kode_kandidat].iloc[0]['index']
-                            pipeline_berhasil = True
-                            return [(idx_sekunder, 0.99)], inti_dari_llm
-        except Exception as e:
-            print("Tahap 2/3 gagal:", e)
-
-    # --- TAHAP 4: FALLBACK TF-IDF + LLAMA ---
-    if not pipeline_berhasil:
-        st.session_state['model_aktif'] = 'TF-IDF Fallback'
-        
-        if inti_dari_llm == user_input:
-            inti_dari_llm, _ = _fallback_ekstraksi_manual(user_input)
-
-        vectorizer    = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, min_df=1)
-        semua_dokumen = df['clean_uraian'].tolist() + [input_bersih]
-        matriks_tfidf = vectorizer.fit_transform(semua_dokumen)
-
-        kemiripan_kosinus = cosine_similarity(matriks_tfidf[-1], matriks_tfidf[:-1])[0]
-
-        skor_awal = []
-        for indeks, nilai_skor in enumerate(kemiripan_kosinus):
-            skor_samar = fuzz.token_set_ratio(input_bersih, df.iloc[indeks]['clean_uraian']) / 100
-            skor_dasar = (nilai_skor * 0.90) + (skor_samar * 0.10)
-            skor_awal.append({'idx': indeks, 'skor': skor_dasar})
-
-        dua_puluh_kandidat_teratas = sorted(skor_awal, key=lambda x: x['skor'], reverse=True)[:20]
-
-        skor_tertinggi = dua_puluh_kandidat_teratas[0]['skor']
-        skor_kedua = dua_puluh_kandidat_teratas[1]['skor'] if len(dua_puluh_kandidat_teratas) > 1 else 0
-        THRESHOLD_BYPASS = 0.80 
-        SELISIH_AMAN = 0.15
-        
-        if skor_tertinggi >= THRESHOLD_BYPASS and (skor_tertinggi - skor_kedua) >= SELISIH_AMAN:
-            hasil_fast = []
-            for item in dua_puluh_kandidat_teratas[:top_n]:
-                skor_sim = 0.99 - (len(hasil_fast) * 0.14)
-                hasil_fast.append((item['idx'], skor_sim))
-            return hasil_fast, inti_dari_llm
-
-        kandidat_untuk_juri = dua_puluh_kandidat_teratas[:20]
-        daftar_kandidat_juri = ""
-        for urutan, item in enumerate(kandidat_untuk_juri):
-            baris_data = df.iloc[item['idx']]
-            daftar_kandidat_juri += f"[OPSI {urutan + 1}]\nKode: {baris_data['kode']}\nUraian Utama: {baris_data['uraian']}\nHierarki Lengkap: {baris_data['uraian_lengkap']}\nKonteks Natural: {baris_data['uraian_natural']}\n\n"
-
-        perintah_juri = f"""Anda adalah Arsiparis Senior Pemerintahan dan Ahli Klasifikasi Arsip.
-Tentukan maksimal 3 kode klasifikasi arsip yang PALING TEPAT berdasarkan SUBSTANSI UTAMA surat, lalu URUTKAN dari yang paling tepat.
-
-SURAT ASLI: "{user_input}"
-HASIL ANALISIS INTI: "{inti_dari_llm}"
+URUSAN SURAT: "{inti_dari_llm}"
 
 DAFTAR KANDIDAT:
-{daftar_kandidat_juri}
+{daftar_kandidat}
 
-INSTRUKSI KETAT:
-1. Fokus pada SUBSTANSI UTAMA surat (Bedakan antara legalitas/sertifikat dengan fisik/pembangunan).
-2. Pilih tepat 3 opsi terbaik.
-3. Urutan WAJIB dari PALING RELEVAN ke KURANG RELEVAN.
-4. OPSI PERTAMA = kode yang PALING TEPAT (Juara 1).
-5. Tulis analisis singkat Anda di baris "ANALISIS:".
-6. Tulis jawaban di baris "HASIL AKHIR:" (HANYA NOMOR OPSI).
+LANGKAH BERPIKIR (Wajib diisi):
+- Domain urusan: [isi]
+- Kode Anak terdalam yang relevan: [isi]
+- Alasan menolak kode induk: [isi]
 
-Format output (WAJIB persis seperti contoh):
-ANALISIS: Fokus dokumen adalah legalitas (sertifikat), sehingga kode yang tepat adalah penguatan hak atas tanah.
-HASIL AKHIR: OPSI 12, OPSI 3, OPSI 8
-"""
-        balasan_juri = _panggil_llama_penentu(perintah_juri)
-        if balasan_juri:
-            angka_pilihan = []
-            for baris in balasan_juri.split('\n'):
-                if 'HASIL AKHIR' in baris.upper():
-                    angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
-                    if not angka_mentah: angka_mentah = re.findall(r'\d+', baris)
-                    for angka in angka_mentah:
-                        angka_bulat = int(angka)
-                        if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
-                            angka_pilihan.append(angka_bulat)
-                        if len(angka_pilihan) == 3: break
-                    break
-            if not angka_pilihan:
-                for angka in re.findall(r'\d+', balasan_juri):
+ATURAN MUTLAK:
+1. DILARANG KERAS memilih kode induk jika ada kode anaknya yang relevan (Kuartier/Tersier diutamakan).
+2. Tuliskan NOMOR URUT OPSINYA saja (1-20), bukan kode klasifikasinya!
+3. Tulis hasil akhir PERSIS seperti format ini:
+HASIL AKHIR: OPSI X, OPSI Y, OPSI Z"""
+
+    try:
+        respons_juri = client_gemini.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=perintah_juri,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(thinking_level="low"),
+                max_output_tokens=1024,
+            )
+        )
+        balasan_juri = respons_juri.text.strip()
+
+        # Penangkap Angka Anti-Meleset
+        angka_pilihan = []
+        for baris in balasan_juri.split('\n'):
+            if 'HASIL AKHIR' in baris.upper():
+                # Wajib menangkap angka HANYA setelah kata OPSI
+                angka_mentah = re.findall(r'OPSI\s*(\d+)', baris.upper())
+                
+                # Jika Llama ngeyel tidak pakai kata OPSI, tangkap angka biasa
+                if not angka_mentah:
+                    angka_mentah = re.findall(r'\d+', baris)
+                    
+                for angka in angka_mentah:
                     angka_bulat = int(angka)
                     if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
                         angka_pilihan.append(angka_bulat)
-                    if len(angka_pilihan) == 3: break
-                    
-            hasil_akhir_juri = []
-            for nomor in angka_pilihan:
-                indeks_kandidat = nomor - 1
-                if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
-                    skor_simulasi = 0.99 - (len(hasil_akhir_juri) * 0.14)
-                    hasil_akhir_juri.append((kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi))
-            
-            if hasil_akhir_juri:
-                return hasil_akhir_juri, inti_dari_llm
+                    if len(angka_pilihan) == 3:
+                        break
+                break
 
-        return [(item['idx'], item['skor']) for item in kandidat_untuk_juri[:top_n]], inti_dari_llm
+        # Fallback jika baris HASIL AKHIR gaib
+        if not angka_pilihan:
+            for angka in re.findall(r'\d+', balasan_juri):
+                angka_bulat = int(angka)
+                if 1 <= angka_bulat <= len(kandidat_untuk_juri) and angka_bulat not in angka_pilihan:
+                    angka_pilihan.append(angka_bulat)
+                if len(angka_pilihan) == 3:
+                    break
+
+        hasil_akhir = []
+        for nomor in angka_pilihan:
+            indeks_kandidat = nomor - 1
+            if 0 <= indeks_kandidat < len(kandidat_untuk_juri):
+                skor_simulasi = 0.99 - (len(hasil_akhir) * 0.14)
+                hasil_akhir.append(
+                    (kandidat_untuk_juri[indeks_kandidat]['idx'], skor_simulasi)
+                )
+
+        if hasil_akhir:
+            return hasil_akhir, inti_dari_llm
+
+    except Exception as e:
+        st.error(f"🚨 KESALAHAN SISTEM (Tahap Juri Penilai): {e}")
+
+    # Fallback murni jika Juri error total
+    return [
+        (item['idx'], item['skor'])
+        for item in kandidat_untuk_juri[:top_n]
+    ], inti_dari_llm
+
 
     
 # --- 4. ANTARMUKA UTAMA (STYLE DASHBOARD ENTERPRISE) ---
@@ -2390,7 +2320,7 @@ def halaman_utama():
                 data_aktif = st.session_state['ai_search_results']
                 inti_llm = data_aktif["inti"]
                 results = data_aktif["rekomendasi"]
-                model_ai = st.session_state.get('model_aktif', 'qwen3-32b').upper()
+                model_ai = st.session_state.get('model_aktif', 'gemini-3-flash').upper()
                 
                 if results:
                     st.markdown(f"""
