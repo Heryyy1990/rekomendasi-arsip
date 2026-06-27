@@ -319,6 +319,29 @@ def _parse_json_gemini(raw: str) -> dict | None:
     except Exception:
         return None
 
+# --- TAMBAHKAN DI BAWAH FUNGSI _parse_json_gemini ---
+
+KATA_PENGANTAR = {
+    "penyampaian", "permohonan", "undangan", "laporan", "tindak",
+    "lanjut", "usulan", "hal", "mengenai", "draf", "rancangan",
+    "penerbitan", "fasilitasi", "perihal", "rekomendasi", "sosialisasi",
+    "pelaksanaan", "penyelenggaraan", "pembahasan", "pengajuan",
+    "penyusunan", "pembuatan", "pemberitahuan", "pelaporan",
+    "penetapan", "pengiriman", "pengesahan", "permintaan", "data",
+    "hasil", "tindaklanjut", "konfirmasi", "koordinasi", "pemantauan",
+}
+
+def _fallback_ekstraksi_manual(teks):
+    """
+    Lapis ke-3: ekstraksi Python murni sebagai jaring pengaman.
+    """
+    teks_bersih = re.sub(r'[^a-zA-Z0-9\s(),/-]', ' ', teks.lower()).strip()
+    kata = teks_bersih.split()
+    while kata and kata[0] in KATA_PENGANTAR:
+        kata.pop(0)
+    inti = " ".join(kata[:10]) if kata else teks.lower()[:80]
+    return inti, {}
+
 @st.cache_data
 def get_daftar_sekunder(df):
     mask = df['kode'].str.count(r'\.') <= 1
