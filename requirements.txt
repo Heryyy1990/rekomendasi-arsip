@@ -1,4 +1,4 @@
-google-genai>=0.8.0
+google-generativeai
 groq
 streamlit
 pandas
